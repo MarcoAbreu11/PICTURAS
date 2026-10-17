@@ -16,7 +16,8 @@ import TextAITool from "./text-ai-tool";
 import UpgradeAITool from "./upgrade-ai-tool";
 import { useClearProjectTools } from "@/lib/mutations/projects";
 import { useSession } from "@/providers/session-provider";
-import { useProjectInfo } from "@/providers/project-provider";
+import { useCurrentImage, useProjectInfo } from "@/providers/project-provider";
+import { isVideo } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { AppliedToolsList } from "./applied-tools-list";
 import {
@@ -41,7 +42,16 @@ export function Toolbar() {
   const disabled = view === "grid" || mode === "results";
 
   const project = useProjectInfo();
+  const currentImage = useCurrentImage();
   const session = useSession();
+
+  // as tools atuais só processam imagens: num vídeo (vista individual) não as mostramos
+  const currentIsVideo =
+    view === "carousel" &&
+    !!currentImage &&
+    (currentImage.media_type
+      ? currentImage.media_type === "video"
+      : isVideo(currentImage.name));
 
   const [open, setOpen] = useState<boolean>(false);
   const ownerParam = searchParams.get("owner") ?? session.user._id;
@@ -59,22 +69,30 @@ export function Toolbar() {
     <div className="flex h-full w-24 flex-col justify-between items-stretch border-r bg-background p-2">
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-500">Tools</span>
-        <BrightnessTool disabled={disabled} />
-        <ContrastTool disabled={disabled} />
-        <SaturationTool disabled={disabled} />
-        <BinarizationTool disabled={disabled} />
-        <RotateTool disabled={disabled} />
-        <CropTool disabled={disabled} />
-        <ResizeTool disabled={disabled} />
-        <BorderTool disabled={disabled} />
-        <WatermarkTool disabled={disabled} />
-        <BgRemovalAITool disabled={disabled} />
-        <CropAITool disabled={disabled} />
-        <ObjectAITool disabled={disabled} />
-        <PeopleAITool disabled={disabled} />
-        <TextAITool disabled={disabled} />
-        <ExpandAITool disabled={disabled} />
-        <UpgradeAITool disabled={disabled} />
+        {currentIsVideo ? (
+          <p className="text-xs text-center text-muted-foreground py-2">
+            Video tools coming soon
+          </p>
+        ) : (
+          <>
+            <BrightnessTool disabled={disabled} />
+            <ContrastTool disabled={disabled} />
+            <SaturationTool disabled={disabled} />
+            <BinarizationTool disabled={disabled} />
+            <RotateTool disabled={disabled} />
+            <CropTool disabled={disabled} />
+            <ResizeTool disabled={disabled} />
+            <BorderTool disabled={disabled} />
+            <WatermarkTool disabled={disabled} />
+            <BgRemovalAITool disabled={disabled} />
+            <CropAITool disabled={disabled} />
+            <ObjectAITool disabled={disabled} />
+            <PeopleAITool disabled={disabled} />
+            <TextAITool disabled={disabled} />
+            <ExpandAITool disabled={disabled} />
+            <UpgradeAITool disabled={disabled} />
+          </>
+        )}
         <AppliedToolsList />
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
