@@ -7,7 +7,7 @@ PictuRAS is a web-based image editing platform that combines traditional image p
 > **This repository is a starting point, not a finished product.**
 > It is the result of two previous academic years of student work (see [Authors](#-authors)). It contains working features, known limitations and technical debt — finding, documenting and improving those is part of your job this semester.
 
----
+----
 
 ## 📑 Table of Contents
 
