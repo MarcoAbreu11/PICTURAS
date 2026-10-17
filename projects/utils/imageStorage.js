@@ -30,6 +30,8 @@ async function post_image(user, project, type, file) {
   return await axios.post(
     `${img_storage_ms}/upload/${user}/${project}/${type}`,
     file /* , { httpsAgent: httpsAgent } */,
+    // resultados/vídeos podem passar o limite de 10 MB do axios em Node
+    { maxBodyLength: Infinity, maxContentLength: Infinity },
   );
 }
 

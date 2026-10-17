@@ -52,7 +52,7 @@ export function AddImagesDialog() {
       {
         onSuccess: () => {
           toast({
-            title: "Images added successfully.",
+            title: "Files added successfully.",
           });
           setOpen(false);
         },
@@ -72,14 +72,14 @@ export function AddImagesDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="inline-flex" variant="outline">
-          <Plus /> Add Images
+          <Plus /> Add Media
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Images</DialogTitle>
+          <DialogTitle>Add Media</DialogTitle>
           <DialogDescription>
-            Add more images to your project.
+            Add more images or videos to your project.
           </DialogDescription>
         </DialogHeader>
         <ImageSubmissionArea onDrop={onDrop} />

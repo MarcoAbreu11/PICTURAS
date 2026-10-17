@@ -34,6 +34,7 @@ const jwt = require("jsonwebtoken");
 const { getCallerId } = require("../utils/caller");
 const { ensureEditorSlot, releaseEditorSlot } = require("../utils/presence");
 const { extractImageFeatures } = require("../utils/imageFeatures");
+const { mediaTypeOf, probeVideo, checkVideoLimits } = require("../utils/media");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
 
@@ -53,7 +54,7 @@ const {
 const { requireProjectVersion } = require("../middleware/projectVersion");
 
 const storage = multer.memoryStorage();
-var upload = multer({ storage: storage });
+var upload = multer({ storage: storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
 const key = fs.readFileSync(__dirname + "/../certs/selfsigned.key");
 const cert = fs.readFileSync(__dirname + "/../certs/selfsigned.crt");
@@ -676,6 +677,7 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
             _id: r.img_id,
             name: r.file_name,
             url,
+            media_type: r.type === "video" ? "video" : "image",
           });
         } catch (err) {
           console.error("Error getting result image url for shared project:", err);
@@ -698,6 +700,7 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
             _id: img._id,
             name: path.basename(img.og_uri),
             url,
+            media_type: img.media_type ?? "image",
           });
         } catch (err) {
           console.error("Error getting image url for shared project:", err);
@@ -832,6 +835,7 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
             _id: img._id,
             name: path.basename(img.og_uri),
             url: url,
+            media_type: img.media_type ?? "image",
           });
         } catch (_) {
           res.status(404).jsonp(`Error acquiring image's url`);
@@ -860,6 +864,7 @@ router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, ne
           _id: img._id,
           name: path.basename(img.og_uri),
           url: resp.data.url,
+          media_type: img.media_type ?? "image",
         });
       } catch (_) {
         res.status(404).jsonp("No image with such id.");
@@ -889,6 +894,7 @@ router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) 
               _id: img._id,
               name: path.basename(img.og_uri),
               url: url,
+              media_type: img.media_type ?? "image",
             });
           } catch (_) {
             res.status(404).jsonp(`Error acquiring image's url`);
@@ -1177,6 +1183,25 @@ router.post(
       return;
     }
 
+    const media_type = mediaTypeOf(req.file.originalname);
+    if (!media_type) {
+      return res.status(400).jsonp("Unsupported file type");
+    }
+
+    // Vídeos: validar tamanho e duração segundo o perfil de quem faz o upload
+    if (media_type === "video") {
+      try {
+        const callerId = getCallerId(req);
+        const userResp = await axios.get(users_ms + `${callerId}/type`, { httpsAgent });
+        const probe = await probeVideo(req.file.buffer, req.file.originalname);
+        const reason = checkVideoLimits(userResp.data.type, req.file.size, probe.duration);
+        if (reason) return res.status(413).jsonp(reason);
+      } catch (e) {
+        console.error("[UPLOAD][VIDEO] validation error:", e.message);
+        return res.status(400).jsonp("Invalid or unreadable video file");
+      }
+    }
+
     Project.getOne(req.params.user, req.params.project)
       .then(async (project) => {
         const same_name_img = project.imgs.filter(
@@ -1186,7 +1211,7 @@ router.post(
         if (same_name_img.length > 0) {
           res
             .status(400)
-            .jsonp("This project already has an image with that name.");
+            .jsonp("This project already has a file with that name.");
           return;
         }
 
@@ -1219,6 +1244,7 @@ router.post(
               new_uri: new_uri,
               og_img_key: og_key,
               og_sha256: sha,
+              media_type: media_type,
             });
 
             const updated = await Project.updateIfVersion(

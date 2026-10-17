@@ -3,7 +3,10 @@ const multer = require("multer");
 const uploadImage = require("../services/uploadImage");
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 },
+});
 
 router.post(
   "/:userId/:projectId/:stage",

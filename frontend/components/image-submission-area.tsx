@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AppDropzone from "./app-dropzone";
-import { FileImage, ImagePlus, Plus, X } from "lucide-react";
+import { FileImage, FileVideo, ImagePlus, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { HoverCard, HoverCardTrigger } from "./ui/hover-card";
 import { HoverCardContent } from "@radix-ui/react-hover-card";
 import ImagePreview from "./image-preview";
-import { extractZipImages } from "@/lib/utils";
+import { extractZipImages, isVideo } from "@/lib/utils";
 
 export default function ImageSubmissionArea({
   receivedFiles = [],
@@ -22,10 +22,13 @@ export default function ImageSubmissionArea({
       "image/png",
       "image/jpeg",
       "image/jpg",
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
       "application/zip",
     ];
 
-    // Extract images from zip files and filter out incompatible files
+    // Extract images and videos from zip files and filter out incompatible files
     const compatibleFiles: File[] = [];
     for (const file of acceptedFiles) {
       if (file.type === "application/zip") {
@@ -72,7 +75,7 @@ export default function ImageSubmissionArea({
             <div className="flex flex-col gap-4 items-center justify-center max-w-[20rem]">
               <ImagePlus size={64} />
               <p className="font-medium text-lg">
-                Drag and drop images or a .zip
+                Drag and drop images, videos or a .zip
               </p>
             </div>
           </AppDropzone>
@@ -89,7 +92,11 @@ export default function ImageSubmissionArea({
                   >
                     <CardContent className="py-2 px-3 relative">
                       <div className="flex flex-col items-center justify-center pointer-events-none">
-                        <FileImage className="w-10 h-7 text-primary mb-1" />
+                        {isVideo(file.type || file.name) ? (
+                          <FileVideo className="w-10 h-7 text-primary mb-1" />
+                        ) : (
+                          <FileImage className="w-10 h-7 text-primary mb-1" />
+                        )}
                         <p className="text-xs text-center truncate w-full">
                           {file.name}
                         </p>

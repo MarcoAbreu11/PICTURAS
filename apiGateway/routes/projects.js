@@ -21,7 +21,20 @@ const httpsAgent = new https.Agent({
 });
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 500 * 1024 * 1024 },
+});
+
+// upload.single com resposta 413 legível quando o ficheiro excede o limite
+function uploadSingle(field) {
+  return (req, res, next) =>
+    upload.single(field)(req, res, (err) => {
+      if (err?.code === "LIMIT_FILE_SIZE") return res.status(413).jsonp("File too large");
+      if (err) return next(err);
+      next();
+    });
+}
 
 const projectsURL = "https://projects:9001/";
 
@@ -408,9 +421,11 @@ router.post(
  */
 router.post(
   "/:user/:project/img",
-  upload.single("image"),
+  uploadSingle("image"),
   auth.checkToken,
   function (req, res, next) {
+    if (!req.file) return res.status(400).jsonp("No file found");
+
     const ownerId = req.query.owner || req.params.user;
     const callerId = req.authUserId || req.params.user;
 
@@ -433,7 +448,9 @@ router.post(
           },
           httpsAgent: httpsAgent,
           params: req.query.share ? { share: req.query.share } : undefined, 
-          
+          // o axios em Node corta pedidos acima de 10 MB por defeito
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         }
       )
       .then((resp) => {

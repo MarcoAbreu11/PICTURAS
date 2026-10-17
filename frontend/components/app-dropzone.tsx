@@ -24,7 +24,8 @@ export default function AppDropzone({ onDrop, children }: CustomDropzoneProps) {
           setIsDragging(false);
           toast({
             title: "Invalid file type!",
-            description: "Please upload a .png, .jpeg, .jpg, or .zip file",
+            description:
+              "Please upload a .png, .jpeg, .jpg, .mp4, .webm, .mov, or .zip file",
             variant: "destructive",
           });
         }}
@@ -32,6 +33,9 @@ export default function AppDropzone({ onDrop, children }: CustomDropzoneProps) {
           "image/png": [".png"],
           "image/jpeg": [".jpeg"],
           "image/jpg": [".jpg"],
+          "video/mp4": [".mp4"],
+          "video/webm": [".webm"],
+          "video/quicktime": [".mov"],
           "application/zip": [".zip"],
         }}
       >

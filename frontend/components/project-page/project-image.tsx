@@ -1,4 +1,5 @@
-import { cn } from "@/lib/utils";
+import { cn, isVideo } from "@/lib/utils";
+import MediaView from "@/components/media-view";
 import { Card } from "@/components/ui/card";
 import { Download, Trash } from "lucide-react";
 import { useState } from "react";
@@ -11,7 +12,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import Image from "next/image";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -57,36 +57,47 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
   );
   const downloadImage = useDownloadProjectImage(mode === "results");
   const { toast } = useToast();
+  const video = image.media_type
+    ? image.media_type === "video"
+    : isVideo(image.name);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <ContextMenu>
         <ContextMenuTrigger>
           <Card className="group relative overflow-hidden size-full">
-            {/* Image */}
+            {/* Image or video */}
             <div className="size-full relative grid z-0 grid-cols-1 grid-rows-1">
-              <Image
-                src={image.url}
-                unoptimized
-                height={500}
-                width={500}
-                alt={image.name}
+              <MediaView
+                url={image.url}
+                name={image.name}
+                mediaType={video ? "video" : "image"}
+                // na grelha (animation) o vídeo fica parado; no carrossel tem controlos
+                controls={!animation}
                 className={cn(
                   "size-full object-contain row-start-1 col-start-1 z-30",
                   animation && "transition-all group-hover:scale-105",
                 )}
                 priority
-                onLoad={() => setLoaded(true)}
+                onLoaded={() => setLoaded(true)}
               />
-              <Image
-                src={image.url}
-                unoptimized
-                width={500}
-                height={500}
-                className="object-cover row-start-1 col-start-1 size-full z-10"
-                alt={image.name + " blurred"}
-              />
-              <div className="row-start-1 col-start-1 backdrop-blur-sm size-full bg-black/30 z-20" />
+              {/* fundo desfocado só para imagens: num vídeo seria um 2.º download */}
+              {!video && (
+                <>
+                  <MediaView
+                    url={image.url}
+                    name={image.name + " blurred"}
+                    mediaType="image"
+                    className="object-cover row-start-1 col-start-1 size-full z-10"
+                  />
+                  <div className="row-start-1 col-start-1 backdrop-blur-sm size-full bg-black/30 z-20" />
+                </>
+              )}
+              {video && animation && (
+                <span className="row-start-1 col-start-1 z-40 m-2 h-fit w-fit rounded bg-black/70 px-1.5 py-0.5 text-xs text-white">
+                  Video
+                </span>
+              )}
               {!loaded && (
                 <>
                   <div className="row-start-1 col-start-1 z-40 bg-background size-full" />

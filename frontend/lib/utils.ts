@@ -6,19 +6,40 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// MIME types aceites, indexados pela extensão
+export const MEDIA_MIME_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+// Aceita um MIME type ("video/mp4") ou um nome/URL de ficheiro ("clip.mp4")
+export const isVideo = (nameOrType: string) => {
+  if (nameOrType.startsWith("video/")) return true;
+  const ext = nameOrType.split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+  return MEDIA_MIME_TYPES[ext]?.startsWith("video/") ?? false;
+};
+
 export const extractZipImages = async (zipFile: File): Promise<File[]> => {
   const jszip = new JSZip();
   const zipContent = await jszip.loadAsync(zipFile);
-  const imageFiles: File[] = [];
+  const mediaFiles: File[] = [];
 
   for (const [filename, fileData] of Object.entries(zipContent.files)) {
-    if (!fileData.dir && /\.(png|jpe?g)$/i.test(filename)) {
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+    if (!fileData.dir && MEDIA_MIME_TYPES[ext]) {
       const fileBlob = await fileData.async("blob");
-      imageFiles.push(new File([fileBlob], filename, { type: fileBlob.type }));
+      // o blob do JSZip vem sem MIME type, por isso deduzimos pela extensão
+      mediaFiles.push(
+        new File([fileBlob], filename, { type: MEDIA_MIME_TYPES[ext] }),
+      );
     }
   }
 
-  return imageFiles;
+  return mediaFiles;
 };
 
 export const createBlobUrlFromFile = async (file: File) => {

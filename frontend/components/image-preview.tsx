@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Loading from "./loading";
 import Image from "next/image";
+import { isVideo } from "@/lib/utils";
 
 const ImagePreview = ({
   file,
@@ -26,6 +27,26 @@ const ImagePreview = ({
   }, [file]);
 
   if (!blobUrl) return <Loading />;
+
+  if (isVideo(file.type || file.name)) {
+    return (
+      <div className="grid rounded-lg overflow-hidden shadow-md border size-full max-h-full bg-black">
+        <video
+          src={blobUrl}
+          muted
+          controls
+          playsInline
+          className="object-contain row-start-1 col-start-1 size-full"
+        />
+        <p
+          className="row-start-1 col-start-1 z-30 h-4 max-w-full w-fit bg-background rounded-br-md text-xs truncate line-clamp-1 px-1 flex items-center"
+          title={file.name}
+        >
+          {file.name}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid rounded-lg overflow-hidden shadow-md border size-full max-h-full bg-background">

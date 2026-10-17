@@ -11,6 +11,7 @@ const imgSchema = new mongoose.Schema({
   new_uri: { type: String, required: true },
   og_img_key: { type: String, required: true },
   og_sha256: { type: String, required: true }, 
+  media_type: { type: String, enum: ["image", "video"], default: "image" },
 });
 
 

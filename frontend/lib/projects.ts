@@ -38,6 +38,7 @@ export interface ProjectImage {
   _id: string;
   name: string;
   url: string;
+  media_type?: "image" | "video";
 }
 
 export interface ProjectImageText {
