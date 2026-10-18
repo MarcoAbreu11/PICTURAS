@@ -70,8 +70,15 @@ export interface ExtractFramesToolParams {
   format: "png" | "jpeg";
 }
 
+// UC-VID-002: cortar vídeo (instantes em segundos)
+export interface TrimToolParams {
+  start: number;
+  end: number;
+}
+
 export type ToolParams =
   | BinarizationToolParams
+  | TrimToolParams
   | ExtractFramesToolParams
   | BorderToolParams
   | BrightnessToolParams
@@ -102,4 +109,5 @@ export type ToolNames =
   | "people_ai"
   | "expand_ai"
   | "extract_frames"
+  | "trim"
   | "project";

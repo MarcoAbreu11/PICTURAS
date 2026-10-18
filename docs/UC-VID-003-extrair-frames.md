@@ -8,7 +8,7 @@
 | Grupo / Equipa | [preencher] |
 | Autores | Diogo Linhares Campos - PG63948<br>Marco António Ferreira Abreu - PG64003<br>Cláudio Rafael Oliveira Ferreira - PG63933<br>Nelson Daniel Araújo Sousa - PG64010 |
 | Data | 2026-10-18 |
-| Versão do documento | v1.3 |
+| Versão do documento | v1.4 |
 | Unidade Curricular | Requisitos e Arquiteturas de Software — MEI, Universidade do Minho |
 
 ---
@@ -34,7 +34,7 @@ A extração de frames é a primeira ferramenta de vídeo da pipeline e liga a n
 |---|---|
 | ID do Caso de Uso | UC-VID-003 |
 | Nome | Extrair frames de vídeos |
-| Versão | v1.3 |
+| Versão | v1.4 |
 | Autor | Diogo Linhares Campos<br>Marco António Ferreira Abreu<br>Cláudio Rafael Oliveira Ferreira<br>Nelson Daniel Araújo Sousa |
 | Data | 2026-10-18 |
 | Objetivo | Permitir ao utilizador obter imagens a partir de frames dos vídeos de um projeto, para as consultar, descarregar ou editar com as ferramentas de imagem existentes. |
@@ -139,13 +139,14 @@ A extração de frames é a primeira ferramenta de vídeo da pipeline e liga a n
 | Claude | Apoio na definição do caso de uso, fluxos, exceções, regras de negócio, assunções e questões em aberto. | Revisão manual pela equipa comparando com o enunciado, template e exemplos fornecidos pelos docentes. |
 | Claude | Elaboração da ERS do Exercício 2 (secção 4): classificação segundo a ISO/IEC 25010, proposta de valores (†) e decisões de qualidade, catálogo de requisitos, impacto e matriz de rastreabilidade. | Revisão manual pela equipa: confirmação da classificação ISO/IEC 25010, dos valores propostos (†) e da rastreabilidade entre requisitos, caso de uso e decisões de qualidade. |
 | Claude Code | Revisão v1.3: alinhamento do caso de uso e da ERS com o código já implementado (upload de vídeo, limites por perfil, quota, cancelamento, partilha) e com o guião interno (`docs/GUIAO_VIDEO.md`), adotando a extração como ferramenta de vídeo da pipeline. | [preencher: revisão da equipa] |
+| Claude Code | Implementação (v1.4): worker `Tools/extract_frames`, alterações ao `projects`, `wsGateway`, `tool_msg.py` e frontend; testes unitários (`node:test`, `unittest`) e ponta a ponta (`projects/test/e2e/`); tabela de realização e verificação (4.4). | [preencher: revisão da equipa — p. ex. teste manual no navegador dos fluxos principal, FA3 e exceções] |
 
 ---
 
 # 4. Especificação de Requisitos do Sistema (ERS)
 
 **Caso de Uso:** UC-VID-003 — Extrair frames de vídeos  
-**Versão do dossiê:** v1.3  
+**Versão do dossiê:** v1.4  
 **Baseline do Exercício 1:** v1.0 — REQ-VID-FRAME-001 a REQ-VID-FRAME-025
 
 > O catálogo 4.1 é a fonte única dos requisitos desta ERS. A matriz 4.3 rastreia esses IDs até ao caso de uso ou às decisões de qualidade (DQ). A tabela 4.2 descreve o impacto no sistema existente. Nas tabelas 4.2 e 4.3 os IDs aparecem abreviados (por exemplo, FRAME-007 = REQ-VID-FRAME-007). Os elementos locais do caso de uso são qualificados (por exemplo, UC-VID-003/RN2). Valores marcados com (†) são propostas da equipa, a confirmar. Os IDs eliminados não são reutilizados (ver 4.1.4).
@@ -209,7 +210,7 @@ As regras de negócio e restrições funcionais (limites de imagens, quota, comb
 | REQ-VID-FRAME-042 | O sistema deve atualizar o estado e a percentagem de progresso apresentados com um intervalo máximo de 10 s (†). | Usabilidade (Operabilidade) | ≤ 10 s | ≤ 2 s | Mantido | UC-VID-003/Passo 5, UC-VID-003/FA4, DQ-008 | Dado um processamento de 5 min, quando se observa o ecrã durante 1 min, então o valor é atualizado pelo menos a cada 10 s. |
 | REQ-VID-FRAME-043 | O sistema deve extrair frames de todos os formatos aceites no carregamento (MP4, WebM e MOV), incluindo os codecs H.264, H.265 e VP9. | Compatibilidade (Interoperabilidade) | MP4, WebM, MOV (H.264, H.265, VP9) | Mais formatos aceites no carregamento (†) | Refinado | UC-VID-003/A1, DQ-001 | Dado um vídeo de cada formato e codec, quando aplica, então todos geram resultados. |
 | REQ-VID-FRAME-044 | O sistema deve poder ser instalado e executado, incluindo o novo worker com `ffmpeg`, a partir de `docker compose up` num ambiente limpo. | Portabilidade (Instalabilidade) | Worker no `docker-compose.yaml`, com a versão do `ffmpeg` fixada | Instalação automatizada com uma só ação, com verificação de saúde do worker | Refinado | UC-VID-003/A7, DQ-012 | Dado uma máquina limpa, quando se executa `docker compose up`, então o teste de aceitação da extração passa. |
-| REQ-VID-FRAME-045 | O sistema deve permitir acrescentar uma nova ferramenta de vídeo registando-a na tabela de capacidades e num novo worker, sem alterar o código das ferramentas existentes. | Manutenibilidade (Modularidade) | Objetivo (demonstrado quando existir uma segunda ferramenta de vídeo) | Obrigatório | Refinado | DQ-009, DQ-017 | Dado uma segunda ferramenta de vídeo acrescentada, então nenhum ficheiro das ferramentas existentes foi alterado. |
+| REQ-VID-FRAME-045 | O sistema deve permitir acrescentar uma nova ferramenta de vídeo registando-a na tabela de capacidades e num novo worker, sem alterar o código das ferramentas existentes. | Manutenibilidade (Modularidade) | Demonstrado: o corte de vídeo (UC-VID-002) foi acrescentado sem alterar o worker de extração | Obrigatório | Refinado | DQ-009, DQ-017 | Dado uma segunda ferramenta de vídeo acrescentada, então nenhum ficheiro das ferramentas existentes foi alterado. |
 | REQ-VID-FRAME-046 | O sistema deve concluir a extração de 100 imagens de um vídeo de até 10 min em ≤ 60 s (†). | Eficiência de Desempenho (Comportamento temporal) | ≤ 60 s | ≤ 20 s | Mantido | UC-VID-003/Passo 5, DQ-011 | Dado um vídeo de 10 min e N = 6, quando aplica sem outros trabalhos, então os 100 resultados surgem em ≤ 60 s. |
 | REQ-VID-FRAME-047 | O sistema deve produzir imagens PNG e JPEG que as ferramentas de imagem existentes aceitam sem conversão. | Compatibilidade (Interoperabilidade) | PNG e JPEG | PNG e JPEG | Mantido | UC-VID-003/A3, UC-VID-003/FA2, DQ-015 | Dado uma imagem extraída em cada formato, copiada para um projeto, quando se aplica uma ferramenta de imagem, então executa sem erro. |
 
@@ -263,6 +264,10 @@ As regras de negócio e restrições funcionais (limites de imagens, quota, comb
 | Partilha e permissões (`checkSharePermission`, `requireEditPermission`) | Manter | Aplicadas à nova ferramenta e aos resultados. | FRAME-040, FRAME-054 |
 | Ligações de descarga (`getPresignedUrl.js`) | Manter | Já assinadas e com expiração de 1 h. | FRAME-041 |
 | Instalação (`docker-compose.yaml`) | Estender | Novo serviço para o worker de extração. | FRAME-044 |
+| Envio de erros das ferramentas (`Tools/utils/tool_msg.py`) | Alterar | Os erros chegavam ao `projects` com os ids trocados e argumentos desalinhados e eram descartados; passam a chegar com a causa. Afeta todas as ferramentas. | FRAME-030 |
+| Lista de resultados (`GET /:user/:project/process/url`) | Alterar | Cada resultado passa a ter `_id` próprio (um vídeo gera vários frames) e o tipo de media. | FRAME-007 |
+| Botão de ferramenta do frontend (`toolbar-button.tsx`) | Estender | Opção `invalid` que bloqueia "Preview" e "Save" enquanto os parâmetros forem recusados pelo backend. | FRAME-013, FRAME-014, FRAME-051 |
+| Aplicar a pipeline no frontend (`useProcessProject`) | Alterar | Num conflito de versão (409) em que as ferramentas no servidor são as mesmas, repete o pedido com a versão atual (a marca "dirty" também incrementa a versão). | FRAME-005 |
 
 ## 4.3 Matriz de Rastreabilidade Atualizada
 
@@ -362,3 +367,98 @@ As regras de negócio e restrições funcionais (limites de imagens, quota, comb
 - [x] Todos os elementos relevantes do caso de uso (passos, fluxos alternativos, exceções, regras de negócio e pós-condições) têm requisito associado.
 - [x] Os tópicos parciais na secção 4.1.3 estão justificados e os requisitos eliminados estão registados em 4.1.4.
 - [x] O impacto no sistema existente está ligado aos elementos de código afetados e aos requisitos relevantes.
+
+## 4.4 Realização e verificação
+
+> Corresponde ao Cap. 7.3 do relatório: para cada requisito, componente(s) que o realizam, estado de implementação, teste(s) e resultado. Estado à data de 2026-10-18 (branch `feat/extract-frames`, integrado na `main`).
+
+**Componentes**
+
+| **ID** | **Componente** | **Ficheiro(s)** |
+|---|---|---|
+| W-FRAMES | Worker de extração de frames | `Tools/extract_frames/` (`extract_frames.py`, `frames.py`, `Dockerfile`) |
+| P-ROUTES | Rotas e orquestração do `projects` | `projects/routes/projects.js` (`/tool`, `/process`, `/preview`, `/results/project`, `process_msg`) |
+| P-RULES | Regras de vídeo do `projects` | `projects/utils/toolCapabilities.js`, `projects/utils/frames.js` |
+| P-UPLOAD | Carregamento de vídeo | `projects/routes/projects.js` (`POST /img`), `projects/models/project.js` |
+| MSG | Contrato de mensagens | `Tools/utils/tool_msg.py`, `projects/utils/project_msg.js` |
+| WS | Notificações | `wsGateway/index.js` |
+| USERS | Quota e devolução | `users/routes/users.js` (existente) |
+| FE-TOOL | Ferramenta no frontend | `frontend/components/toolbar/extract-frames-tool.tsx`, `toolbar.tsx`, `toolbar-button.tsx`, `lib/frames.ts` |
+| FE-PAGE | Página do projeto | `frontend/app/dashboard/[pid]/page.tsx`, `lib/projects.ts`, `lib/mutations/projects.ts` |
+| INFRA | Instalação | `docker-compose.yaml`, `rabbitMQ/definitions.json` |
+
+**Testes**
+
+| **ID** | **Tipo** | **Descrição (Dado … Quando … Então …)** | **Requisitos** | **Resultado** |
+|---|---|---|---|---|
+| TST-FRAME-01 a 10 | Unitário (`node:test`) | Instantes, limite de 100, instante além do fim, validação de parâmetros, capacidades por tipo de media, exclusividade (`projects/test/frames.test.js`, `toolCapabilities.test.js`) | FRAME-002, 003, 006, 009, 013, 014, 015, 050, 051, 052 | ✅ 10/10 |
+| TST-FRAME-PY | Unitário (`unittest`) | Instantes, validação e nomes no worker (`Tools/extract_frames/test_frames.py`) | FRAME-009, 013, 014, 036 | ✅ 8/8 |
+| TST-FRAME-11 | Ponta a ponta | Dado um vídeo de 10 s, quando é carregado, então a duração fica guardada | FRAME-053 | ✅ |
+| TST-FRAME-12 | Ponta a ponta | Dado parâmetros inválidos ou outra ferramenta na pipeline, quando se adiciona a ferramenta, então é recusado | FRAME-002, 051 | ✅ |
+| TST-FRAME-13 | Ponta a ponta | Dado 2 vídeos (10 s e 3 s) e 1 imagem, quando se aplica intervalo de 2 s, então há 7 frames, 1 item ignorado, nomes com o instante e 2 operações debitadas | FRAME-001, 005, 006, 007, 009, 024, 036, 049, 050 | ✅ |
+| TST-FRAME-14 | Ponta a ponta | Dado intervalo de 0,05 s ou instante além do fim, quando se aplica, então é recusado e o vídeo afetado é indicado | FRAME-013, 014, 015 | ✅ |
+| TST-FRAME-15 | Ponta a ponta | Dado 7 frames, quando se copiam para um novo projeto e se aplica brilho, então há 7 imagens processadas | FRAME-008, 011, 022, 033, 047 | ✅ |
+| TST-FRAME-16 | Ponta a ponta | Dado um projeto só com imagens, quando se aplica a extração, então é recusado | FRAME-052 | ✅ |
+| TST-FRAME-17 | Ponta a ponta | Dado 2 vídeos e uma falha no worker num deles, quando se aplica, então só o válido gera resultado e 1 operação é devolvida | FRAME-017, 020, 030, 031 | ✅ |
+| TST-FRAME-18 | Ponta a ponta | Dado um utilizador anónimo, quando adiciona a ferramenta, então recebe 403 | FRAME-032 | ✅ |
+| TST-FRAME-19 | Inspeção | Dado um vídeo de 640×360, quando se extrai um frame, então a imagem tem 640×360 (`ffprobe`) | FRAME-023 | ✅ |
+| TST-FRAME-20 | Inspeção | Dado uma extração em curso, quando se observam os logs do `ws_gateway`, então chegam progresso (20 % → 100 %, ~1 s) e erros por vídeo com a causa | FRAME-027, 030, 042 | ✅ |
+| TST-FRAME-M1 | Manual (equipa, navegador) | Extração de frames de vídeos MP4 e MOV pela barra de ferramentas; frames visíveis em "Results mode". O WebM foi verificado pela API (4 frames de `cores_12s.webm`) | FRAME-001, 007, 043 | ✅ |
+
+Os testes ponta a ponta correm com `bash projects/test/e2e/run.sh` (stack a correr); os unitários com `npm test` em `projects/` e `python3 -m unittest` em `Tools/extract_frames/`.
+
+**Realização por requisito**
+
+| **Requisito** | **Componente(s)** | **Estado** | **Teste(s)** | **Resultado / observação** |
+|---|---|---|---|---|
+| FRAME-001 | FE-TOOL, P-ROUTES | Implementado | TST-FRAME-13, M1 | ✅ |
+| FRAME-002 | FE-TOOL, P-RULES | Implementado | TST-FRAME-06, 12 | ✅ |
+| FRAME-003 | FE-TOOL | Implementado | TST-FRAME-02, 14 | ✅ |
+| FRAME-004 | FE-TOOL, P-ROUTES (`/preview`), W-FRAMES | Implementado | — | Por testar (pré-visualização do primeiro frame) |
+| FRAME-005 | P-ROUTES, FE-PAGE | Implementado | TST-FRAME-13 | ✅ |
+| FRAME-006 | W-FRAMES | Implementado | TST-FRAME-02, 17 | ✅ |
+| FRAME-007 | P-ROUTES, MSG | Implementado | TST-FRAME-13 | ✅ |
+| FRAME-008 | P-ROUTES (`/results/project`) | Implementado | TST-FRAME-15 | ✅ |
+| FRAME-009 | W-FRAMES, P-RULES | Implementado | TST-FRAME-01, 13 | ✅ |
+| FRAME-010 | FE-TOOL, W-FRAMES | Implementado | TST-FRAME-06, PY | ✅ PNG verificado ponta a ponta; JPEG por teste unitário |
+| FRAME-011 | P-ROUTES, FE-PAGE | Implementado | TST-FRAME-15 | ✅ |
+| FRAME-012 | P-ROUTES, FE-PAGE | Parcial | TST-FRAME-13 | O processamento não depende da página (os testes ponta a ponta correm sem navegador), mas o estado só é visível enquanto a página está aberta |
+| FRAME-013 | P-RULES, FE-TOOL | Implementado | TST-FRAME-04, 14 | ✅ |
+| FRAME-014 | P-RULES, FE-TOOL | Implementado | TST-FRAME-03, 14 | ✅ |
+| FRAME-015 | P-RULES, W-FRAMES | Implementado | TST-FRAME-03, 14 | ✅ |
+| FRAME-017 | W-FRAMES, P-ROUTES | Implementado | TST-FRAME-17 | ✅ Falha simulada com um vídeo sem duração guardada; um vídeo corrompido real é recusado já no carregamento |
+| FRAME-018 | P-ROUTES, USERS | Implementado (mecanismo existente) | — | Por testar com quota esgotada |
+| FRAME-019 | USERS | Implementado (mecanismo existente) | — | Por testar |
+| FRAME-022 | P-ROUTES | Implementado | TST-FRAME-15 | ✅ |
+| FRAME-024 | P-ROUTES (`advanced_tool_num`) | Implementado | TST-FRAME-13 | ✅ |
+| FRAME-027 | W-FRAMES, WS, FE-PAGE | Implementado | TST-FRAME-20 | ✅ |
+| FRAME-028 | P-ROUTES (cancelamento existente) | Implementado | — | Por testar automaticamente |
+| FRAME-029 | FE-PAGE | Parcial | M1 | Só há aviso de fim com a página aberta (passa para os resultados) |
+| FRAME-030 | MSG, P-ROUTES, FE-PAGE | Implementado | TST-FRAME-17, 20 | ✅ |
+| FRAME-031 | P-ROUTES, USERS | Implementado | TST-FRAME-17 | ✅ |
+| FRAME-032 | P-ROUTES | Implementado | TST-FRAME-18 | ✅ |
+| FRAME-033 | P-ROUTES | Implementado | TST-FRAME-15 | ✅ Persistência ao longo do tempo não testada |
+| FRAME-034 | W-FRAMES, P-ROUTES | Parcial | — | Frames temporários e parciais apagados de imediato; a cópia local do vídeo de origem só é apagada no "Aplicar" seguinte |
+| FRAME-036 | W-FRAMES | Implementado | TST-FRAME-13, PY | ✅ |
+| FRAME-049 | FE-TOOL, P-ROUTES (`/advanced_tools`) | Implementado | TST-FRAME-13 | ✅ |
+| FRAME-050 | P-RULES, P-ROUTES | Implementado | TST-FRAME-07, 13 | ✅ |
+| FRAME-051 | P-RULES, P-ROUTES, FE-TOOL | Implementado | TST-FRAME-10, 12 | ✅ |
+| FRAME-052 | P-RULES, P-ROUTES | Implementado | TST-FRAME-08, 16 | ✅ |
+| FRAME-053 | P-UPLOAD | Implementado | TST-FRAME-11 | ✅ |
+| FRAME-054 | P-ROUTES (permissões existentes) | Implementado (mecanismo existente) | — | Por testar com partilha só de leitura |
+| FRAME-020 | W-FRAMES, P-ROUTES | Implementado | TST-FRAME-17 | ✅ |
+| FRAME-021 | W-FRAMES | Implementado | Inspeção de código | O worker só lê o vídeo original |
+| FRAME-023 | W-FRAMES | Implementado | TST-FRAME-19 | ✅ |
+| FRAME-025 | W-FRAMES | Implementado | — | Tempo não medido |
+| FRAME-038 | P-ROUTES | Parcial | — | O `projects` descarrega os vídeos antes de responder: com vídeos grandes a confirmação passa de 2 s |
+| FRAME-039 | INFRA | Implementado | Inspeção | ✅ 5 consumidores na `extract_frames_queue`; sem teste de carga |
+| FRAME-040 | P-ROUTES (permissões existentes) | Implementado (mecanismo existente) | — | Por testar |
+| FRAME-041 | Armazenamento (ligações assinadas existentes) | Implementado (mecanismo existente) | Inspeção | Expiração de 1 h |
+| FRAME-042 | W-FRAMES, WS | Implementado | TST-FRAME-20 | ✅ Atualização a cada ~1 s |
+| FRAME-043 | W-FRAMES | Implementado | M1 | ✅ MP4 e MOV no navegador, WebM pela API; H.265 por testar |
+| FRAME-044 | INFRA | Implementado | Inspeção | ✅ Construído e executado com `docker compose up --build` |
+| FRAME-045 | P-RULES, INFRA | Implementado | Inspeção | ✅ O corte (UC-VID-002) foi acrescentado sem alterar `Tools/extract_frames/` |
+| FRAME-046 | W-FRAMES | Implementado | — | Tempo não medido |
+| FRAME-047 | W-FRAMES | Implementado | TST-FRAME-15 | ✅ |
+
+**Limitações conhecidas:** os requisitos parciais (FRAME-012, 029, 034, 038) e os tempos não medidos (FRAME-025, 046) ficam como trabalho para a Fase 2. O `ws_gateway` não volta a ligar-se ao RabbitMQ se este reiniciar (comportamento herdado do código base); nesse caso o ecrã fica em "Processing" até se reiniciar o serviço.

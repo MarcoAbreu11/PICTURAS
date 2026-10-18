@@ -106,14 +106,16 @@ export default function Project({
   // se um processamento envolve ferramentas de IA ou não
   const processIsAiRef = useRef<boolean>(false);
 
-  // progresso parcial de cada vídeo na extração de frames (img_id -> 0..100)
+  // progresso parcial de cada vídeo nas tools de vídeo (img_id -> 0..100)
   const frameProgressRef = useRef<Record<string, number>>({});
 
-  // só os itens compatíveis com a pipeline são processados: extract_frames só vídeos,
-  // as restantes tools só imagens
+  // só os itens compatíveis com a pipeline são processados: as tools de vídeo
+  // (extract_frames, trim) só vídeos, as restantes só imagens
   const pipelineTools = project.data?.tools ?? [];
   const projectItems = project.data?.imgs ?? [];
-  const framesRun = pipelineTools.some((t) => t.procedure === "extract_frames");
+  const framesRun = pipelineTools.some(
+    (t) => t.procedure === "extract_frames" || t.procedure === "trim",
+  );
   const videoCount = projectItems.filter((i) => i.media_type === "video").length;
   const imageCount = projectItems.length - videoCount;
   const totalProcessingSteps = framesRun
@@ -414,7 +416,7 @@ useEffect(() => {
     });
   }
 
-  // extração de frames: progresso dentro de cada vídeo
+  // tools de vídeo: progresso dentro de cada vídeo
   function onProcessProgress(payload: { img_id: string; progress: number }) {
     if (ignoreUpdatesRef.current || !processing || !framesRun || videoCount === 0) return;
 
@@ -714,7 +716,7 @@ const handleCancel = () => {
                               toast({
                                 title: `${skipped} ${skipped === 1 ? "item ignorado" : "itens ignorados"}`,
                                 description: framesRun
-                                  ? "A extração de frames só se aplica a vídeos."
+                                  ? "As ferramentas de vídeo só se aplicam a vídeos."
                                   : "As ferramentas de imagem não se aplicam a vídeos.",
                               });
                             }

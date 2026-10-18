@@ -33,6 +33,7 @@ import { Eraser } from "lucide-react";
 import { useState } from "react";
 import ExpandAITool from "./expand-ai-tool";
 import ExtractFramesTool from "./extract-frames-tool";
+import TrimTool from "./trim-tool";
 
 export function Toolbar() {
   const searchParams = useSearchParams();
@@ -71,7 +72,10 @@ export function Toolbar() {
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-500">Tools</span>
         {currentIsVideo ? (
-          <ExtractFramesTool disabled={disabled} />
+          <>
+            <TrimTool disabled={disabled} />
+            <ExtractFramesTool disabled={disabled} />
+          </>
         ) : (
           <>
             <BrightnessTool disabled={disabled} />

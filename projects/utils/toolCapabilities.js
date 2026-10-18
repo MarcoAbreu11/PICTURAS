@@ -18,11 +18,12 @@ const CAPABILITIES = {
   people_ai: ["image"],
   expand_ai: ["image"],
   extract_frames: ["video"],
+  trim: ["video"],
 };
 
 // Tools que, no MVP, não podem ser combinadas com outras na mesma pipeline
 // (a pipeline é linear e estas geram vários resultados por item)
-const EXCLUSIVE_TOOLS = ["extract_frames"];
+const EXCLUSIVE_TOOLS = ["extract_frames", "trim"];
 
 function toolAccepts(procedure, mediaType) {
   return (CAPABILITIES[procedure] || []).includes(mediaType);
@@ -38,7 +39,7 @@ function pipelineAccepts(tools, mediaType) {
 function checkExclusiveTools(procedures) {
   const exclusive = procedures.filter((p) => EXCLUSIVE_TOOLS.includes(p));
   if (exclusive.length > 0 && procedures.length > 1)
-    return "Frame extraction cannot be combined with other tools. Remove the other tools first.";
+    return "Video tools cannot be combined with other tools. Remove the other tools first.";
   return null;
 }
 

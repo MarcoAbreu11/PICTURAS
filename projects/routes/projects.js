@@ -39,6 +39,7 @@ const { extractImageFeatures } = require("../utils/imageFeatures");
 const { mediaTypeOf, probeVideo, checkVideoLimits } = require("../utils/media");
 const { pipelineAccepts, checkExclusiveTools, EXCLUSIVE_TOOLS } = require("../utils/toolCapabilities");
 const { validateFrameParams, checkFramesForVideos } = require("../utils/frames");
+const { validateTrimParams, checkTrimForVideos } = require("../utils/trim");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
 
@@ -95,6 +96,7 @@ function processableImgs(project) {
 // Parâmetros específicos de cada tool; null se ok, senão o motivo
 function validateToolParams(procedure, params) {
   if (procedure === "extract_frames") return validateFrameParams(params);
+  if (procedure === "trim") return validateTrimParams(params);
   return null;
 }
 
@@ -531,10 +533,13 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
           img_id: img_id,
           project_id: process.project_id,
           user_id: process.user_id,
-          token: process.token || 0, 
+          token: process.token || 0,
         };
 
         await Result.create(result);
+
+        // vídeos cortados (UC-VID-002): já estão no armazenamento de objetos, o temporário sai
+        if (type == "video") fs.promises.unlink(file_path).catch(() => {});
       }
 
       // Se esta imagem acabou o pipeline, pode ser que a execução tenha terminado
@@ -1101,7 +1106,14 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
 
       // _id do resultado: um vídeo pode ter vários (frames extraídos)
       if (r.type === "text") ans.texts.push({ _id: r._id, og_img_id: r.img_id, name: r.file_name, url });
-      else ans.imgs.push({ _id: r._id, og_img_id: r.img_id, name: r.file_name, url });
+      else
+        ans.imgs.push({
+          _id: r._id,
+          og_img_id: r.img_id,
+          name: r.file_name,
+          url,
+          media_type: r.type === "video" ? "video" : "image",
+        });
     }
 
     return res.status(200).jsonp(ans);
@@ -1110,8 +1122,8 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
   }
 });
 
-// Copia as imagens resultantes (ex.: frames extraídos) para um novo projeto de quem pede,
-// onde passam a ser imagens normais (UC-VID-003, FA3)
+// Copia os resultados (frames extraídos ou vídeos cortados) para um novo projeto de quem pede,
+// onde passam a ser itens normais (UC-VID-003 e UC-VID-002, FA3)
 router.post("/:user/:project/results/project", checkSharePermission, requireAuth, async (req, res) => {
   const ownerId = req.params.user;
   const callerId = getCallerId(req);
@@ -1124,11 +1136,13 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
     ).filter((r) => r.type !== "text");
 
     if (results.length === 0) {
-      return res.status(400).jsonp("There are no image results to copy");
+      return res.status(400).jsonp("There are no results to copy");
     }
 
     const isFrames = results.some((r) => r.frame_time !== undefined && r.frame_time !== null);
-    const name = req.body?.name || `${source.name} (${isFrames ? "frames" : "results"})`;
+    const isTrims = results.some((r) => r.type === "video");
+    const suffix = isFrames ? "frames" : isTrims ? "cortes" : "results";
+    const name = req.body?.name || `${source.name} (${suffix})`;
 
     created = await Project.create({ name, user_id: callerId, imgs: [], tools: [] });
 
@@ -1154,12 +1168,17 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
       const resp = await post_image(callerId, created._id, "src", data);
       const key_parts = resp.data.data.imageKey.split("/");
 
+      const media_type = r.type === "video" ? "video" : "image";
+      // vídeos: guardar duração e resolução, como no upload, para as tools de vídeo
+      const probe = media_type === "video" ? await probeVideo(buffer, file_name) : null;
+
       imgs.push({
         og_uri: `./images/users/${callerId}/projects/${created._id}/src/${file_name}`,
         new_uri: `./images/users/${callerId}/projects/${created._id}/out/${file_name}`,
         og_img_key: key_parts[key_parts.length - 1],
         og_sha256: crypto.createHash("sha256").update(buffer).digest("hex"),
-        media_type: "image",
+        media_type,
+        ...(probe ? { duration: probe.duration, width: probe.width, height: probe.height } : {}),
       });
     }
 
@@ -1237,6 +1256,11 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
       // ex.: tools de imagem num vídeo, ou extract_frames numa imagem
       if (!pipelineAccepts(project.tools, img.media_type ?? "image")) {
         return res.status(400).jsonp("Preview not available for this file with the selected tools");
+      }
+
+      // o corte pré-visualiza-se no próprio leitor do vídeo, sem processamento (UC-VID-002, FA1)
+      if (project.tools.some((t) => t.procedure === "trim")) {
+        return res.status(400).jsonp("Preview the excerpt in the video player");
       }
 
       const orderedTools = [...project.tools].sort((a,b) => a.position - b.position);
@@ -1652,6 +1676,21 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
         }
       }
 
+      const trimTool = project.tools.find((t) => t.procedure === "trim");
+      if (trimTool) {
+        const trimError = checkTrimForVideos(
+          trimTool.params,
+          processable.map((i) => ({ name: path.basename(i.og_uri), duration: i.duration }))
+        );
+        if (trimError) {
+          res.status(400).jsonp(trimError);
+          return;
+        }
+      }
+
+      // tools de vídeo: o frontend conta um aviso de fim por vídeo
+      const videoTool = project.tools.some((t) => EXCLUSIVE_TOOLS.includes(t.procedure));
+
       const { adv_ops, totalAdv, charged, newTools } = advanced_tool_num(project);
 
       console.log(
@@ -1770,8 +1809,8 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
           const fpNow = makeToolsFingerprint(project.tools || []);
           const fpCommitted = makeToolsFingerprint(project.committedTools || []);
 
-          // extract_frames reprocessa sempre: o frontend conta um aviso de fim por vídeo
-          if (hasCommit && fpNow === fpCommitted && !frameTool) {
+          // as tools de vídeo reprocessam sempre: o frontend conta um aviso de fim por vídeo
+          if (hasCommit && fpNow === fpCommitted && !videoTool) {
             console.log(
               `[T-03][PROCESS][SKIP] user=${ownerId} project=${req.params.project} token=${project.committedToken}`
             );

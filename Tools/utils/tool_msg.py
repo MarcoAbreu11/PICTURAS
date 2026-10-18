@@ -27,10 +27,11 @@ class ToolMSG:
         'people_ai': 'people_ai_queue',
         'expand_ai': 'expand_ai_queue',
         'extract_frames': 'extract_frames_queue',
+        'trim': 'trim_queue',
         'project': 'project_queue'
     }
 
-    output_types = ("image", "text", "images")
+    output_types = ("image", "text", "images", "video")
     
     def __init__(self, microservice_name, tool_name, rabbit_host, rabbit_port, username, password):
         self._microservice_name = microservice_name

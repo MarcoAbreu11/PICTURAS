@@ -44,6 +44,8 @@ interface ToolbarButtonProps {
   onDefault?: () => void;
   // parâmetros que o backend vai recusar: bloqueia Preview e Save (o Default continua ativo)
   invalid?: boolean;
+  // tools que se pré-visualizam no próprio componente (ex.: corte de vídeo)
+  noPreview?: boolean;
 }
 
 export function ToolbarButton({
@@ -60,6 +62,7 @@ export function ToolbarButton({
   noParams = false,
   onDefault = () => {},
   invalid = false,
+  noPreview = false,
 }: ToolbarButtonProps) {
   const router = useRouter();
   const session = useSession();
@@ -366,14 +369,16 @@ export function ToolbarButton({
             Default
           </Button>
 
-          <Button
-            variant="outline"
-            onClick={() => handleAddTool(true)}
-            className="h-6 text-xs"
-            disabled={isDefault || invalid}
-          >
-            Preview
-          </Button>
+          {!noPreview && (
+            <Button
+              variant="outline"
+              onClick={() => handleAddTool(true)}
+              className="h-6 text-xs"
+              disabled={isDefault || invalid}
+            >
+              Preview
+            </Button>
+          )}
 
           <Button
             onClick={() => handleAddTool(false)}

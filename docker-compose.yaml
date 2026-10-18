@@ -289,6 +289,22 @@ services:
     volumes:
       - image_data:/app/images
 
+  # UC-VID-002: corte de vídeo (5 réplicas = 5 vídeos em simultâneo)
+  trim_tool:
+    build:
+      context: ./Tools
+      dockerfile: trim/Dockerfile
+    restart: on-failure
+    deploy:
+      replicas: 5
+    networks:
+      - elk
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - image_data:/app/images
+
   contrast_tool:
     build:
       context: ./Tools
