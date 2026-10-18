@@ -12,6 +12,10 @@ const imgSchema = new mongoose.Schema({
   og_img_key: { type: String, required: true },
   og_sha256: { type: String, required: true }, 
   media_type: { type: String, enum: ["image", "video"], default: "image" },
+  // só vídeos: lidos com ffprobe no upload
+  duration: { type: Number, required: false },
+  width: { type: Number, required: false },
+  height: { type: Number, required: false },
 });
 
 

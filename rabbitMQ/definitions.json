@@ -146,6 +146,13 @@
             "arguments": {}
         },
         {
+            "name": "extract_frames_queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
             "name": "watermark_queue",
             "vhost": "/",
             "durable": true,
@@ -313,6 +320,14 @@
             "destination": "expand_ai_queue",
             "destination_type": "queue",
             "routing_key": "expand_ai_queue",
+            "arguments": {}
+        },
+        {
+            "source": "picturas",
+            "vhost": "/",
+            "destination": "extract_frames_queue",
+            "destination_type": "queue",
+            "routing_key": "extract_frames_queue",
             "arguments": {}
         },
         {

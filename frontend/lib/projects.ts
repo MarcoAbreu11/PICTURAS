@@ -39,6 +39,7 @@ export interface ProjectImage {
   name: string;
   url: string;
   media_type?: "image" | "video";
+  duration?: number; // só vídeos (s)
 }
 
 export interface ProjectImageText {
@@ -811,6 +812,32 @@ export const downloadProjectResults = async ({
   };
 };
 
+// Copia as imagens resultantes (ex.: frames extraídos) para um novo projeto (UC-VID-003, FA3)
+export const copyResultsToProject = async ({
+  uid,
+  pid,
+  token,
+  ownerId,
+  shareId,
+}: {
+  uid: string;
+  pid: string;
+  token: string;
+  ownerId?: string;
+  shareId?: string;
+}) => {
+  const query = buildQuery({ ownerId, shareId });
+  const pathUid = pathUidFor(uid, ownerId, shareId);
+  const response = await api.post<{ _id: string; name: string; imgs: number }>(
+    `/projects/${pathUid}/${pid}/results/project${query}`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  if (response.status !== 201) throw new Error("Failed to copy results to a new project");
+  return response.data;
+};
+
 export const fetchProjectResults = async (
   uid: string,
   pid: string,
@@ -823,11 +850,13 @@ export const fetchProjectResults = async (
   const pathUid = pathUidFor(uid, ownerId, shareId);
   const response = await api.get<{
     imgs: {
+      _id?: string;
       og_img_id: string;
       name: string;
       url: string;
     }[];
     texts: {
+      _id?: string;
       og_img_id: string;
       name: string;
       url: string;
@@ -861,7 +890,8 @@ export const fetchProjectResults = async (
     imgs: response.data.imgs.map(
       (img) =>
         ({
-          _id: img.og_img_id,
+          // vários resultados podem vir do mesmo item (ex.: frames de um vídeo)
+          _id: img._id ?? img.og_img_id,
           name: img.name,
           url: img.url,
         }) as ProjectImage,

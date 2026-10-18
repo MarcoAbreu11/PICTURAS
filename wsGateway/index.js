@@ -76,7 +76,24 @@ function process_msg() {
             io.to(user).emit("preview-ready", img_url);
         }
 
+        else if (/update-client-progress/.test(msg_id)) {
+            io.to(user).emit("process-progress", {
+                img_id: msg_content.imgId,
+                progress: msg_content.progress,
+            });
+        }
+
         else if (/update-client-process/.test(msg_id)) {
+
+            // falha de um só item: o frontend conta-o como passo concluído e avisa
+            if (status == "item-error") {
+                io.to(user).emit("process-item-error", {
+                    img_id: msg_content.imgId,
+                    error_code: msg_content.errorCode,
+                    error_msg: msg_content.errorMsg,
+                });
+                return;
+            }
 
             if (status == "error") {
                 const error_code = msg_content.errorCode;

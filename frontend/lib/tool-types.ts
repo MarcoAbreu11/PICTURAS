@@ -62,8 +62,17 @@ export type ExpandAiParams = {
   guidance?: number;
 };
 
+// UC-VID-003: extrair frames de vídeos
+export interface ExtractFramesToolParams {
+  mode: "interval" | "single";
+  interval: number; // s, modo intervalo
+  instant: number; // s, modo frame único
+  format: "png" | "jpeg";
+}
+
 export type ToolParams =
   | BinarizationToolParams
+  | ExtractFramesToolParams
   | BorderToolParams
   | BrightnessToolParams
   | ContrastToolParams
@@ -92,4 +101,5 @@ export type ToolNames =
   | "obj_ai"
   | "people_ai"
   | "expand_ai"
+  | "extract_frames"
   | "project";

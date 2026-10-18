@@ -32,6 +32,7 @@ import {
 import { Eraser } from "lucide-react";
 import { useState } from "react";
 import ExpandAITool from "./expand-ai-tool";
+import ExtractFramesTool from "./extract-frames-tool";
 
 export function Toolbar() {
   const searchParams = useSearchParams();
@@ -45,7 +46,7 @@ export function Toolbar() {
   const currentImage = useCurrentImage();
   const session = useSession();
 
-  // as tools atuais só processam imagens: num vídeo (vista individual) não as mostramos
+  // num vídeo (vista individual) mostramos as tools de vídeo em vez das de imagem
   const currentIsVideo =
     view === "carousel" &&
     !!currentImage &&
@@ -70,9 +71,7 @@ export function Toolbar() {
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-500">Tools</span>
         {currentIsVideo ? (
-          <p className="text-xs text-center text-muted-foreground py-2">
-            Video tools coming soon
-          </p>
+          <ExtractFramesTool disabled={disabled} />
         ) : (
           <>
             <BrightnessTool disabled={disabled} />

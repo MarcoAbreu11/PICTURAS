@@ -42,6 +42,8 @@ interface ToolbarButtonProps {
   children?: React.ReactNode;
   noParams?: boolean;
   onDefault?: () => void;
+  // parâmetros que o backend vai recusar: bloqueia Preview e Save (o Default continua ativo)
+  invalid?: boolean;
 }
 
 export function ToolbarButton({
@@ -57,6 +59,7 @@ export function ToolbarButton({
   children,
   noParams = false,
   onDefault = () => {},
+  invalid = false,
 }: ToolbarButtonProps) {
   const router = useRouter();
   const session = useSession();
@@ -367,14 +370,14 @@ export function ToolbarButton({
             variant="outline"
             onClick={() => handleAddTool(true)}
             className="h-6 text-xs"
-            disabled={isDefault}
+            disabled={isDefault || invalid}
           >
             Preview
           </Button>
 
           <Button
             onClick={() => handleAddTool(false)}
-            disabled={isDefault}
+            disabled={isDefault || invalid}
             className="h-6 text-xs w-full"
           >
             Save

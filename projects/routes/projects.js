@@ -22,8 +22,10 @@ const {
   send_msg_client_error,
   send_msg_client_preview,
   send_msg_client_preview_error,
+  send_msg_client_progress,
+  send_msg_client_item_error,
   read_msg,
-  send_msg_project_op,   
+  send_msg_project_op,
 } = require("../utils/project_msg");
 
 const Project = require("../controllers/project");
@@ -35,6 +37,8 @@ const { getCallerId } = require("../utils/caller");
 const { ensureEditorSlot, releaseEditorSlot } = require("../utils/presence");
 const { extractImageFeatures } = require("../utils/imageFeatures");
 const { mediaTypeOf, probeVideo, checkVideoLimits } = require("../utils/media");
+const { pipelineAccepts, checkExclusiveTools, EXCLUSIVE_TOOLS } = require("../utils/toolCapabilities");
+const { validateFrameParams, checkFramesForVideos } = require("../utils/frames");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
 
@@ -78,7 +82,21 @@ const advanced_tools = [
   "obj_ai",
   "people_ai",
   "expand_ai",
+  "extract_frames",
 ];
+
+// Itens do projeto que a pipeline atual consegue processar (as outras são ignoradas)
+function processableImgs(project) {
+  return (project.imgs || []).filter((i) =>
+    pipelineAccepts(project.tools, i.media_type ?? "image")
+  );
+}
+
+// Parâmetros específicos de cada tool; null se ok, senão o motivo
+function validateToolParams(procedure, params) {
+  if (procedure === "extract_frames") return validateFrameParams(params);
+  return null;
+}
 
 // Conta quantas ferramentas avançadas existem neste projeto (independente de imagens)
 function count_advanced_tools(project) {
@@ -105,18 +123,19 @@ function requireAuth(req, res, next) {
  * - totalAdv: nº total de tools avançadas atualmente no projeto
  * - charged: nº de tools avançadas já “pagas” (clamped para nunca ser > totalAdv)
  * - newTools: nº de tools avançadas novas desde a última vez que foram pagas
- * - adv_ops: nº de operações a debitar no users-ms (= newTools * nº de imagens)
+ * - adv_ops: nº de operações a debitar no users-ms (= newTools * nº de itens processáveis;
+ *   itens que a pipeline ignora, ex. vídeos com tools de imagem, não gastam operações)
  */
 function advanced_tool_num(project) {
   const totalAdv = count_advanced_tools(project);
   let charged = project.chargedAdvancedTools || 0;
 
-  // Se o utilizador apagou tools avançadas depois de pagar, 
+  // Se o utilizador apagou tools avançadas depois de pagar,
   // garantimos que charged nunca é maior que o total atual.
   if (charged > totalAdv) charged = totalAdv;
 
   const newTools = totalAdv - charged;
-  const adv_ops = newTools > 0 ? newTools * project.imgs.length : 0;
+  const adv_ops = newTools > 0 ? newTools * processableImgs(project).length : 0;
 
   return { totalAdv, charged, newTools, adv_ops };
 }
@@ -149,6 +168,121 @@ function toolsEqual(a, b) {
 }
 
 
+// Commita a execução quando já não há processos dela por terminar
+async function commitRunIfDone(process) {
+  const remaining = await Process.countByProjectAndToken(
+    process.project_id,
+    process.token || 0
+  );
+  if (remaining !== 0) return;
+
+  const freshProject = await Project.getOne(process.user_id, process.project_id);
+
+  // só commita se ainda for a execução ativa (não foi cancelada entretanto)
+  if ((freshProject.activeToken || 0) !== (process.token || 0)) {
+    console.log(
+      `[COMMIT-SKIP] project=${process.project_id} token=${process.token} activeToken=${freshProject.activeToken}`
+    );
+    return;
+  }
+
+  const toolsSnapshot = [...(freshProject.tools || [])]
+    .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
+    .map(t => ({
+      _id: t._id,
+      position: t.position,
+      procedure: t.procedure,
+      params: t.params,
+    }));
+
+  await Project.updateRaw(process.user_id, process.project_id, {
+    $set: {
+      committedToken: process.token || 0,
+      resultsToken: process.token || 0,
+      committedTools: toolsSnapshot,
+    }
+  });
+
+  console.log(`[COMMIT] project=${process.project_id} committedToken=${process.token || 0}`);
+}
+
+// Guarda cada frame extraído como um resultado do projeto (images: [{ imageURI, time }])
+async function storeFrameResults(process, images) {
+  for (const frame of images) {
+    const file_path = path.join(__dirname, `/../${frame.imageURI}`);
+    const file_name = path.basename(file_path);
+
+    const data = new FormData();
+    data.append("file", fs.createReadStream(file_path), file_name, mime.lookup(file_path));
+
+    const resp = await post_image(process.user_id, process.project_id, "out", data);
+    const key_parts = resp.data.data.imageKey.split("/");
+
+    await Result.create({
+      type: "image",
+      file_name: file_name,
+      img_key: key_parts[key_parts.length - 1],
+      img_id: process.img_id,
+      project_id: process.project_id,
+      user_id: process.user_id,
+      token: process.token || 0,
+      frame_time: frame.time,
+    });
+
+    // o ficheiro já está no armazenamento de objetos: o temporário pode sair
+    fs.promises.unlink(file_path).catch(() => {});
+  }
+}
+
+// Falha de um item numa tool de vídeo: devolve a operação, avisa o utilizador
+// e deixa os restantes itens continuarem
+async function handleItemFailure(process, project, error_code, error_msg) {
+  if ((project.activeToken || 0) !== (process.token || 0)) return; // execução cancelada
+
+  const runnerId = process.runner_id || process.user_id;
+
+  if ((project.pendingAdvancedOps || 0) > 0) {
+    try {
+      await axios.post(users_ms + `${runnerId}/process/refund/1`, {}, { httpsAgent });
+      await Project.updateRaw(process.user_id, process.project_id, {
+        $inc: { pendingAdvancedOps: -1 },
+      });
+    } catch (err) {
+      console.error("Error refunding operation of failed item:", err.message);
+    }
+  }
+
+  send_msg_client_item_error(
+    `update-client-process-${uuidv4()}`,
+    new Date().toISOString(),
+    runnerId,
+    String(process.img_id),
+    error_code,
+    error_msg
+  );
+
+  await commitRunIfDone(process);
+}
+
+// Reencaminha o progresso de um item para o frontend
+async function forwardProgress(msg_id, msg_content) {
+  if (/preview/.test(msg_id)) return;
+
+  const process = await Process.getOneByMsgId(msg_id);
+  if (!process) return;
+
+  const project = await Project.getOne(process.user_id, process.project_id);
+  if (!project || (project.activeToken || 0) !== (process.token || 0)) return;
+
+  send_msg_client_progress(
+    `update-client-progress-${uuidv4()}`,
+    new Date().toISOString(),
+    process.runner_id || process.user_id,
+    String(process.img_id),
+    Number(msg_content.output?.progress) || 0
+  );
+}
+
 // TODO process message according to type of output
 function process_msg() {
   read_msg(async (msg) => {
@@ -163,6 +297,12 @@ function process_msg() {
     try {
       const msg_content = JSON.parse(msg.content.toString());
       const msg_id = msg_content.correlationId;
+
+      // Progresso intermédio (tools de vídeo): o process continua ativo
+      if (msg_content.status === "progress") {
+        await forwardProgress(msg_id, msg_content);
+        return;
+      }
 
       const process = await Process.getOneByMsgId(msg_id);
       if (!process) return;
@@ -188,22 +328,33 @@ function process_msg() {
       
       if (msg_content.status === "error") {
         console.log(JSON.stringify(msg_content));
+        // as tools enviam error.message; mantém-se error.msg por compatibilidade
+        const error_msg = msg_content.error?.message ?? msg_content.error?.msg;
+
         if (/preview/.test(msg_id)) {
-          send_msg_client_preview_error(`update-client-preview-${uuidv4()}`, timestamp, runnerId, msg_content.error.code, msg_content.error.msg)
+          send_msg_client_preview_error(`update-client-preview-${uuidv4()}`, timestamp, runnerId, msg_content.error.code, error_msg)
+          return;
         }
-        
-        else {
-          send_msg_client_error(
-            user_msg_id,
-            timestamp,
-            runnerId,   
-            msg_content.error.code,
-            msg_content.error.msg
-          );
+
+        const errProject = await Project.getOne(process.user_id, process.project_id);
+        const errTool = errProject?.tools.find((t) => t.position == process.cur_pos);
+
+        // extract_frames: a falha fica isolada a este vídeo (UC-VID-003, exceções 6 e 7)
+        if (errTool && EXCLUSIVE_TOOLS.includes(errTool.procedure)) {
+          await handleItemFailure(process, errProject, msg_content.error.code, error_msg);
+          return;
         }
+
+        send_msg_client_error(
+          user_msg_id,
+          timestamp,
+          runnerId,
+          msg_content.error.code,
+          error_msg
+        );
         return;
       }
-      
+
       const output_file_uri = msg_content.output.imageURI;
       const type = msg_content.output.type;
       const project = await Project.getOne(process.user_id, process.project_id);
@@ -345,7 +496,12 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
           runnerId
         );
 
-      if (!/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.length)) {
+      // extract_frames devolve várias imagens: cada uma é um resultado e a pipeline termina aqui
+      if (!/preview/.test(msg_id) && type == "images") {
+        await storeFrameResults(process, msg_content.output.images || []);
+      }
+
+      if (!/preview/.test(msg_id) && type != "images" && (type == "text" || next_pos >= project.tools.length)) {
         const file_path = path.join(__dirname, `/../${output_file_uri}`);
         const file_name = path.basename(file_path);
         const fileStream = fs.createReadStream(file_path); // Use createReadStream for efficiency
@@ -382,54 +538,11 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
       }
 
       // Se esta imagem acabou o pipeline, pode ser que a execução tenha terminado
-      if (!/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.length)) {
-
-        // Já eliminei este Process no início: await Process.delete(...)
-        // Agora verifica se ainda há processos desta run
-        const remaining = await Process.countByProjectAndToken(
-          process.project_id,
-          process.token || 0
-        );
-
-        if (remaining === 0) {
-          // re-fetch do projeto (já tens project) mas garante que está fresh
-          const freshProject = await Project.getOne(process.user_id, process.project_id);
-
-          // só commita se ainda for a execução ativa (não foi cancelada entretanto)
-          if ((freshProject.activeToken || 0) === (process.token || 0)) {
-            freshProject.committedToken = process.token || 0;
-
-            //  guardar também resultsToken se ainda uso noutros sítios
-            freshProject.resultsToken = freshProject.committedToken;
-
-            const toolsSnapshot = [...(freshProject.tools || [])]
-              .sort((a,b) => (a.position ?? 0) - (b.position ?? 0))
-              .map(t => ({
-                _id: t._id,
-                position: t.position,
-                procedure: t.procedure,
-                params: t.params,
-              }));
-
-            await Project.updateRaw(process.user_id, process.project_id, { 
-              $set: {
-                committedToken: process.token || 0,
-                resultsToken: process.token || 0,
-                committedTools: toolsSnapshot,
-              }
-            });
-
-            console.log(`[COMMIT] project=${process.project_id} committedToken=${process.token || 0}`);
-
-          } else {
-            console.log(
-              `[COMMIT-SKIP] project=${process.project_id} token=${process.token} activeToken=${freshProject.activeToken}`
-            );
-          }
-        }
+      if (!/preview/.test(msg_id) && (type == "text" || type == "images" || next_pos >= project.tools.length)) {
+        await commitRunIfDone(process);
       }
 
-      if (next_pos >= project.tools.length) return;
+      if (type == "images" || next_pos >= project.tools.length) return;
 
       const new_msg_id = /preview/.test(msg_id)
         ? `preview-${uuidv4()}`
@@ -701,6 +814,7 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
             name: path.basename(img.og_uri),
             url,
             media_type: img.media_type ?? "image",
+            duration: img.duration,
           });
         } catch (err) {
           console.error("Error getting image url for shared project:", err);
@@ -836,6 +950,7 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
             name: path.basename(img.og_uri),
             url: url,
             media_type: img.media_type ?? "image",
+            duration: img.duration,
           });
         } catch (_) {
           res.status(404).jsonp(`Error acquiring image's url`);
@@ -865,6 +980,7 @@ router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, ne
           name: path.basename(img.og_uri),
           url: resp.data.url,
           media_type: img.media_type ?? "image",
+          duration: img.duration,
         });
       } catch (_) {
         res.status(404).jsonp("No image with such id.");
@@ -895,6 +1011,7 @@ router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) 
               name: path.basename(img.og_uri),
               url: url,
               media_type: img.media_type ?? "image",
+              duration: img.duration,
             });
           } catch (_) {
             res.status(404).jsonp(`Error acquiring image's url`);
@@ -982,13 +1099,80 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
       const resp = await get_image_public_url(r.user_id, r.project_id, "out", r.img_key);
       const url = resp.data.url;
 
-      if (r.type === "text") ans.texts.push({ og_img_id: r.img_id, name: r.file_name, url });
-      else ans.imgs.push({ og_img_id: r.img_id, name: r.file_name, url });
+      // _id do resultado: um vídeo pode ter vários (frames extraídos)
+      if (r.type === "text") ans.texts.push({ _id: r._id, og_img_id: r.img_id, name: r.file_name, url });
+      else ans.imgs.push({ _id: r._id, og_img_id: r.img_id, name: r.file_name, url });
     }
 
     return res.status(200).jsonp(ans);
   } catch (e) {
     return res.status(601).jsonp("Error acquiring project's processing result");
+  }
+});
+
+// Copia as imagens resultantes (ex.: frames extraídos) para um novo projeto de quem pede,
+// onde passam a ser imagens normais (UC-VID-003, FA3)
+router.post("/:user/:project/results/project", checkSharePermission, requireAuth, async (req, res) => {
+  const ownerId = req.params.user;
+  const callerId = getCallerId(req);
+  let created = null;
+
+  try {
+    const source = await Project.getOne(ownerId, req.params.project);
+    const results = (
+      await Result.getAllByToken(ownerId, req.params.project, source.committedToken || 0)
+    ).filter((r) => r.type !== "text");
+
+    if (results.length === 0) {
+      return res.status(400).jsonp("There are no image results to copy");
+    }
+
+    const isFrames = results.some((r) => r.frame_time !== undefined && r.frame_time !== null);
+    const name = req.body?.name || `${source.name} (${isFrames ? "frames" : "results"})`;
+
+    created = await Project.create({ name, user_id: callerId, imgs: [], tools: [] });
+
+    const crypto = require("crypto");
+    const usedNames = new Set();
+    const imgs = [];
+
+    for (const r of results) {
+      // nomes únicos: o og_uri de cada imagem é derivado do nome
+      let file_name = r.file_name;
+      for (let i = 1; usedNames.has(file_name); i++) file_name = `${i}_${r.file_name}`;
+      usedNames.add(file_name);
+
+      const url_resp = await get_image_internal_url(ownerId, req.params.project, "out", r.img_key);
+      const file_resp = await axios.get(url_resp.data.url, { responseType: "arraybuffer" });
+      const buffer = Buffer.from(file_resp.data);
+
+      const data = new FormData();
+      data.append("file", buffer, {
+        filename: file_name,
+        contentType: mime.lookup(file_name) || "application/octet-stream",
+      });
+      const resp = await post_image(callerId, created._id, "src", data);
+      const key_parts = resp.data.data.imageKey.split("/");
+
+      imgs.push({
+        og_uri: `./images/users/${callerId}/projects/${created._id}/src/${file_name}`,
+        new_uri: `./images/users/${callerId}/projects/${created._id}/out/${file_name}`,
+        og_img_key: key_parts[key_parts.length - 1],
+        og_sha256: crypto.createHash("sha256").update(buffer).digest("hex"),
+        media_type: "image",
+      });
+    }
+
+    await Project.updateRaw(callerId, created._id, { $set: { imgs } });
+
+    return res.status(201).jsonp({ _id: created._id, name, imgs: imgs.length });
+  } catch (err) {
+    console.error("[RESULTS-TO-PROJECT] error:", err.message);
+    // não deixar um projeto a meio
+    if (created) {
+      try { await deleteProjectAndResources(callerId, created._id); } catch (_) {}
+    }
+    return res.status(500).jsonp("Error copying results to a new project");
   }
 });
 
@@ -1048,6 +1232,12 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
         fs.mkdirSync(path.join(__dirname, result_path), { recursive: true });
 
       const img = project.imgs.filter((i) => i._id == req.params.img)[0];
+      if (!img) return res.status(404).jsonp("No image with such id.");
+
+      // ex.: tools de imagem num vídeo, ou extract_frames numa imagem
+      if (!pipelineAccepts(project.tools, img.media_type ?? "image")) {
+        return res.status(400).jsonp("Preview not available for this file with the selected tools");
+      }
 
       const orderedTools = [...project.tools].sort((a,b) => a.position - b.position);
       const cacheKey = makePreviewCacheKey(img.og_sha256, orderedTools);
@@ -1189,11 +1379,12 @@ router.post(
     }
 
     // Vídeos: validar tamanho e duração segundo o perfil de quem faz o upload
+    let probe = null;
     if (media_type === "video") {
       try {
         const callerId = getCallerId(req);
         const userResp = await axios.get(users_ms + `${callerId}/type`, { httpsAgent });
-        const probe = await probeVideo(req.file.buffer, req.file.originalname);
+        probe = await probeVideo(req.file.buffer, req.file.originalname);
         const reason = checkVideoLimits(userResp.data.type, req.file.size, probe.duration);
         if (reason) return res.status(413).jsonp(reason);
       } catch (e) {
@@ -1245,6 +1436,8 @@ router.post(
               og_img_key: og_key,
               og_sha256: sha,
               media_type: media_type,
+              // guardados para validar e estimar a extração de frames sem reler o vídeo
+              ...(probe ? { duration: probe.duration, width: probe.width, height: probe.height } : {}),
             });
 
             const updated = await Project.updateIfVersion(
@@ -1286,6 +1479,9 @@ router.post("/:user/:project/tool", checkSharePermission, requireEditPermission,
     return;
   }
 
+  const paramsError = validateToolParams(req.body.procedure, req.body.params);
+  if (paramsError) return res.status(400).jsonp(paramsError);
+
   let required_types = ["free", "premium"];
 
   if (!advanced_tools.includes(req.body.procedure))
@@ -1304,6 +1500,12 @@ router.post("/:user/:project/tool", checkSharePermission, requireEditPermission,
       // Get project and insert new tool
       Project.getOne(req.params.user, req.params.project)
         .then(async (project) => {
+          const exclusiveError = checkExclusiveTools([
+            ...project.tools.map((t) => t.procedure),
+            req.body.procedure,
+          ]);
+          if (exclusiveError) return res.status(400).jsonp(exclusiveError);
+
           const tool = { position: project.tools.length, ...req.body };
           project.tools.push(tool);
 
@@ -1355,6 +1557,9 @@ router.post(
   (req, res) => {
     Project.getOne(req.params.user, req.params.project)
       .then(async (project) => {
+        const exclusiveError = checkExclusiveTools((req.body || []).map((t) => t.procedure));
+        if (exclusiveError) return res.status(400).jsonp(exclusiveError);
+
         project.tools = [];
 
         for (let t of req.body) {
@@ -1426,6 +1631,27 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
         return;
       }
 
+      // só os itens cujo tipo é aceite por todas as tools (ex.: extract_frames só aceita vídeos)
+      const processable = processableImgs(project);
+      const skipped = project.imgs.length - processable.length;
+
+      if (processable.length === 0) {
+        res.status(400).jsonp("No file is compatible with the selected tools");
+        return;
+      }
+
+      const frameTool = project.tools.find((t) => t.procedure === "extract_frames");
+      if (frameTool) {
+        const framesError = checkFramesForVideos(
+          frameTool.params,
+          processable.map((i) => ({ name: path.basename(i.og_uri), duration: i.duration }))
+        );
+        if (framesError) {
+          res.status(400).jsonp(framesError);
+          return;
+        }
+      }
+
       const { adv_ops, totalAdv, charged, newTools } = advanced_tool_num(project);
 
       console.log(
@@ -1463,7 +1689,7 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
 
         let error = false;
 
-        for (let img of project.imgs) {
+        for (let img of processable) {
           let url = "";
           try {
             const resp = await get_image_internal_url(
@@ -1531,7 +1757,7 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
               `There were some erros creating all process requests. Some results can be invalid.`
             );
         } else {
-          res.sendStatus(201);
+          res.status(201).jsonp({ skipped });
         }
       };
 
@@ -1544,7 +1770,8 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
           const fpNow = makeToolsFingerprint(project.tools || []);
           const fpCommitted = makeToolsFingerprint(project.committedTools || []);
 
-          if (hasCommit && fpNow === fpCommitted) {
+          // extract_frames reprocessa sempre: o frontend conta um aviso de fim por vídeo
+          if (hasCommit && fpNow === fpCommitted && !frameTool) {
             console.log(
               `[T-03][PROCESS][SKIP] user=${ownerId} project=${req.params.project} token=${project.committedToken}`
             );
@@ -1723,6 +1950,9 @@ router.put(
         try {
           const tool_pos = project.tools.findIndex((i) => i._id == req.params.tool);
           const prev_tool = project.tools[tool_pos];
+
+          const paramsError = validateToolParams(prev_tool.procedure, req.body.params);
+          if (paramsError) return res.status(400).jsonp(paramsError);
 
           project.tools[tool_pos] = {
             position: prev_tool.position,

@@ -28,6 +28,11 @@ class Rabbit_MQ:
         self._channel.basic_publish(exchange="picturas", routing_key=queue, body=msg)
 
     
+    # Tools demoradas (ex.: vídeo) chamam isto durante o processamento para a ligação
+    # continuar a responder aos heartbeats do RabbitMQ
+    def keep_alive(self):
+        self._connection.process_data_events(time_limit=0)
+
     def read_rabbit_msg(self, queue, callback):
         if self._queue == "":
             self._queue = queue

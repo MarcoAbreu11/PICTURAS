@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, LoaderCircle, OctagonAlert, Play } from "lucide-react";
+import { Copy, Download, LoaderCircle, OctagonAlert, Play } from "lucide-react";
 import { fetchSharedProject, resolveShareLink } from "@/lib/projects";
 import { ProjectImageList } from "@/components/project-page/project-image-list";
 import { ViewToggle } from "@/components/project-page/view-toggle";
@@ -24,6 +24,7 @@ import {
   useProcessProject,
   useCancelProjectProcess,
   useDownloadProjectPdf,         
+  useCopyResultsToProject,
 } from "@/lib/mutations/projects";
 import {
   DropdownMenu,
@@ -81,6 +82,7 @@ export default function Project({
   );
   const downloadProjectResults = useDownloadProjectResults();
   const downloadProjectPdf = useDownloadProjectPdf();
+  const copyResults = useCopyResultsToProject(session.user._id, session.token);
   const router = useRouter();
   const path = usePathname();
   const sidebar = useSidebar();
@@ -104,8 +106,19 @@ export default function Project({
   // se um processamento envolve ferramentas de IA ou não
   const processIsAiRef = useRef<boolean>(false);
 
-  const totalProcessingSteps =
-    (project.data?.tools.length ?? 0) * (project.data?.imgs.length ?? 0);
+  // progresso parcial de cada vídeo na extração de frames (img_id -> 0..100)
+  const frameProgressRef = useRef<Record<string, number>>({});
+
+  // só os itens compatíveis com a pipeline são processados: extract_frames só vídeos,
+  // as restantes tools só imagens
+  const pipelineTools = project.data?.tools ?? [];
+  const projectItems = project.data?.imgs ?? [];
+  const framesRun = pipelineTools.some((t) => t.procedure === "extract_frames");
+  const videoCount = projectItems.filter((i) => i.media_type === "video").length;
+  const imageCount = projectItems.length - videoCount;
+  const totalProcessingSteps = framesRun
+    ? videoCount + 1 // um aviso de fim por vídeo; o contador de passos começa em 1
+    : pipelineTools.length * imageCount;
   const projectResults = useGetProjectResults(
     session.user._id,
     pid,
@@ -401,11 +414,37 @@ useEffect(() => {
     });
   }
 
+  // extração de frames: progresso dentro de cada vídeo
+  function onProcessProgress(payload: { img_id: string; progress: number }) {
+    if (ignoreUpdatesRef.current || !processing || !framesRun || videoCount === 0) return;
+
+    frameProgressRef.current[payload.img_id] = payload.progress;
+    const sum = Object.values(frameProgressRef.current).reduce((a, b) => a + b, 0);
+    const overall = Math.min(99, Math.round(sum / videoCount));
+    setProcessingProgress((p) => Math.max(p, overall));
+  }
+
+  // falha de um só vídeo: avisa e conta-o como terminado (os outros continuam)
+  function onProcessItemError(payload: { img_id: string; error_code: string; error_msg: string }) {
+    if (ignoreUpdatesRef.current || !processing) return;
+
+    const name = projectItems.find((i) => i._id === payload.img_id)?.name;
+    toast({
+      title: name ? `Falha em ${name}` : "Falha num vídeo",
+      description: payload.error_msg || "Não foi possível processar este vídeo.",
+      variant: "destructive",
+    });
+    frameProgressRef.current[payload.img_id] = 100;
+    onProcessUpdate("item-error");
+  }
+
   let active = true;
 
   if (active && socket.data) {
     socket.data.on("process-update", onProcessUpdate);
     socket.data.on("process-error", onProcessError);
+    socket.data.on("process-progress", onProcessProgress);
+    socket.data.on("process-item-error", onProcessItemError);
   }
 
   return () => {
@@ -413,6 +452,8 @@ useEffect(() => {
     if (socket.data) {
       socket.data.off("process-update", onProcessUpdate);
       socket.data.off("process-error", onProcessError);
+      socket.data.off("process-progress", onProcessProgress);
+      socket.data.off("process-item-error", onProcessItemError);
     }
   };
 }, [
@@ -428,6 +469,9 @@ useEffect(() => {
   projectResults,
   toast,
   processing,
+  framesRun,
+  videoCount,
+  projectItems,
 ]);
 
 if (project.isError) {
@@ -635,6 +679,7 @@ const handleCancel = () => {
                     onClick={() => {
                       // começa a contar o tempo
                       processStartTimeRef.current = performance.now();
+                      frameProgressRef.current = {};
                       setProcessing(true);        
                       sidebar.setOpen(false);
                       
@@ -654,13 +699,25 @@ const handleCancel = () => {
 
                       processProject.mutate(
                         {
-                          projectVersion: project.data.version
+                          projectVersion: project.data.version,
+                          tools: project.data.tools,
                         },
                         {
                           onSuccess: () => {
                             ignoreUpdatesRef.current = false;
                             setProcessing(true);
                             sidebar.setOpen(false);
+
+                            // itens que a pipeline não processa (FRAME-050)
+                            const skipped = framesRun ? imageCount : videoCount;
+                            if (skipped > 0) {
+                              toast({
+                                title: `${skipped} ${skipped === 1 ? "item ignorado" : "itens ignorados"}`,
+                                description: framesRun
+                                  ? "A extração de frames só se aplica a vídeos."
+                                  : "As ferramentas de imagem não se aplicam a vídeos.",
+                              });
+                            }
 
                             updateSession.mutate({
                               userId: session.user._id,
@@ -724,6 +781,42 @@ const handleCancel = () => {
                 />
                 )}
                 </>
+              )}
+
+              {/* UC-VID-003 FA3: as imagens resultantes passam a imagens normais de um novo projeto */}
+              {mode === "results" && (projectResults.data?.imgs.length ?? 0) > 0 && (
+                <Button
+                  variant="outline"
+                  title="Copy the result images to a new project to edit them"
+                  disabled={copyResults.isPending}
+                  onClick={() =>
+                    copyResults.mutate(
+                      {
+                        uid: session.user._id,
+                        pid: project.data._id,
+                        token: session.token,
+                        ownerId,
+                        shareId,
+                      },
+                      {
+                        onSuccess: (created) => {
+                          toast({
+                            title: "Novo projeto criado",
+                            description: `${created.imgs} ${created.imgs === 1 ? "imagem copiada" : "imagens copiadas"} para "${created.name}".`,
+                          });
+                          router.push(`/dashboard/${created._id}`);
+                        },
+                        onError: (error) => {
+                          const { title, description } = getErrorMessage("project-create", error);
+                          toast({ title, description, variant: "destructive" });
+                        },
+                      },
+                    )
+                  }
+                >
+                  {copyResults.isPending ? <LoaderCircle className="animate-spin" /> : <Copy />}
+                  Copy to new project
+                </Button>
               )}
 
               <DropdownMenu>

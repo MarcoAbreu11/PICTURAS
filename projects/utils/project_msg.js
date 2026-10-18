@@ -18,6 +18,7 @@ const queues = {
     'people_ai': 'people_ai_queue',
     'expand_ai': 'expand_ai_queue',
     'watermark': 'watermark_queue',
+    'extract_frames': 'extract_frames_queue',
     'project': 'project_queue',
     'ws': 'ws_queue'
 }
@@ -91,6 +92,37 @@ function send_msg_client_preview_error(msg_id, timestamp, user, error_code, erro
     send_rabbit_msg(msg, queue);
 }
 
+// Progresso (0-100) de um item em processamento
+function send_msg_client_progress(msg_id, timestamp, user, img_id, progress) {
+    const queue = queues['ws'];
+    const msg = {
+        "messageId": msg_id,
+        "timestamp": timestamp,
+        "user": user,
+        "status": "progress",
+        "imgId": img_id,
+        "progress": progress
+    };
+
+    send_rabbit_msg(msg, queue);
+}
+
+// Falha de um único item: o resto da execução continua
+function send_msg_client_item_error(msg_id, timestamp, user, img_id, error_code, error_msg) {
+    const queue = queues['ws'];
+    const msg = {
+        "messageId": msg_id,
+        "timestamp": timestamp,
+        "user": user,
+        "status": "item-error",
+        "imgId": img_id,
+        "errorCode": error_code,
+        "errorMsg": error_msg
+    };
+
+    send_rabbit_msg(msg, queue);
+}
+
 function read_msg(callback){
     read_rabbit_msg(queues['project'], callback);
 }
@@ -108,4 +140,4 @@ function send_msg_project_op({ projectId, ownerId, op }) {
   send_rabbit_msg(msg, queue);
 }
 
-module.exports = { send_msg_tool, send_msg_client, send_msg_client_error, send_msg_client_preview, send_msg_client_preview_error, read_msg, send_msg_project_op };
+module.exports = { send_msg_tool, send_msg_client, send_msg_client_error, send_msg_client_preview, send_msg_client_preview_error, send_msg_client_progress, send_msg_client_item_error, read_msg, send_msg_project_op };

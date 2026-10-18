@@ -361,6 +361,32 @@ router.get(
   }
 );
 
+/**
+ * Copy the image results of a project into a new project of the caller
+ * @body { "name"?: String }
+ * @returns { _id, name, imgs } of the new project
+ */
+router.post(
+  "/:user/:project/results/project",
+  auth.checkToken,
+  function (req, res, next) {
+    const ownerId = req.query.owner || req.params.user;
+    const callerId = req.authUserId || req.params.user;
+
+    axios
+      .post(projectsURL + `${ownerId}/${req.params.project}/results/project`, req.body, {
+        httpsAgent,
+        params: req.query.share ? { share: req.query.share } : undefined,
+        headers: {
+          Authorization: req.headers["authorization"],
+          "X-Caller-Id": callerId,
+        },
+      })
+      .then((resp) => res.status(201).jsonp(resp.data))
+      .catch((err) => forwardAxiosError(res, err, "mensagem fallback"));
+  }
+);
+
 
 /**
  * Create new user's project

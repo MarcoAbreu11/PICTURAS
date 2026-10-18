@@ -273,6 +273,22 @@ services:
     volumes:
       - image_data:/app/images
 
+  # UC-VID-003: extração de frames de vídeo (5 réplicas = 5 vídeos em simultâneo)
+  extract_frames_tool:
+    build:
+      context: ./Tools
+      dockerfile: extract_frames/Dockerfile
+    restart: on-failure
+    deploy:
+      replicas: 5
+    networks:
+      - elk
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - image_data:/app/images
+
   contrast_tool:
     build:
       context: ./Tools

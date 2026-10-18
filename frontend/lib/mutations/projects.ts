@@ -19,9 +19,12 @@ import {
   createProjectShareLink,
   revokeShareLink,
   clearProjectTools,
+  copyResultsToProject,
   setProjectDirty,  
 } from "../projects";
 import { downloadProjectPdf } from "../projects";
+import { fetchProject } from "../projects";
+import axios from "axios";
 import { createBlobUrlFromFile, downloadBlob } from "../utils";
 import { validateSession, SessionData } from "../session";
 import type { ProjectTool, ProjectToolResponse } from "../projects";
@@ -45,6 +48,19 @@ export const useAddProject = (uid: string, token: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: addProject,
+    onSuccess: () => {
+      qc.invalidateQueries({
+        refetchType: "all",
+        queryKey: ["projects", uid, token],
+      });
+    },
+  });
+};
+
+export const useCopyResultsToProject = (uid: string, token: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: copyResultsToProject,
     onSuccess: () => {
       qc.invalidateQueries({
         refetchType: "all",
@@ -228,17 +244,40 @@ export const useProcessProject = (
   const projectKey = ["project", uid, pid, token, ownerId, shareId];
   const resultsKey = ["projectResults", uid, pid, token, ownerId, shareId];
 
+  const run = (projectVersion: number) =>
+    processProject({
+      uid: shareId ? (ownerId ?? uid) : uid,  
+      pid,
+      token,
+      ownerId,
+      shareId,
+      projectVersion,
+      runnerUserId: uid,
+    });
+
   return useMutation({
-    mutationFn: (args: { projectVersion: number }) =>
-      processProject({
-        uid: shareId ? (ownerId ?? uid) : uid,  
-        pid,
-        token,
-        ownerId,
-        shareId,
-        projectVersion: args.projectVersion,
-        runnerUserId: uid,
-      }),
+    mutationFn: async (args: { projectVersion: number; tools?: ProjectToolResponse[] }) => {
+      try {
+        return await run(args.projectVersion);
+      } catch (error) {
+        // 409 sem alteração real: a versão sobe também com a marca "dirty" (alterações por
+        // guardar), e a releitura do projeto pode chegar depois dela. Se as tools no servidor
+        // forem as que o utilizador está a ver, repete com a versão atual; senão é um
+        // conflito verdadeiro (outro editor) e o erro segue.
+        if (!args.tools || !axios.isAxiosError(error) || error.response?.status !== 409) throw error;
+
+        const fresh = await fetchProject(uid, pid, token, ownerId, shareId);
+        const toolsKey = (tools: ProjectToolResponse[]) =>
+          JSON.stringify(
+            [...tools]
+              .sort((a, b) => a.position - b.position)
+              .map((t) => [t.procedure, t.params]),
+          );
+        if (toolsKey(fresh.tools) !== toolsKey(args.tools)) throw error;
+
+        return await run(fresh.version);
+      }
+    },
 
     onSuccess: async (newVersionHeader) => {
       // 1) atualizar a versão local (se vier header)
