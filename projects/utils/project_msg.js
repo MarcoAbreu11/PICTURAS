@@ -19,6 +19,7 @@ const queues = {
     'expand_ai': 'expand_ai_queue',
     'watermark': 'watermark_queue',
     'extract_frames': 'extract_frames_queue',
+    'video_convert': 'video_convert_queue',
     'trim': 'trim_queue',
     'blur_faces': 'blur_faces_queue',
     'project': 'project_queue',

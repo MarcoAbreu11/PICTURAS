@@ -35,6 +35,26 @@ PictuRAS is a web-based image editing platform that combines traditional image p
 - **Filters and Effects**: binarization, borders, watermark
 - **Bulk Processing**: apply a pipeline of tools to multiple images
 
+### Video Tools
+
+- **Trim** (`trim`): keep an excerpt from a video.
+- **Extract frames** (`extract_frames`): save selected frames as images.
+- **Convert / compress** (`video_convert`): convert the selected video into a new MP4
+  (H.264/AAC) or WebM (VP9/Opus), optionally lowering resolution or quality. The new video
+  is added to the project (as `<name>_converted.<ext>`) and stays there until deleted; the
+  original remains unchanged. Inputs are MP4 or MOV with H.264 video and AAC audio, up to
+  500 MB and 10 minutes. The upload limits apply first, so in practice free accounts convert
+  videos of up to 100 MB / 60 s and Premium up to 500 MB / 10 min. Free accounts can export
+  up to 720p, Premium up to 1080p. Anonymous accounts cannot use conversion; successful
+  free-account conversions consume one daily operation (failed or cancelled ones are refunded).
+  Temporary files are removed within 1 hour of a job ending.
+
+The video tools' images pin their base images (Node 22.11 for `projects`, Python 3.11.10
+for `trim`, `extract_frames` and `video_convert`, all on Debian 12, which ships FFmpeg 5.1).
+Tests: `node --test` in `projects/` and `python -m unittest` in each video tool folder
+(`python -m unittest utils.test_video` in `Tools/` for the shared module) for unit tests, and
+`bash projects/test/e2e/run.sh` with the stack running for end-to-end tests.
+
 ### AI-Powered Tools
 
 - **Background Removal** (`bg_remove_ai`): AI-powered background removal for clean cutouts
@@ -94,7 +114,7 @@ are **not** published to the host unless noted otherwise — they talk to each o
    └────────┘ └────────┘ │     └────────┘   │
                          │                  │
                     ┌────▼──────────────────┴────┐
-                    │      RabbitMQ  :5672       │◄─── 16 tool microservices
+                    │      RabbitMQ  :5672       │◄─── 19 tool microservices
                     │    exchange "picturas"     │     (one queue per tool)
                     └────────────────────────────┘
 ```
@@ -129,7 +149,17 @@ exchange:
 
 `binarization` · `border` · `brightness` · `contrast` · `cut` · `resize` · `rotate` ·
 `saturation` · `watermark` · `bg_remove_ai` · `cut_ai` · `expand_ai` · `obj_ai` · `people_ai` ·
-`text_ai` · `upgrade_ai`
+`text_ai` · `upgrade_ai` · `trim` · `extract_frames` · `video_convert`
+
+The three **video tools** follow the same pattern and run FFmpeg only inside their own
+containers (5 replicas each, so at most 5 videos per tool are processed at once; the rest wait
+in the queue). They share `Tools/utils/video.py` (ffprobe, FFmpeg with progress, progress
+throttling) and report progress — starting with 0 % when a job leaves the queue — through
+RabbitMQ and the WS Gateway. The **Project Service never processes media**: it only reads
+video metadata with ffprobe on upload and validates requests. Even the conversion size
+estimate is computed by the `video_convert` worker; the Project Service sends it through the
+queue and waits for the reply on `project_queue` (correlated by message id, in memory — so
+it assumes a single Project Service instance).
 
 > The `watermark` tool runs from a pre-built public image
 > (`prcsousa/picturas-watermark-tool-ms`) instead of being built from this repository — it is a

@@ -125,8 +125,8 @@ Copiar a estrutura de `Tools/trim/trim.py` (classe, `callback`, `send_error`, `n
    - no fim, `ffmpeg` com `mux_args` → `out_path` (o áudio entra com `-map 1:a:0?`, REQ-006) e progresso a 100 %.
 5. `duration_ok` falso → erro **2502** (REQ-022).
 6. Sucesso: `send_msg(msg_id, resp_id, ts, 'success', elapsed, out_path, type='video')` com o nº de caras.
-   O `send_msg` atual não tem campo para isto: **acrescenta um argumento opcional `extra=None`** em `tool_msg.py`
-   que, se existir, vai para `msg["output"]` (ex.: `{"facesDetected": 3}`). Avisa o grupo; não parte nada.
+   Usar o argumento `result_metadata` do `send_msg` (introduzido pelo UC-VID-005), que vai para
+   `output.metadata` (ex.: `{"facesDetected": 3}`).
 7. `except`: apagar `out_path` se existir (REQ-020) e enviar erro com a causa (REQ-029), como no trim.
 8. **Pré-visualização de um frame (REQ-010):** se `params.get('previewFrame')`, processar só o frame do meio,
    gravar `out_path` com extensão `.png` e responder `type='image'`.
@@ -151,7 +151,7 @@ ficheiro de texto pequeno (ponteiro LFS); se for, descarrega-o pelo botão "Down
 
 | Ficheiro | O que acrescentar |
 |---|---|
-| `Tools/utils/tool_msg.py` | `'blur_faces': 'blur_faces_queue'` em `queues` (+ o argumento `extra` do passo 5) |
+| `Tools/utils/tool_msg.py` | `'blur_faces': 'blur_faces_queue'` em `queues` (o nº de caras segue em `result_metadata`) |
 | `projects/utils/project_msg.js` | `'blur_faces': 'blur_faces_queue'` |
 | `rabbitMQ/definitions.json` | fila `blur_faces_queue` em `queues` **e** binding (copiar as entradas de `trim_queue`) |
 | `docker-compose.yaml` | serviço `blur_faces_tool` (copiar `trim_tool`, com `deploy: replicas: 5`) |

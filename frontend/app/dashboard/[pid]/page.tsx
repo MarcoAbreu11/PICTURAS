@@ -108,15 +108,23 @@ export default function Project({
 
   // progresso parcial de cada vídeo nas tools de vídeo (img_id -> 0..100)
   const frameProgressRef = useRef<Record<string, number>>({});
+  // nº de vídeos que já saíram da fila (receberam progresso): "em fila" vs "em curso"
+  const [videosStarted, setVideosStarted] = useState(0);
 
   // só os itens compatíveis com a pipeline são processados: as tools de vídeo
   // (extract_frames, trim) só vídeos, as restantes só imagens
   const pipelineTools = project.data?.tools ?? [];
   const projectItems = project.data?.imgs ?? [];
   const framesRun = pipelineTools.some(
-    (t) => t.procedure === "extract_frames" || t.procedure === "trim",
+    (t) => t.procedure === "extract_frames" || t.procedure === "trim" || t.procedure === "video_convert",
   );
-  const videoCount = projectItems.filter((i) => i.media_type === "video").length;
+  // a conversão (UC-VID-005) aplica-se só ao vídeo escolhido
+  const convertTarget = (pipelineTools.find((t) => t.procedure === "video_convert")?.params as
+    { video_id?: string } | undefined)?.video_id;
+  const allVideos = projectItems.filter((i) => i.media_type === "video");
+  const videoCount = convertTarget && allVideos.some((v) => v._id === convertTarget)
+    ? 1
+    : allVideos.length;
   const imageCount = projectItems.length - videoCount;
   const totalProcessingSteps = framesRun
     ? videoCount + 1 // um aviso de fim por vídeo; o contador de passos começa em 1
@@ -319,6 +327,16 @@ useEffect(() => {
           processStartTimeRef.current = null;
           processIsAiRef.current = false;
 
+          // vídeos convertidos entram na biblioteca: recarregar o projeto e as imagens
+          qc.invalidateQueries({
+            queryKey: ["project", session.user._id, pid, session.token, ownerId, shareId],
+            refetchType: "all",
+          });
+          qc.invalidateQueries({
+            queryKey: ["projectImages", session.user._id, pid, session.token, ownerId, shareId],
+            refetchType: "all",
+          });
+
           projectResults.refetch().then(() => {
             if (ignoreUpdatesRef.current) return;
 
@@ -420,6 +438,7 @@ useEffect(() => {
   function onProcessProgress(payload: { img_id: string; progress: number }) {
     if (ignoreUpdatesRef.current || !processing || !framesRun || videoCount === 0) return;
 
+    if (!(payload.img_id in frameProgressRef.current)) setVideosStarted((n) => n + 1);
     frameProgressRef.current[payload.img_id] = payload.progress;
     const sum = Object.values(frameProgressRef.current).reduce((a, b) => a + b, 0);
     const overall = Math.min(99, Math.round(sum / videoCount));
@@ -468,6 +487,8 @@ useEffect(() => {
   totalProcessingSteps,
   sidebar,
   isMobile,
+  ownerId,
+  shareId,
   projectResults,
   toast,
   processing,
@@ -682,6 +703,7 @@ const handleCancel = () => {
                       // começa a contar o tempo
                       processStartTimeRef.current = performance.now();
                       frameProgressRef.current = {};
+                      setVideosStarted(0);
                       setProcessing(true);        
                       sidebar.setOpen(false);
                       
@@ -945,6 +967,15 @@ const handleCancel = () => {
               <LoaderCircle className="size-[1em] animate-spin" />
             </div>
             <Progress value={processingProgress} className="w-96" />
+            {framesRun && videoCount > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {videosStarted === 0
+                  ? "Em fila — à espera de um processador livre"
+                  : `Em curso · ${processingProgress}%${
+                      videoCount > 1 ? ` · ${videosStarted} de ${videoCount} vídeos iniciados` : ""
+                    }`}
+              </p>
+            )}
 
             <Button
               variant="outline"

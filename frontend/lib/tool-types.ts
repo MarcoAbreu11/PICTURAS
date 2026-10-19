@@ -76,6 +76,15 @@ export interface TrimToolParams {
   end: number;
 }
 
+export interface VideoConvertToolParams {
+  format: "mp4" | "webm";
+  resolution: "original" | 1080 | 720 | 480 | 360;
+  quality: "high" | "medium" | "low";
+  allow_larger?: boolean;
+  // vídeo do projeto a converter (UC-VID-005, passo 2)
+  video_id?: string;
+}
+
 // UC-VID-004: desfocar caras em vídeos
 export interface BlurFacesToolParams {
   mode: "blur" | "pixelate";
@@ -88,6 +97,7 @@ export type ToolParams =
   | BlurFacesToolParams
   | TrimToolParams
   | ExtractFramesToolParams
+  | VideoConvertToolParams
   | BorderToolParams
   | BrightnessToolParams
   | ContrastToolParams
@@ -118,5 +128,6 @@ export type ToolNames =
   | "expand_ai"
   | "extract_frames"
   | "trim"
+  | "video_convert"
   | "blur_faces"
   | "project";

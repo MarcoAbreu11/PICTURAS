@@ -1,0 +1,1 @@
+# FFmpeg/ffprobe are provided by the Debian package in the Dockerfile.

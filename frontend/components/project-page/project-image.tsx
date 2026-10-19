@@ -36,6 +36,11 @@ interface ImageItemProps {
   animation?: boolean;
 }
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ProjectImage({ image, animation = true }: ImageItemProps) {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") ?? "edit";
@@ -108,6 +113,11 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
               {video && animation && (
                 <span className="row-start-1 col-start-1 z-40 m-2 h-fit w-fit rounded bg-black/70 px-1.5 py-0.5 text-xs text-white">
                   {noFaces ? "Video · no faces detected" : "Video"}
+                </span>
+              )}
+              {mode === "results" && video && image.original_size_bytes != null && image.output_size_bytes != null && (
+                <span className="absolute bottom-2 left-2 z-40 rounded bg-black/75 px-2 py-1 text-[11px] text-white">
+                  {formatBytes(image.original_size_bytes)} → {formatBytes(image.output_size_bytes)}
                 </span>
               )}
               {/* no carrossel: manter ou descartar o resultado sem caras (BLUR-013, BLUR-014) */}

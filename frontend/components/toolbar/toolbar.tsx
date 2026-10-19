@@ -34,6 +34,7 @@ import { useState } from "react";
 import ExpandAITool from "./expand-ai-tool";
 import ExtractFramesTool from "./extract-frames-tool";
 import TrimTool from "./trim-tool";
+import VideoConvertTool from "./video-convert-tool";
 import BlurFacesTool from "./blur-faces-tool";
 
 export function Toolbar() {
@@ -76,6 +77,7 @@ export function Toolbar() {
           <>
             <TrimTool disabled={disabled} />
             <ExtractFramesTool disabled={disabled} />
+            <VideoConvertTool disabled={disabled} />
             <BlurFacesTool disabled={disabled} />
           </>
         ) : (

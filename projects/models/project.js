@@ -16,6 +16,12 @@ const imgSchema = new mongoose.Schema({
   duration: { type: Number, required: false },
   width: { type: Number, required: false },
   height: { type: Number, required: false },
+  size_bytes: { type: Number, required: false },
+  video_codec: { type: String, required: false },
+  audio_codec: { type: String, required: false },
+  // vídeos convertidos (UC-VID-005): vídeo de origem e execução que os gerou
+  converted_from: { type: mongoose.Schema.Types.ObjectId, required: false },
+  converted_token: { type: Number, required: false },
 });
 
 

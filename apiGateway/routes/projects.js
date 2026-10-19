@@ -414,6 +414,36 @@ router.delete(
 
 
 /**
+ * Estimate the size of a video conversion (UC-VID-005, passo 3)
+ * @body { format, resolution, quality, allow_larger?, video_id? }
+ * @returns { originalSizeBytes, estimatedSizeBytes, duration, width, height }
+ */
+router.post(
+  "/:user/:project/video-convert/estimate/:img",
+  auth.checkToken,
+  function (req, res, next) {
+    const ownerId = req.query.owner || req.params.user;
+    const callerId = req.authUserId || req.params.user;
+
+    axios
+      .post(
+        projectsURL + `${ownerId}/${req.params.project}/video-convert/estimate/${req.params.img}`,
+        req.body,
+        {
+          httpsAgent,
+          params: req.query.share ? { share: req.query.share } : undefined,
+          headers: {
+            Authorization: req.headers["authorization"],
+            "X-Caller-Id": callerId,
+          },
+        }
+      )
+      .then((resp) => res.status(200).jsonp(resp.data))
+      .catch((err) => forwardAxiosError(res, err, "Could not estimate the converted video size"));
+  }
+);
+
+/**
  * Create new user's project
  * @body { "name": String }
  * @returns Created project's data

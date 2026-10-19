@@ -26,8 +26,7 @@ async function probeVideo(buffer, filename = "video") {
         "ffprobe",
         [
           "-v", "error",
-          "-select_streams", "v:0",
-          "-show_entries", "format=duration:stream=width,height",
+          "-show_entries", "format=duration:stream=codec_type,codec_name,width,height",
           "-of", "json",
           tmp,
         ],
@@ -36,13 +35,16 @@ async function probeVideo(buffer, filename = "video") {
     });
 
     const info = JSON.parse(stdout);
-    const stream = info.streams?.[0];
+    const stream = info.streams?.find((s) => s.codec_type === "video");
+    const audio = info.streams?.find((s) => s.codec_type === "audio");
     if (!stream) throw new Error("No video stream found");
 
     return {
       duration: Number(info.format?.duration) || 0,
       width: stream.width ?? null,
       height: stream.height ?? null,
+      video_codec: stream.codec_name ?? null,
+      audio_codec: audio?.codec_name ?? null,
     };
   } finally {
     fs.promises.unlink(tmp).catch(() => {});

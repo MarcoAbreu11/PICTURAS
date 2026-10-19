@@ -40,6 +40,19 @@ const { mediaTypeOf, probeVideo, checkVideoLimits } = require("../utils/media");
 const { pipelineAccepts, checkExclusiveTools, EXCLUSIVE_TOOLS } = require("../utils/toolCapabilities");
 const { validateFrameParams, checkFramesForVideos } = require("../utils/frames");
 const { validateTrimParams, checkTrimForVideos } = require("../utils/trim");
+const {
+  validateVideoConvertParams,
+  validateResolutionForProfile,
+  validateVideoForConversion,
+  conversionTargets,
+  convertedName,
+} = require("../utils/videoConvert");
+const { startTempSweeper, removeLocalFile } = require("../utils/tempFiles");
+const { waitForReply, settleReply, ReplyTimeoutError } = require("../utils/pendingReplies");
+
+// a estimativa espera pela fila do video_convert: com os 5 processadores ocupados pode demorar;
+// abaixo dos 60 s em que o nginx desiste do pedido
+const ESTIMATE_TIMEOUT_MS = 50 * 1000;
 const { validateBlurParams } = require("../utils/blurFaces");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
@@ -85,13 +98,18 @@ const advanced_tools = [
   "people_ai",
   "expand_ai",
   "extract_frames",
+  "video_convert",
   "blur_faces",
 ];
 
-// Itens do projeto que a pipeline atual consegue processar (as outras são ignoradas)
+// Itens do projeto que a pipeline atual consegue processar (as outras são ignoradas).
+// A conversão (UC-VID-005) aplica-se só ao vídeo escolhido em params.video_id.
 function processableImgs(project) {
+  const convertTool = (project.tools || []).find((t) => t.procedure === "video_convert");
+  const targets = convertTool ? new Set(conversionTargets(project.imgs, convertTool.params).map((v) => String(v._id))) : null;
   return (project.imgs || []).filter((i) =>
-    pipelineAccepts(project.tools, i.media_type ?? "image")
+    pipelineAccepts(project.tools, i.media_type ?? "image") &&
+    (!targets || targets.has(String(i._id)))
   );
 }
 
@@ -99,14 +117,86 @@ function processableImgs(project) {
 function validateToolParams(procedure, params) {
   if (procedure === "extract_frames") return validateFrameParams(params);
   if (procedure === "trim") return validateTrimParams(params);
+  if (procedure === "video_convert") return validateVideoConvertParams(params);
   if (procedure === "blur_faces") return validateBlurParams(params);
   return null;
+}
+
+// UC-VID-005, passo 6: o vídeo convertido entra na biblioteca (imgs do projeto) como um
+// item novo, que fica até o utilizador o eliminar (REQ-VID-CONV-006, 033, 036)
+async function addConvertedToLibrary(process, file_path, metadata) {
+  const project = await Project.getOne(process.user_id, process.project_id);
+  const source = project.imgs.find((i) => String(i._id) === String(process.img_id));
+  const usedNames = new Set(project.imgs.map((i) => path.basename(i.og_uri)));
+  const file_name = convertedName(
+    path.basename(source?.og_uri || file_path),
+    path.extname(file_path).slice(1),
+    usedNames
+  );
+
+  const data = new FormData();
+  data.append("file", fs.createReadStream(file_path), file_name, mime.lookup(file_name));
+  const resp = await post_image(process.user_id, process.project_id, "src", data);
+  const key_parts = resp.data.data.imageKey.split("/");
+
+  const crypto = require("crypto");
+  const hash = crypto.createHash("sha256");
+  await new Promise((resolve, reject) => {
+    fs.createReadStream(file_path).on("data", (c) => hash.update(c)).on("end", resolve).on("error", reject);
+  });
+
+  const base = `./images/users/${process.user_id}/projects/${process.project_id}`;
+  await Project.updateRaw(process.user_id, process.project_id, {
+    $push: {
+      imgs: {
+        og_uri: `${base}/src/${file_name}`,
+        new_uri: `${base}/out/${file_name}`,
+        og_img_key: key_parts[key_parts.length - 1],
+        og_sha256: hash.digest("hex"),
+        media_type: "video",
+        size_bytes: metadata?.outputSizeBytes,
+        duration: metadata?.duration,
+        width: metadata?.width,
+        height: metadata?.height,
+        video_codec: metadata?.videoCodec,
+        audio_codec: metadata?.audioCodec,
+        converted_from: process.img_id,
+        converted_token: process.token || 0,
+      },
+    },
+    $inc: { version: 1 },
+  });
+}
+
+// Cancelamento: os vídeos convertidos dessa execução saem da biblioteca (REQ-VID-CONV-028)
+async function removeConvertedOfRun(ownerId, projectId, token) {
+  const project = await Project.getOne(ownerId, projectId);
+  const converted = (project?.imgs || []).filter(
+    (i) => i.converted_from && (i.converted_token || 0) === token
+  );
+  if (converted.length === 0) return 0;
+  for (const img of converted) {
+    try { await delete_image(ownerId, projectId, "src", img.og_img_key); } catch (_) {}
+  }
+  await Project.updateRaw(ownerId, projectId, {
+    $pull: { imgs: { _id: { $in: converted.map((i) => i._id) } } },
+    $inc: { version: 1 },
+  });
+  return converted.length;
+}
+
+// Projeto com conversão configurada ou com vídeos convertidos na biblioteca:
+// só o proprietário lhe acede (REQ-VID-CONV-039)
+function hasConvertedContent(project) {
+  return [...(project.tools || []), ...(project.committedTools || [])].some((t) => t.procedure === "video_convert") ||
+    (project.imgs || []).some((i) => i.converted_from);
 }
 
 // Conta quantas ferramentas avançadas existem neste projeto (independente de imagens)
 function count_advanced_tools(project) {
   const tools = project.tools || [];
-  return tools.filter((t) => advanced_tools.includes(t.procedure)).length;
+  // A conversão é cobrada por execução concluída, não uma vez por configuração.
+  return tools.filter((t) => advanced_tools.includes(t.procedure) && t.procedure !== "video_convert").length;
 }
 
 function requireOwner(req, res, next) {
@@ -140,7 +230,9 @@ function advanced_tool_num(project) {
   if (charged > totalAdv) charged = totalAdv;
 
   const newTools = totalAdv - charged;
-  const adv_ops = newTools > 0 ? newTools * processableImgs(project).length : 0;
+  const processable = processableImgs(project);
+  const convertOps = (project.tools || []).filter((t) => t.procedure === "video_convert").length * processable.length;
+  const adv_ops = (newTools > 0 ? newTools * processable.length : 0) + convertOps;
 
   return { totalAdv, charged, newTools, adv_ops };
 }
@@ -242,6 +334,9 @@ async function storeFrameResults(process, images) {
 // Falha de um item numa tool de vídeo: devolve a operação, avisa o utilizador
 // e deixa os restantes itens continuarem
 async function handleItemFailure(process, project, error_code, error_msg) {
+  // a cópia local do vídeo já não é precisa (REQ-VID-CONV-034)
+  removeLocalFile(process.og_img_uri);
+
   if ((project.activeToken || 0) !== (process.token || 0)) return; // execução cancelada
 
   const runnerId = process.runner_id || process.user_id;
@@ -290,6 +385,10 @@ async function forwardProgress(msg_id, msg_content) {
 
 // TODO process message according to type of output
 function process_msg() {
+  startTempSweeper(async () =>
+    (await Process.getAll()).flatMap((p) => [p.og_img_uri, p.new_img_uri])
+  );
+
   read_msg(async (msg) => {
 
     const timestamp = new Date().toISOString();
@@ -303,6 +402,10 @@ function process_msg() {
       const msg_content = JSON.parse(msg.content.toString());
       const msg_id = msg_content.correlationId;
 
+      // respostas a pedidos que esperam dentro de um pedido HTTP (estimativa da conversão)
+      if (msg_content.status !== "progress" && settleReply(msg_id, msg_content)) return;
+      if (/^estimate-/.test(msg_id)) return; // estimativa que já expirou
+
       // Progresso intermédio (tools de vídeo): o process continua ativo
       if (msg_content.status === "progress") {
         await forwardProgress(msg_id, msg_content);
@@ -310,7 +413,12 @@ function process_msg() {
       }
 
       const process = await Process.getOneByMsgId(msg_id);
-      if (!process) return;
+      if (!process) {
+        // A execução pode ter sido cancelada enquanto FFmpeg terminava.
+        const orphan = msg_content.output?.imageURI;
+        if (orphan) fs.promises.unlink(path.join(__dirname, `/../${orphan}`)).catch(() => {});
+        return;
+      }
 
       ownerIdSafe = process.user_id;
       runnerIdSafe = process.runner_id || process.user_id;
@@ -504,6 +612,7 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
       // extract_frames devolve várias imagens: cada uma é um resultado e a pipeline termina aqui
       if (!/preview/.test(msg_id) && type == "images") {
         await storeFrameResults(process, msg_content.output.images || []);
+        removeLocalFile(process.og_img_uri);
       }
 
       if (!/preview/.test(msg_id) && type != "images" && (type == "text" || next_pos >= project.tools.length)) {
@@ -537,16 +646,40 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
           project_id: process.project_id,
           user_id: process.user_id,
           token: process.token || 0,
+          ...(msg_content.output.metadata?.originalSizeBytes != null
+            ? { original_size_bytes: msg_content.output.metadata.originalSizeBytes }
+            : {}),
+          ...(msg_content.output.metadata?.outputSizeBytes != null
+            ? { output_size_bytes: msg_content.output.metadata.outputSizeBytes }
+            : {}),
         };
 
         // blur_faces: nº de caras detetadas, para avisar quando é zero (UC-VID-004, FA4)
-        if (Number.isFinite(msg_content.output.facesDetected))
-          result.faces_detected = msg_content.output.facesDetected;
+        if (Number.isFinite(msg_content.output.metadata?.facesDetected))
+          result.faces_detected = msg_content.output.metadata.facesDetected;
 
         await Result.create(result);
 
-        // vídeos cortados (UC-VID-002): já estão no armazenamento de objetos, o temporário sai
-        if (type == "video") fs.promises.unlink(file_path).catch(() => {});
+        // blur_faces: o vídeo concluído deixa de estar pendente; um cancelamento posterior
+        // só devolve as operações dos vídeos por concluir (UC-VID-004, BLUR-030)
+        if (type === "video" && project.tools.some((t) => t.procedure === "blur_faces")) {
+          await Project.updateRaw(process.user_id, process.project_id, {
+            $inc: { pendingAdvancedOps: -1 },
+          });
+        }
+
+        if (type === "video" && project.tools.some((t) => t.procedure === "video_convert")) {
+          await addConvertedToLibrary(process, file_path, msg_content.output.metadata);
+          await Project.updateRaw(process.user_id, process.project_id, {
+            $inc: { pendingAdvancedOps: -1 },
+          });
+        }
+
+        // vídeos cortados/convertidos: já estão no armazenamento de objetos, os temporários saem
+        if (type == "video") {
+          fs.promises.unlink(file_path).catch(() => {});
+          removeLocalFile(process.og_img_uri);
+        }
       }
 
       // Se esta imagem acabou o pipeline, pode ser que a execução tenha terminado
@@ -781,6 +914,11 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
 
     };
 
+    if (hasConvertedContent(project) &&
+        String(getCallerId(req)) !== String(project.user_id)) {
+      return res.status(403).jsonp("Converted videos are only available to their owner");
+    }
+
     // tentar usar resultados mais recentes
     const committed = project.committedToken || 0;
     const results = await Result.getAllByToken(project.user_id, project._id, committed);
@@ -803,6 +941,8 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
             name: r.file_name,
             url,
             media_type: r.type === "video" ? "video" : "image",
+            ...(r.original_size_bytes != null ? { original_size_bytes: r.original_size_bytes } : {}),
+            ...(r.output_size_bytes != null ? { output_size_bytes: r.output_size_bytes } : {}),
           });
         } catch (err) {
           console.error("Error getting result image url for shared project:", err);
@@ -827,6 +967,12 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
             url,
             media_type: img.media_type ?? "image",
             duration: img.duration,
+            size_bytes: img.size_bytes,
+            height: img.height,
+            width: img.width,
+            video_codec: img.video_codec,
+            audio_codec: img.audio_codec,
+            converted_from: img.converted_from,
           });
         } catch (err) {
           console.error("Error getting image url for shared project:", err);
@@ -939,6 +1085,10 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
 }, (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
+      if (hasConvertedContent(project) &&
+          String(getCallerId(req)) !== String(req.params.user)) {
+        return res.status(403).jsonp("Converted videos are only available to their owner");
+      }
       const response = {
         _id: project._id,
         name: project.name,
@@ -963,6 +1113,12 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
             url: url,
             media_type: img.media_type ?? "image",
             duration: img.duration,
+            size_bytes: img.size_bytes,
+            height: img.height,
+            width: img.width,
+            video_codec: img.video_codec,
+            audio_codec: img.audio_codec,
+            converted_from: img.converted_from,
           });
         } catch (_) {
           res.status(404).jsonp(`Error acquiring image's url`);
@@ -979,6 +1135,10 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
 router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
+      if (hasConvertedContent(project) &&
+          String(getCallerId(req)) !== String(req.params.user)) {
+        return res.status(403).jsonp("Converted videos are only available to their owner");
+      }
       try {
         const img = project.imgs.filter((i) => i._id == req.params.img)[0];
         const resp = await get_image_public_url(
@@ -993,6 +1153,12 @@ router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, ne
           url: resp.data.url,
           media_type: img.media_type ?? "image",
           duration: img.duration,
+          size_bytes: img.size_bytes,
+          height: img.height,
+          width: img.width,
+          video_codec: img.video_codec,
+          audio_codec: img.audio_codec,
+          converted_from: img.converted_from,
         });
       } catch (_) {
         res.status(404).jsonp("No image with such id.");
@@ -1005,6 +1171,10 @@ router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, ne
 router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
+      if (hasConvertedContent(project) &&
+          String(getCallerId(req)) !== String(req.params.user)) {
+        return res.status(403).jsonp("Converted videos are only available to their owner");
+      }
       try {
         const ans = [];
 
@@ -1024,6 +1194,12 @@ router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) 
               url: url,
               media_type: img.media_type ?? "image",
               duration: img.duration,
+              size_bytes: img.size_bytes,
+              width: img.width,
+              height: img.height,
+              video_codec: img.video_codec,
+              audio_codec: img.audio_codec,
+              converted_from: img.converted_from,
             });
           } catch (_) {
             res.status(404).jsonp(`Error acquiring image's url`);
@@ -1038,13 +1214,95 @@ router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) 
     .catch((_) => res.status(501).jsonp(`Error acquiring user's project`));
 });
 
-// Get results of processing a project
+// Cópia do vídeo no volume partilhado para as estimativas: reaproveitada entre pedidos
+// (cada mudança de opções gera uma estimativa) e apagada pelo varrimento dos temporários
+async function ensureEstimateSource(ownerId, projectId, video) {
+  const rel = `./images/users/${ownerId}/projects/${projectId}/estimate/${video._id}${path.extname(video.og_uri)}`;
+  const full = path.join(__dirname, "..", rel);
+  try {
+    const stat = await fs.promises.stat(full);
+    if (video.size_bytes == null || stat.size === video.size_bytes) {
+      const now = new Date();
+      await fs.promises.utimes(full, now, now);
+      return rel;
+    }
+  } catch (_) {}
+
+  await fs.promises.mkdir(path.dirname(full), { recursive: true });
+  const part = `${full}.${uuidv4()}.part`;
+  const stored = await get_image_internal_url(ownerId, projectId, "src", video.og_img_key);
+  const resp = await axios.get(stored.data.url, { responseType: "stream" });
+  await new Promise((resolve, reject) => {
+    const writer = fs.createWriteStream(part);
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+    resp.data.on("error", reject);
+    resp.data.pipe(writer);
+  });
+  await fs.promises.rename(part, full);
+  return rel;
+}
+
+// Estimate the size of a video conversion (UC-VID-005, passo 3)
+router.post("/:user/:project/video-convert/estimate/:img", checkSharePermission, async (req, res) => {
+  try {
+    const ownerId = req.params.user;
+    if (String(getCallerId(req)) !== String(ownerId))
+      return res.status(403).jsonp("Only the project owner can convert videos");
+
+    const project = await Project.getOne(ownerId, req.params.project);
+    const video = project.imgs.find((item) => String(item._id) === String(req.params.img));
+    if (!video || video.media_type !== "video")
+      return res.status(404).jsonp("Video not found in this project");
+
+    const userResp = await axios.get(users_ms + `${ownerId}/type`, { httpsAgent });
+    const paramsError = validateToolParams("video_convert", req.body);
+    if (paramsError) return res.status(400).jsonp(paramsError);
+    const profileError = validateResolutionForProfile(req.body, userResp.data.type);
+    if (profileError) return res.status(403).jsonp(profileError);
+
+    const reason = validateVideoForConversion(video);
+    if (reason) return res.status(400).jsonp(reason);
+
+    // o worker video_convert codifica amostras do vídeo e extrapola o tamanho (UC-VID-005, passo 3);
+    // o projects só lhe põe o vídeo no volume partilhado e espera a resposta pela project_queue
+    const source = await ensureEstimateSource(ownerId, req.params.project, video);
+    const msg_id = `estimate-${uuidv4()}`;
+    const reply = waitForReply(msg_id, ESTIMATE_TIMEOUT_MS);
+    send_msg_tool(msg_id, new Date().toISOString(), source, source, "video_convert", {
+      ...req.body,
+      mode: "estimate",
+      userType: userResp.data.type,
+    });
+
+    let answer;
+    try {
+      answer = await reply;
+    } catch (err) {
+      if (err instanceof ReplyTimeoutError)
+        return res.status(503).jsonp("The converter is busy. Try the estimate again in a moment.");
+      throw err;
+    }
+    if (answer.status !== "success")
+      return res.status(400).jsonp(answer.error?.message || "Could not estimate the converted video size");
+    const estimate = answer.output?.metadata;
+    return res.status(200).jsonp(estimate);
+  } catch (error) {
+    console.error("[VIDEO-CONVERT][ESTIMATE] error:", error.message);
+    return res.status(400).jsonp(error.message || "Could not estimate the converted video size");
+  }
+});
+
 router.get("/:user/:project/process", checkSharePermission, (req, res, next) => {
   // Getting last processed request from project in order to get their result's path
   Project.getOne(req.params.user, req.params.project)
     .then(async (_) => {
       const zip = new JSZip();
       const project = await Project.getOne(req.params.user, req.params.project);
+      if (hasConvertedContent(project) &&
+          String(getCallerId(req)) !== String(req.params.user)) {
+        return res.status(403).jsonp("Converted videos are only available to their owner");
+      }
       const committed = project.committedToken || 0;
       const results = await Result.getAllByToken(req.params.user, req.params.project, committed);
 
@@ -1102,6 +1360,10 @@ router.get("/:user/:project/process", checkSharePermission, (req, res, next) => 
 router.get("/:user/:project/process/url", checkSharePermission, async (req, res) => {
   try {
     const project = await Project.getOne(req.params.user, req.params.project);
+    if (hasConvertedContent(project) &&
+        String(getCallerId(req)) !== String(req.params.user)) {
+      return res.status(403).jsonp("Converted videos are only available to their owner");
+    }
     const committed = project.committedToken || 0;
 
     const results = await Result.getAllByToken(req.params.user, req.params.project, committed);
@@ -1120,6 +1382,8 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
           name: r.file_name,
           url,
           media_type: r.type === "video" ? "video" : "image",
+          ...(r.original_size_bytes != null ? { original_size_bytes: r.original_size_bytes } : {}),
+          ...(r.output_size_bytes != null ? { output_size_bytes: r.output_size_bytes } : {}),
           ...(r.faces_detected !== undefined && r.faces_detected !== null
             ? { faces_detected: r.faces_detected }
             : {}),
@@ -1162,6 +1426,10 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
 
   try {
     const source = await Project.getOne(ownerId, req.params.project);
+    if (hasConvertedContent(source) &&
+        String(callerId) !== String(ownerId)) {
+      return res.status(403).jsonp("Converted videos are only available to their owner");
+    }
     const results = (
       await Result.getAllByToken(ownerId, req.params.project, source.committedToken || 0)
     ).filter((r) => r.type !== "text");
@@ -1209,7 +1477,14 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
         og_img_key: key_parts[key_parts.length - 1],
         og_sha256: crypto.createHash("sha256").update(buffer).digest("hex"),
         media_type,
-        ...(probe ? { duration: probe.duration, width: probe.width, height: probe.height } : {}),
+        size_bytes: buffer.length,
+        ...(probe ? {
+          duration: probe.duration,
+          width: probe.width,
+          height: probe.height,
+          video_codec: probe.video_codec,
+          audio_codec: probe.audio_codec,
+        } : {}),
       });
     }
 
@@ -1491,8 +1766,15 @@ router.post(
               og_img_key: og_key,
               og_sha256: sha,
               media_type: media_type,
+              size_bytes: req.file.size,
               // guardados para validar e estimar a extração de frames sem reler o vídeo
-              ...(probe ? { duration: probe.duration, width: probe.width, height: probe.height } : {}),
+              ...(probe ? {
+            duration: probe.duration,
+            width: probe.width,
+            height: probe.height,
+            video_codec: probe.video_codec,
+            audio_codec: probe.audio_codec,
+              } : {}),
             });
 
             const updated = await Project.updateIfVersion(
@@ -1551,10 +1833,22 @@ router.post("/:user/:project/tool", checkSharePermission, requireEditPermission,
       if (!required_types.includes(resp.data.type)) {
         return res.status(403).jsonp(`User type can't use this tool`);
       }
+      if (req.body.procedure === "video_convert") {
+        const profileError = validateResolutionForProfile(req.body.params, resp.data.type);
+        if (profileError) return res.status(403).jsonp(profileError);
+      }
 
       // Get project and insert new tool
       Project.getOne(req.params.user, req.params.project)
         .then(async (project) => {
+          if (req.body.procedure === "video_convert" &&
+              String(getCallerId(req)) !== String(req.params.user)) {
+            return res.status(403).jsonp("Only the project owner can convert videos");
+          }
+          if (req.body.procedure === "video_convert" &&
+              !project.imgs.some((i) => i.media_type === "video")) {
+            return res.status(400).jsonp("Add a video to the project before configuring conversion");
+          }
           const exclusiveError = checkExclusiveTools([
             ...project.tools.map((t) => t.procedure),
             req.body.procedure,
@@ -1612,6 +1906,18 @@ router.post(
   (req, res) => {
     Project.getOne(req.params.user, req.params.project)
       .then(async (project) => {
+        const convertTool = (req.body || []).find((tool) => tool.procedure === "video_convert");
+        if (convertTool) {
+          if (String(getCallerId(req)) !== String(req.params.user))
+            return res.status(403).jsonp("Only the project owner can convert videos");
+          const paramsError = validateToolParams("video_convert", convertTool.params);
+          if (paramsError) return res.status(400).jsonp(paramsError);
+          const userResp = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
+          const profileError = validateResolutionForProfile(convertTool.params, userResp.data.type);
+          if (profileError) return res.status(403).jsonp(profileError);
+          if (!project.imgs.some((i) => i.media_type === "video"))
+            return res.status(400).jsonp("Add a video to the project before configuring conversion");
+        }
         const exclusiveError = checkExclusiveTools((req.body || []).map((t) => t.procedure));
         if (exclusiveError) return res.status(400).jsonp(exclusiveError);
 
@@ -1690,6 +1996,12 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
       const processable = processableImgs(project);
       const skipped = project.imgs.length - processable.length;
 
+      const convertParams = project.tools.find((t) => t.procedure === "video_convert")?.params;
+      if (convertParams?.video_id && processable.length === 0) {
+        res.status(400).jsonp("The video selected for conversion is no longer in the project");
+        return;
+      }
+
       if (processable.length === 0) {
         res.status(400).jsonp("No file is compatible with the selected tools");
         return;
@@ -1719,6 +2031,26 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
         }
       }
 
+      const convertTool = project.tools.find((t) => t.procedure === "video_convert");
+      let converterUserType = null;
+      if (convertTool) {
+        if (String(runnerUserId) !== String(ownerId)) {
+          return res.status(403).jsonp("Only the project owner can convert videos");
+        }
+        const userResp = await axios.get(users_ms + `${runnerUserId}/type`, { httpsAgent });
+        converterUserType = userResp.data.type;
+        const profileError = validateResolutionForProfile(convertTool.params, userResp.data.type);
+        if (profileError) return res.status(403).jsonp(profileError);
+        const paramsError = validateToolParams("video_convert", convertTool.params);
+        if (paramsError) return res.status(400).jsonp(paramsError);
+        // só os metadados lidos no upload: o pedido é confirmado em ≤ 2 s (REQ-VID-CONV-025);
+        // o worker volta a validar o ficheiro (codec, duração, corrupção) antes de converter
+        for (const video of processable) {
+          const reason = validateVideoForConversion(video);
+          if (reason) return res.status(400).jsonp(reason);
+        }
+      }
+
       // tools de vídeo: o frontend conta um aviso de fim por vídeo
       const videoTool = project.tools.some((t) => EXCLUSIVE_TOOLS.includes(t.procedure));
 
@@ -1735,6 +2067,48 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
       );
 
       let runToken = null;
+
+      // tools de vídeo: o process é criado antes da cópia, para que uma falha a meio
+      // devolva a operação e avise o utilizador como qualquer falha de um vídeo
+      const dispatchVideoItem = async (img) => {
+        const tool = project.tools.filter((t) => t.position === 0)[0];
+        const msg_id = `request-${uuidv4()}`;
+        const process = await Process.create({
+          user_id: ownerId,
+          runner_id: runnerUserId,
+          project_id: req.params.project,
+          img_id: img._id,
+          msg_id: msg_id,
+          cur_pos: 0,
+          og_img_uri: img.og_uri,
+          new_img_uri: img.new_uri,
+          cancelToken: project.cancelToken || 0,
+          token: runToken,
+        });
+
+        try {
+          const resp = await get_image_internal_url(ownerId, req.params.project, "src", img.og_img_key);
+          const img_resp = await axios.get(resp.data.url, { responseType: "stream" });
+          const writer = fs.createWriteStream(img.og_uri);
+          await new Promise((resolve, reject) => {
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+            img_resp.data.on("error", reject);
+            img_resp.data.pipe(writer);
+          });
+        } catch (err) {
+          console.error("[PROCESS][VIDEO] could not copy source:", err.message);
+          await Process.delete(ownerId, req.params.project, process._id);
+          const fresh = await Project.getOne(ownerId, req.params.project);
+          await handleItemFailure(process, fresh, 2103, "The original video could not be read from storage. Try again.");
+          return;
+        }
+
+        const dispatchParams = tool.procedure === "video_convert"
+          ? { ...tool.params, userType: converterUserType }
+          : tool.params;
+        send_msg_tool(msg_id, new Date().toISOString(), img.og_uri, img.new_uri, tool.procedure, dispatchParams);
+      };
 
       // função local com a lógica de "arrancar processamento"
       const startProcessing = async () => {
@@ -1759,7 +2133,19 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
 
         let error = false;
 
+        // tools de vídeo: a cópia de vídeos grandes demora; confirma-se já o pedido
+        // (REQ-VID-CONV-025) e uma falha de um vídeo chega ao frontend como item-error
+        if (videoTool) res.status(201).jsonp({ skipped });
+
         for (let img of processable) {
+          if (videoTool) {
+            try {
+              await dispatchVideoItem(img);
+            } catch (err) {
+              console.error("[PROCESS][VIDEO] dispatch error:", err.message);
+            }
+            continue;
+          }
           let url = "";
           try {
             const resp = await get_image_internal_url(
@@ -1792,6 +2178,9 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
 
           const tool_name = tool.procedure;
           const params = tool.params;
+          const dispatchParams = tool_name === "video_convert"
+            ? { ...params, userType: converterUserType }
+            : params;
 
           const process = {
             user_id: ownerId,
@@ -1814,11 +2203,13 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
                 og_img_uri,
                 new_img_uri,
                 tool_name,
-                params
+                dispatchParams
               );
             })
             .catch(() => (error = true));
         }
+
+        if (videoTool) return;
 
         if (error) {
           res
@@ -1898,7 +2289,7 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
           await startProcessing();
         } catch (e) {
           console.error("Error starting processing (no advanced tools):", e);
-          res.status(500).jsonp("Error processing project");
+          if (!res.headersSent) res.status(500).jsonp("Error processing project");
         }
         return;
       }
@@ -1948,7 +2339,7 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
             await startProcessing();
           } catch (e) {
             console.error("Error starting processing (advanced tools):", e);
-            res.status(500).jsonp("Error processing project");
+            if (!res.headersSent) res.status(500).jsonp("Error processing project");
           }
         })
         .catch((err) => {
@@ -2023,6 +2414,13 @@ router.put(
 
           const paramsError = validateToolParams(prev_tool.procedure, req.body.params);
           if (paramsError) return res.status(400).jsonp(paramsError);
+          if (prev_tool.procedure === "video_convert") {
+            if (String(getCallerId(req)) !== String(req.params.user))
+              return res.status(403).jsonp("Only the project owner can convert videos");
+            const userResp = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
+            const profileError = validateResolutionForProfile(req.body.params, userResp.data.type);
+            if (profileError) return res.status(403).jsonp(profileError);
+          }
 
           project.tools[tool_pos] = {
             position: prev_tool.position,
@@ -2478,19 +2876,21 @@ router.delete(
       }
 
       // apagar apenas resultados da execução cancelada
+      let projectVersion = updated.version;
       try {
         const toDelete = await Result.getAllByToken(ownerId, projectId, cancelTok);
         for (const r of toDelete) {
           try { await delete_image(ownerId, projectId, "out", r.img_key); } catch (_) {}
         }
         await Result.deleteByToken(ownerId, projectId, cancelTok);
+        if (await removeConvertedOfRun(ownerId, projectId, cancelTok)) projectVersion += 1;
 
         console.log(`[CANCEL][RESULTS-CLEAN] token=${cancelTok} deleted=${toDelete.length}`);
       } catch (err) {
         console.error("Error deleting cancelled run results:", err);
       }
 
-      res.set("X-Project-Version", String(updated.version));
+      res.set("X-Project-Version", String(projectVersion));
 
       // limpar processos em curso
       const processes = await Process.getProject(ownerId, projectId);

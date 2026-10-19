@@ -222,7 +222,7 @@ class BlurFaces:
                 faces = self.preview(video_path, out_path, options)
                 ts, elapsed = self.now(started)
                 self._tool_msg.send_msg(msg_id, resp_msg_id, ts, 'success', elapsed, out_path,
-                                        type='image', extra={'facesDetected': faces})
+                                        type='image', result_metadata={'facesDetected': faces})
                 return
 
             out_path = os.path.join(out_dir, output_name(video_name))
@@ -243,7 +243,7 @@ class BlurFaces:
 
             ts, elapsed = self.now(started)
             self._tool_msg.send_msg(msg_id, resp_msg_id, ts, 'success', elapsed, out_path,
-                                    type='video', extra={'facesDetected': faces})
+                                    type='video', result_metadata={'facesDetected': faces})
 
         except Exception as e:
             # sem resultados parciais (REQ-020)
