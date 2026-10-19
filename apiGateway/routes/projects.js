@@ -387,6 +387,31 @@ router.post(
   }
 );
 
+/**
+ * Remove one result of the current execution (UC-VID-004, FA4: discard a video without faces)
+ * @returns 204 on success
+ */
+router.delete(
+  "/:user/:project/results/:result",
+  auth.checkToken,
+  function (req, res, next) {
+    const ownerId = req.query.owner || req.params.user;
+    const callerId = req.authUserId || req.params.user;
+
+    axios
+      .delete(projectsURL + `${ownerId}/${req.params.project}/results/${req.params.result}`, {
+        httpsAgent,
+        params: req.query.share ? { share: req.query.share } : undefined,
+        headers: {
+          Authorization: req.headers["authorization"],
+          "X-Caller-Id": callerId,
+        },
+      })
+      .then(() => res.sendStatus(204))
+      .catch((err) => forwardAxiosError(res, err, "mensagem fallback"));
+  }
+);
+
 
 /**
  * Create new user's project

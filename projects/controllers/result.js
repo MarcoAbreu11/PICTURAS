@@ -33,6 +33,15 @@ module.exports.delete = (user_id, project_id, img_id) => {
   });
 };
 
+// Um resultado pelo seu _id (um item pode ter vários resultados)
+module.exports.getById = async (user_id, project_id, result_id) => {
+  return await Result.findOne({ _id: result_id, user_id, project_id }).exec();
+};
+
+module.exports.deleteById = (user_id, project_id, result_id) => {
+  return Result.deleteOne({ _id: result_id, user_id, project_id });
+};
+
 module.exports.getAllByToken = async (user_id, project_id, token) => {
   return await Result.find({ user_id, project_id, token })
     .sort({ _id: 1 })

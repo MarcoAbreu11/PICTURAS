@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Testes ponta a ponta das ferramentas de vídeo (UC-VID-002 e UC-VID-003).
+# Testes ponta a ponta das ferramentas de vídeo (UC-VID-002, UC-VID-003 e UC-VID-004).
 # Requer a stack a correr (docker compose up -d). Uso, na raiz do repositório:
 #   bash projects/test/e2e/run.sh
+# Opcional (UC-VID-004): BLUR_FACE_VIDEO=/caminho/video_com_caras.mp4 bash projects/test/e2e/run.sh
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 chmod 777 "$WORK"
-cp "$HERE"/frames.sh "$HERE"/trim.sh "$WORK"/
+cp "$HERE"/frames.sh "$HERE"/trim.sh "$HERE"/blur.sh "$WORK"/
+# vídeo com caras para a desfocagem (opcional; não se guarda nenhum no repositório)
+if [ -n "${BLUR_FACE_VIDEO:-}" ]; then cp "$BLUR_FACE_VIDEO" "$WORK/cara.mp4"; fi
 
 NET=picturas_elk
 CURL=(docker run --rm --network "$NET" -v "$WORK":/media curlimages/curl:8.10.1)
@@ -20,6 +23,7 @@ docker run --rm -v "$WORK":/out --entrypoint sh picturas-trim_tool -c '
          -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest aula.mp4 &&
   ffmpeg -v error -y -f lavfi -i testsrc2=duration=3:size=640x360:rate=25 -pix_fmt yuv420p curto.mp4 &&
   ffmpeg -v error -y -f lavfi -i testsrc=size=200x200 -frames:v 1 foto.png &&
+  for i in 1 2 3 4 5 6; do cp curto.mp4 q$i.mp4; done &&
   chmod 666 *'
 
 echo "== A criar utilizadores de teste =="
@@ -30,7 +34,9 @@ new_user() {
 }
 FREE=$(new_user "{\"name\":\"E2E\",\"email\":\"e2e.$STAMP@example.com\",\"password\":\"Teste1234!\",\"type\":\"free\"}")
 ANON=$(new_user '{"type":"anonymous"}')
-echo "free=$FREE anon=$ANON"
+# a desfocagem gasta operações: utilizador próprio, para não depender do teste de frames
+BLUR_USER=$(new_user "{\"name\":\"E2E Blur\",\"email\":\"e2e.blur.$STAMP@example.com\",\"password\":\"Teste1234!\",\"type\":\"free\"}")
+echo "free=$FREE anon=$ANON blur=$BLUR_USER"
 
 echo; echo "######## UC-VID-003 — Extrair frames ########"
 docker run -d --name e2e-frames --network "$NET" -v "$WORK":/media curlimages/curl:8.10.1 \
@@ -59,5 +65,25 @@ curl -sk -o "$WORK/cortado.mp4" "$URL"
 docker run --rm -v "$WORK":/w --entrypoint ffprobe picturas-trim_tool \
   -v error -show_entries format=duration:stream=codec_name -of compact=p=0 /w/cortado.mp4
 
+echo; echo "######## UC-VID-004 — Desfocar caras ########"
+"${CURL[@]}" sh /media/blur.sh "$BLUR_USER" "$ANON" | tee "$WORK/blur.log"
+BLUR_RESULT=$(grep "^RESULT" "$WORK/blur.log")
+
+echo; echo "== TST-BLUR-06: duração, contentor, codecs e áudio do vídeo anonimizado (BLUR-006, 022, 043) =="
+curl -sk -o "$WORK/anonimizado.mp4" "$(cat "$WORK/blur_url.txt")"
+docker run --rm -v "$WORK":/w --entrypoint ffprobe picturas-blur_faces_tool \
+  -v error -show_entries format=format_name,duration:stream=codec_type,codec_name -of compact=p=0 /w/anonimizado.mp4
+
+if [ -f "$WORK/blur_src_url.txt" ]; then
+  echo; echo "== TST-BLUR-07: o original fica inalterado (BLUR-021) =="
+  curl -sk -o "$WORK/original.mp4" "$(cat "$WORK/blur_src_url.txt")"
+  if [ "$(sha256sum < "$WORK/original.mp4")" = "$(sha256sum < "$WORK/cara.mp4")" ]; then
+    echo "PASS TST-BLUR-07 hash do original igual antes e depois"
+  else
+    echo "FAIL TST-BLUR-07 hash do original mudou"
+  fi
+fi
+
 echo; echo "UC-VID-003: $FRAMES_RESULT"
 echo "UC-VID-002: $TRIM_RESULT"
+echo "UC-VID-004: $BLUR_RESULT"

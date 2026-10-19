@@ -153,6 +153,13 @@
             "arguments": {}
         },
         {
+            "name": "blur_faces_queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
             "name": "extract_frames_queue",
             "vhost": "/",
             "durable": true,
@@ -335,6 +342,14 @@
             "destination": "trim_queue",
             "destination_type": "queue",
             "routing_key": "trim_queue",
+            "arguments": {}
+        },
+        {
+            "source": "picturas",
+            "vhost": "/",
+            "destination": "blur_faces_queue",
+            "destination_type": "queue",
+            "routing_key": "blur_faces_queue",
             "arguments": {}
         },
         {

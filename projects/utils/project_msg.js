@@ -20,6 +20,7 @@ const queues = {
     'watermark': 'watermark_queue',
     'extract_frames': 'extract_frames_queue',
     'trim': 'trim_queue',
+    'blur_faces': 'blur_faces_queue',
     'project': 'project_queue',
     'ws': 'ws_queue'
 }

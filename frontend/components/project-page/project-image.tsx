@@ -21,9 +21,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useDeleteProjectImages,
+  useDeleteProjectResult,
   useDownloadProjectImage,
 } from "@/lib/mutations/projects";
-import { useProjectInfo } from "@/providers/project-provider";
+import { useCanEditProject, useProjectInfo } from "@/providers/project-provider";
 import { useSession } from "@/providers/session-provider";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectImage } from "@/lib/projects";
@@ -56,6 +57,17 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
     shareId,
   );
   const downloadImage = useDownloadProjectImage(mode === "results");
+  const deleteResult = useDeleteProjectResult(
+    session.user._id,
+    pid as string,
+    session.token,
+    ownerId,
+    shareId,
+  );
+  const canEdit = useCanEditProject();
+  // UC-VID-004, FA4: resultado de blur_faces sem caras detetadas
+  const noFaces = mode === "results" && image.faces_detected === 0;
+  const [keptNoFaces, setKeptNoFaces] = useState<boolean>(false);
   const { toast } = useToast();
   const video = image.media_type
     ? image.media_type === "video"
@@ -95,8 +107,46 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
               )}
               {video && animation && (
                 <span className="row-start-1 col-start-1 z-40 m-2 h-fit w-fit rounded bg-black/70 px-1.5 py-0.5 text-xs text-white">
-                  Video
+                  {noFaces ? "Video · no faces detected" : "Video"}
                 </span>
+              )}
+              {/* no carrossel: manter ou descartar o resultado sem caras (BLUR-013, BLUR-014) */}
+              {noFaces && !animation && !keptNoFaces && (
+                <div className="row-start-1 col-start-1 z-40 m-2 h-fit self-start justify-self-center flex items-center gap-2 rounded-md bg-background/90 px-3 py-2 text-sm shadow">
+                  <span>No faces were detected in this video.</span>
+                  <Button
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setKeptNoFaces(true);
+                    }}
+                  >
+                    Keep
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="destructive"
+                      className="h-7 text-xs"
+                      disabled={deleteResult.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteResult.mutate(
+                          { resultId: image._id },
+                          {
+                            onSuccess: () => toast({ title: `Result ${image.name} discarded.` }),
+                            onError: (error) => {
+                              const { title, description } = getErrorMessage("project-delete", error);
+                              toast({ title, description, variant: "destructive" });
+                            },
+                          },
+                        );
+                      }}
+                    >
+                      Discard
+                    </Button>
+                  )}
+                </div>
               )}
               {!loaded && (
                 <>

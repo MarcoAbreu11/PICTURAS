@@ -76,8 +76,16 @@ export interface TrimToolParams {
   end: number;
 }
 
+// UC-VID-004: desfocar caras em vídeos
+export interface BlurFacesToolParams {
+  mode: "blur" | "pixelate";
+  strength: number; // 1-10
+  padding: number; // % de margem à volta da cara
+}
+
 export type ToolParams =
   | BinarizationToolParams
+  | BlurFacesToolParams
   | TrimToolParams
   | ExtractFramesToolParams
   | BorderToolParams
@@ -110,4 +118,5 @@ export type ToolNames =
   | "expand_ai"
   | "extract_frames"
   | "trim"
+  | "blur_faces"
   | "project";

@@ -28,6 +28,7 @@ class ToolMSG:
         'expand_ai': 'expand_ai_queue',
         'extract_frames': 'extract_frames_queue',
         'trim': 'trim_queue',
+        'blur_faces': 'blur_faces_queue',
         'project': 'project_queue'
     }
 
@@ -42,7 +43,7 @@ class ToolMSG:
     def read_msg(self, callback):
         self._rabbit_mq.read_rabbit_msg(self._queue, callback)
 
-    def send_msg(self, msg_id, resp_msg_id, timestamp, status, processingTime, new_img_uri, type="image", err_code=None, err_msg=None, og_img_uri=None, images=None):
+    def send_msg(self, msg_id, resp_msg_id, timestamp, status, processingTime, new_img_uri, type="image", err_code=None, err_msg=None, og_img_uri=None, images=None, extra=None):
 
         msg = {}
 
@@ -70,6 +71,9 @@ class ToolMSG:
                 # type "images": lista de { imageURI, time } (ex.: extract_frames)
                 if images is not None:
                     msg["output"]["images"] = images
+                # campos próprios de uma tool (ex.: blur_faces envia facesDetected)
+                if extra:
+                    msg["output"].update(extra)
             case "error":
                 if err_code is None or err_msg is None or og_img_uri is None:
                     raise Exception("Make sure, in case of error status, err_code, err_msg and og_img_uri are not None")

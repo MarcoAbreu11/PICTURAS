@@ -5,6 +5,7 @@ import {
   addProjectTool,
   deleteProject,
   deleteProjectImages,
+  deleteProjectResult,
   deleteProjectTool,
   downloadProjectImages,
   downloadProjectImage,
@@ -65,6 +66,27 @@ export const useCopyResultsToProject = (uid: string, token: string) => {
       qc.invalidateQueries({
         refetchType: "all",
         queryKey: ["projects", uid, token],
+      });
+    },
+  });
+};
+
+// UC-VID-004, FA4: descartar um resultado (ex.: vídeo sem caras detetadas)
+export const useDeleteProjectResult = (
+  uid: string,
+  pid: string,
+  token: string,
+  ownerId?: string,
+  shareId?: string,
+) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { resultId: string }) =>
+      deleteProjectResult({ uid, pid, token, ownerId, shareId, resultId: args.resultId }),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["projectResults", uid, pid, token, ownerId, shareId],
+        refetchType: "all",
       });
     },
   });

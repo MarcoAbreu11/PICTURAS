@@ -40,6 +40,7 @@ export interface ProjectImage {
   url: string;
   media_type?: "image" | "video";
   duration?: number; // só vídeos (s)
+  faces_detected?: number; // resultados de blur_faces (0 = nenhuma cara)
 }
 
 export interface ProjectImageText {
@@ -838,6 +839,31 @@ export const copyResultsToProject = async ({
   return response.data;
 };
 
+// Remove um resultado (UC-VID-004, FA4: descartar um vídeo sem caras)
+export const deleteProjectResult = async ({
+  uid,
+  pid,
+  token,
+  resultId,
+  ownerId,
+  shareId,
+}: {
+  uid: string;
+  pid: string;
+  token: string;
+  resultId: string;
+  ownerId?: string;
+  shareId?: string;
+}) => {
+  const query = buildQuery({ ownerId, shareId });
+  const pathUid = pathUidFor(uid, ownerId, shareId);
+  const response = await api.delete(`/projects/${pathUid}/${pid}/results/${resultId}${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (response.status !== 204) throw new Error("Failed to delete the result");
+};
+
 export const fetchProjectResults = async (
   uid: string,
   pid: string,
@@ -855,6 +881,7 @@ export const fetchProjectResults = async (
       name: string;
       url: string;
       media_type?: "image" | "video";
+      faces_detected?: number;
     }[];
     texts: {
       _id?: string;
@@ -896,6 +923,7 @@ export const fetchProjectResults = async (
           name: img.name,
           url: img.url,
           media_type: img.media_type,
+          faces_detected: img.faces_detected,
         }) as ProjectImage,
     ),
     texts: texts,

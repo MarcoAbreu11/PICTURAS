@@ -40,6 +40,7 @@ const { mediaTypeOf, probeVideo, checkVideoLimits } = require("../utils/media");
 const { pipelineAccepts, checkExclusiveTools, EXCLUSIVE_TOOLS } = require("../utils/toolCapabilities");
 const { validateFrameParams, checkFramesForVideos } = require("../utils/frames");
 const { validateTrimParams, checkTrimForVideos } = require("../utils/trim");
+const { validateBlurParams } = require("../utils/blurFaces");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
 
@@ -84,6 +85,7 @@ const advanced_tools = [
   "people_ai",
   "expand_ai",
   "extract_frames",
+  "blur_faces",
 ];
 
 // Itens do projeto que a pipeline atual consegue processar (as outras são ignoradas)
@@ -97,6 +99,7 @@ function processableImgs(project) {
 function validateToolParams(procedure, params) {
   if (procedure === "extract_frames") return validateFrameParams(params);
   if (procedure === "trim") return validateTrimParams(params);
+  if (procedure === "blur_faces") return validateBlurParams(params);
   return null;
 }
 
@@ -535,6 +538,10 @@ if (/preview/.test(msg_id) && (type == "text" || next_pos >= project.tools.lengt
           user_id: process.user_id,
           token: process.token || 0,
         };
+
+        // blur_faces: nº de caras detetadas, para avisar quando é zero (UC-VID-004, FA4)
+        if (Number.isFinite(msg_content.output.facesDetected))
+          result.faces_detected = msg_content.output.facesDetected;
 
         await Result.create(result);
 
@@ -1113,6 +1120,9 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
           name: r.file_name,
           url,
           media_type: r.type === "video" ? "video" : "image",
+          ...(r.faces_detected !== undefined && r.faces_detected !== null
+            ? { faces_detected: r.faces_detected }
+            : {}),
         });
     }
 
@@ -1121,6 +1131,27 @@ router.get("/:user/:project/process/url", checkSharePermission, async (req, res)
     return res.status(601).jsonp("Error acquiring project's processing result");
   }
 });
+
+// Remove um resultado da execução atual (UC-VID-004, FA4: descartar um vídeo sem caras)
+router.delete(
+  "/:user/:project/results/:result",
+  checkSharePermission,
+  requireEditPermission,
+  async (req, res) => {
+    try {
+      const result = await Result.getById(req.params.user, req.params.project, req.params.result);
+      if (!result) return res.status(404).jsonp("No result with such id.");
+
+      await delete_image(req.params.user, req.params.project, "out", result.img_key);
+      await Result.deleteById(req.params.user, req.params.project, req.params.result);
+
+      return res.sendStatus(204);
+    } catch (err) {
+      console.error("[RESULT-DELETE] error:", err.message);
+      return res.status(500).jsonp("Error deleting the result");
+    }
+  }
+);
 
 // Copia os resultados (frames extraídos ou vídeos cortados) para um novo projeto de quem pede,
 // onde passam a ser itens normais (UC-VID-003 e UC-VID-002, FA3)
