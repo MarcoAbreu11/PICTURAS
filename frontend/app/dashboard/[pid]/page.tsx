@@ -112,11 +112,15 @@ export default function Project({
   const [videosStarted, setVideosStarted] = useState(0);
 
   // só os itens compatíveis com a pipeline são processados: as tools de vídeo
-  // (extract_frames, trim) só vídeos, as restantes só imagens
+  // (extract_frames, trim, video_convert, blur_faces) só vídeos, as restantes só imagens
   const pipelineTools = project.data?.tools ?? [];
   const projectItems = project.data?.imgs ?? [];
   const framesRun = pipelineTools.some(
-    (t) => t.procedure === "extract_frames" || t.procedure === "trim" || t.procedure === "video_convert",
+    (t) =>
+      t.procedure === "extract_frames" ||
+      t.procedure === "trim" ||
+      t.procedure === "video_convert" ||
+      t.procedure === "blur_faces",
   );
   // a conversão (UC-VID-005) aplica-se só ao vídeo escolhido
   const convertTarget = (pipelineTools.find((t) => t.procedure === "video_convert")?.params as
