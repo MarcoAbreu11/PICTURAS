@@ -1,14 +1,13 @@
 import os
 import sys
 import json
-import time
 import datetime
-import subprocess
 
 import pytz
 
 from trim_rules import validate, output_name, ffmpeg_args
 from utils.tool_msg import ToolMSG
+from utils.video import probe, run_ffmpeg, ProbeError, FFmpegError, ProgressThrottle
 import utils.env as env
 
 
@@ -36,35 +35,24 @@ class Trim:
 
     def probe_duration(self, video_path):
         try:
-            out = subprocess.run(
-                ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-                 '-show_entries', 'format=duration', '-of', 'json', video_path],
-                capture_output=True, text=True, check=True, timeout=60,
-            )
-            duration = float(json.loads(out.stdout)['format']['duration'])
-            if duration <= 0:
-                raise ValueError('empty video')
-            return duration
-        except Exception:
+            duration = probe(video_path)['duration']
+        except ProbeError:
+            duration = 0
+        if duration <= 0:
             raise TrimError('The video could not be read. It may be corrupted or use an unsupported codec.',
                             self._codes['invalid_video'])
+        return duration
 
     def cut(self, video_path, out_path, start, end, on_progress):
-        """Corta com ffmpeg; on_progress(0..100) à medida que avança."""
-        excerpt = end - start
-        proc = subprocess.Popen(ffmpeg_args(video_path, out_path, start, end),
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # -progress pipe:1 escreve linhas key=value; out_time_us é o tempo já produzido
-        for line in proc.stdout:
-            key, _, value = line.strip().partition('=')
-            if key == 'out_time_us' and value.isdigit() and excerpt > 0:
-                on_progress(min(99, int(int(value) / 1e6 * 100 / excerpt)))
-
-        stderr = proc.stderr.read()
-        if proc.wait() != 0 or not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
-            detail = stderr.strip().splitlines()[-1] if stderr.strip() else 'unknown error'
-            raise TrimError(f'The video could not be cut ({detail}). It may be corrupted.',
+        """Corta com ffmpeg; on_progress(0..99) à medida que avança."""
+        detail = None
+        try:
+            run_ffmpeg(ffmpeg_args(video_path, out_path, start, end), end - start,
+                       on_progress=on_progress, on_line=self._tool_msg.keep_alive)
+        except FFmpegError as e:
+            detail = e.last_line
+        if detail or not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+            raise TrimError(f'The video could not be cut ({detail or "empty output"}). It may be corrupted.',
                             self._codes['invalid_video'])
 
     def now(self, start):
@@ -93,8 +81,17 @@ class Trim:
             send_error(self._codes['wrong_procedure'], 'The procedure received does not fit into this tool')
             return
 
+        def send_progress(pct):
+            ts, _ = self.now(started)
+            self._tool_msg.send_progress(msg_id, resp_msg_id, ts, pct)
+
+        progress = ProgressThrottle(send_progress)
+
         out_path = None
         try:
+            # o trabalho saiu da fila: o frontend passa de "em fila" para "em curso"
+            progress(0, force=True)
+
             duration = self.probe_duration(video_path)
 
             reason = validate(params, duration)
@@ -106,20 +103,8 @@ class Trim:
             os.makedirs(out_dir, exist_ok=True)
             out_path = os.path.join(out_dir, output_name(os.path.basename(video_path), start, float(params['end'])))
 
-            last = {'t': 0.0}
-
-            def on_progress(pct):
-                self._tool_msg.keep_alive()
-                # no máximo uma vez por segundo
-                if time.monotonic() - last['t'] >= 1:
-                    last['t'] = time.monotonic()
-                    ts, _ = self.now(started)
-                    self._tool_msg.send_progress(msg_id, resp_msg_id, ts, pct)
-
-            self.cut(video_path, out_path, start, end, on_progress)
-
-            ts, _ = self.now(started)
-            self._tool_msg.send_progress(msg_id, resp_msg_id, ts, 100)
+            self.cut(video_path, out_path, start, end, progress)
+            progress(100, force=True)
 
             ts, elapsed = self.now(started)
             self._tool_msg.send_msg(msg_id, resp_msg_id, ts, 'success', elapsed, out_path, type='video')

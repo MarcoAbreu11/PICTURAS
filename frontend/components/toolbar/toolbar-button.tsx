@@ -345,15 +345,17 @@ export function ToolbarButton({
 
       {!locked && (
         <DropdownMenuContent
-          className="w-[--radix-dropdown-menu-trigger-width] min-w-64 rounded-lg"
+          // painéis altos (ex.: conversão de vídeo): o conteúdo faz scroll e os botões ficam visíveis
+          className="w-[--radix-dropdown-menu-trigger-width] min-w-64 rounded-lg flex flex-col max-h-[var(--radix-dropdown-menu-content-available-height)]"
           side="right"
           align="end"
           sideOffset={4}
+          collisionPadding={8}
         >
 
         <DropdownMenuLabel className="text-sm p-1">{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="p-1">{children}</div>
+        <div className="p-1 min-h-0 flex-1 overflow-y-auto">{children}</div>
         <DropdownMenuSeparator />
 
         <div className="flex w-full gap-1 items-center">

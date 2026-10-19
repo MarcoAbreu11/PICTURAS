@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import time
 import datetime
 import subprocess
 
@@ -9,6 +8,7 @@ import pytz
 
 from frames import frame_timestamps, validate, frame_file_name
 from utils.tool_msg import ToolMSG
+from utils.video import probe, ProbeError, ProgressThrottle
 import utils.env as env
 
 
@@ -36,18 +36,13 @@ class ExtractFrames:
 
     def probe_duration(self, video_path):
         try:
-            out = subprocess.run(
-                ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-                 '-show_entries', 'format=duration', '-of', 'json', video_path],
-                capture_output=True, text=True, check=True, timeout=60,
-            )
-            duration = float(json.loads(out.stdout)['format']['duration'])
-            if duration <= 0:
-                raise ValueError('empty video')
-            return duration
-        except Exception:
+            duration = probe(video_path)['duration']
+        except ProbeError:
+            duration = 0
+        if duration <= 0:
             raise FrameError('The video could not be read. It may be corrupted or use an unsupported codec.',
                              self._codes['invalid_video'])
+        return duration
 
     def extract_frame(self, video_path, t, out_path, image_format):
         quality = ['-q:v', '2'] if image_format == 'jpeg' else []
@@ -93,8 +88,17 @@ class ExtractFrames:
             send_error(self._codes['wrong_procedure'], 'The procedure received does not fit into this tool')
             return
 
+        def send_progress(pct):
+            ts, _ = self.now(start)
+            self._tool_msg.send_progress(msg_id, resp_msg_id, ts, pct)
+
+        progress = ProgressThrottle(send_progress)
+
         files = []
         try:
+            # o trabalho saiu da fila: o frontend passa de "em fila" para "em curso"
+            progress(0, force=True)
+
             duration = self.probe_duration(video_path)
 
             reason = validate(params, duration)
@@ -109,7 +113,6 @@ class ExtractFrames:
 
             os.makedirs(out_dir, exist_ok=True)
             video_name = os.path.basename(video_path)
-            last_report = 0.0
 
             for i, t in enumerate(times):
                 out_path = os.path.join(out_dir, frame_file_name(video_name, t, image_format))
@@ -119,11 +122,7 @@ class ExtractFrames:
                 self._tool_msg.keep_alive()
 
                 # progresso no máximo uma vez por segundo (e sempre no último frame)
-                if time.monotonic() - last_report >= 1 or i == len(times) - 1:
-                    last_report = time.monotonic()
-                    ts, _ = self.now(start)
-                    self._tool_msg.send_progress(msg_id, resp_msg_id, ts,
-                                                 round((i + 1) * 100 / len(times)))
+                progress(round((i + 1) * 100 / len(times)), force=i == len(times) - 1)
 
             ts, elapsed = self.now(start)
             if msg_id.startswith('preview'):

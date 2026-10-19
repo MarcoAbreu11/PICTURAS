@@ -289,6 +289,21 @@ services:
     volumes:
       - image_data:/app/images
 
+  video_convert_tool:
+    build:
+      context: ./Tools
+      dockerfile: video_convert/Dockerfile
+    restart: on-failure
+    deploy:
+      replicas: 5
+    networks:
+      - elk
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - image_data:/app/images
+
   # UC-VID-002: corte de vídeo (5 réplicas = 5 vídeos em simultâneo)
   trim_tool:
     build:

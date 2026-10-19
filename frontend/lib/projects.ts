@@ -40,6 +40,13 @@ export interface ProjectImage {
   url: string;
   media_type?: "image" | "video";
   duration?: number; // só vídeos (s)
+  size_bytes?: number;
+  width?: number;
+  height?: number;
+  video_codec?: string;
+  audio_codec?: string;
+  original_size_bytes?: number;
+  output_size_bytes?: number;
 }
 
 export interface ProjectImageText {
@@ -838,6 +845,36 @@ export const copyResultsToProject = async ({
   return response.data;
 };
 
+export const estimateVideoConversion = async ({
+  uid,
+  pid,
+  imageId,
+  token,
+  params,
+  ownerId,
+  shareId,
+}: {
+  uid: string;
+  pid: string;
+  imageId: string;
+  token: string;
+  params: ToolParams;
+  ownerId?: string;
+  shareId?: string;
+}): Promise<{ originalSizeBytes: number; estimatedSizeBytes: number }> => {
+  const query = buildQuery({ ownerId, shareId });
+  const pathUid = pathUidFor(uid, ownerId, shareId);
+  const response = await api.post<{
+    originalSizeBytes: number;
+    estimatedSizeBytes: number;
+  }>(
+    `/projects/${pathUid}/${pid}/video-convert/estimate/${imageId}${query}`,
+    params,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return response.data;
+};
+
 export const fetchProjectResults = async (
   uid: string,
   pid: string,
@@ -855,6 +892,8 @@ export const fetchProjectResults = async (
       name: string;
       url: string;
       media_type?: "image" | "video";
+      original_size_bytes?: number;
+      output_size_bytes?: number;
     }[];
     texts: {
       _id?: string;
@@ -896,6 +935,8 @@ export const fetchProjectResults = async (
           name: img.name,
           url: img.url,
           media_type: img.media_type,
+          original_size_bytes: img.original_size_bytes,
+          output_size_bytes: img.output_size_bytes,
         }) as ProjectImage,
     ),
     texts: texts,

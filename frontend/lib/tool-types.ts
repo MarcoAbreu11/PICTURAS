@@ -76,10 +76,20 @@ export interface TrimToolParams {
   end: number;
 }
 
+export interface VideoConvertToolParams {
+  format: "mp4" | "webm";
+  resolution: "original" | 1080 | 720 | 480 | 360;
+  quality: "high" | "medium" | "low";
+  allow_larger?: boolean;
+  // vídeo do projeto a converter (UC-VID-005, passo 2)
+  video_id?: string;
+}
+
 export type ToolParams =
   | BinarizationToolParams
   | TrimToolParams
   | ExtractFramesToolParams
+  | VideoConvertToolParams
   | BorderToolParams
   | BrightnessToolParams
   | ContrastToolParams
@@ -110,4 +120,5 @@ export type ToolNames =
   | "expand_ai"
   | "extract_frames"
   | "trim"
+  | "video_convert"
   | "project";

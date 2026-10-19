@@ -10,6 +10,8 @@ const resultSchema = new mongoose.Schema({
   token: { type: Number, default: 0, index: true },
   // extract_frames: instante (s) do frame no vídeo de origem
   frame_time: { type: Number, required: false },
+  original_size_bytes: { type: Number, required: false },
+  output_size_bytes: { type: Number, required: false },
 });
 
 module.exports = mongoose.model("result", resultSchema);
