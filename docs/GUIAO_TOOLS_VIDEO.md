@@ -283,34 +283,29 @@ os itens ao projeto (teste no `projects`).
 | | |
 |---|---|
 | **Use case** | Gerar legendas a partir do áudio, mantendo o idioma original ou traduzindo para inglês |
-| **Aceita / produz** | vídeo → vídeo com legendas (`mode: "burn"`) **ou** ficheiro `.srt` (`mode: "srt"`, `type: "text"`) |
-| **Parâmetros** | `language`: `"original"` \| `"en"` · `mode`: `"burn"` \| `"srt"` |
+| **Aceita / produz** | vídeo → WebVTT persistente associado ao vídeo intacto |
+| **Parâmetros** | `language`: `"original"` \| `"en"`; sem `mode`, burn-in ou SRT |
 | **Paga?** | **Sim** — acrescentar a `advanced_tools` em `projects/routes/projects.js` (anónimos não podem usar) |
 
-Dependências:
-- `faster-whisper` (Whisper otimizado para CPU) no `requirements.txt`; modelo `small` com `compute_type="int8"`.
-- O modelo (~500 MB) é descarregado na primeira utilização: montar um volume `whisper_models:/root/.cache` no
-  serviço do compose para não o descarregar a cada arranque.
+Implementação E4 / UC-VID-001:
+1. Ação própria por vídeo: `GET/POST /:user/:project/img/:img/subtitles`, encaminhada pelo Gateway.
+   A seleção de faixas não faz parte da pipeline global nem do botão Aplicar.
+2. Mongo guarda idioma predominante, chaves Original/English e trabalho exclusivo por vídeo.
+   Reutilizar faixas existentes sem IA; quando a origem é inglês, ambas apontam à mesma chave.
+3. `faster-whisper==1.2.1`, modelo multilingue `small`, CPU/int8, carregado uma vez.
+   Original usa `transcribe`; English usa `translate`. O idioma de origem é detetado na
+   primeira geração válida e passado às seguintes; não é forçado para inglês.
+4. Verificar áudio e fala antes de publicar. Erros distintos: 2303 (sem áudio), 2304
+   (sem fala), 2301 (falha), 2302 (parâmetros) e 2305 (geração em curso).
+5. Escrever `.vtt.part`, validar e renomear; guardar `text/vtt` no stage `subtitles`.
+   O vídeo original não é recodificado. RabbitMQ usa filas E4 e confirmação após persistência.
+6. Player com `<track>` e opções Desativadas, Gerar/selecionar Original e Gerar/selecionar English.
+   Mostrar Original (idioma); origem inglesa apresenta uma única opção equivalente.
+7. Eliminar vídeo/projeto/conta elimina faixas; respostas tardias não recriam associações.
 
-Implementação:
-1. `probe(input)`; sem áudio → erro 2303 "Video has no audio track".
-2. `model.transcribe(input, task="translate" if language == "en" else "transcribe", vad_filter=True)`.
-   O Whisper só traduz **para inglês**, o que coincide com o use case.
-3. Escrever os segmentos num `.srt` (`00:00:01,000 --> 00:00:03,500`).
-4. `mode == "srt"`: devolver `replace_ext(output, "srt")` com `type="text"`.
-   `mode == "burn"`: `run_ffmpeg(["-i", input, "-vf", f"subtitles={srt}", *H264_ARGS, output])` e `type="video"`.
-5. Carregar o modelo **uma vez** no `__init__`, não por mensagem.
-
-Frontend — `video-subtitles-tool.tsx`: dois `Select` (idioma, modo), ícone com a estrela das tools de IA
-(como `text-ai-tool.tsx`) e aviso de que pode demorar.
-
-Parte partilhada de E4: nas mensagens de erro do frontend (`lib/error-messages.ts`), mensagem clara quando um anónimo
-tenta usar uma tool paga de vídeo ou quando acabam as operações diárias.
-
-Testes: vídeo de teste com fala (gerar com `espeak-ng` + ffmpeg, ou um clip curto com licença livre em `Tools/tests/assets/`);
-`srt` bem formado; `burn` mantém duração; vídeo sem áudio → 2303.
-
-**Feito quando:** um vídeo em português gera um `.srt` em português e, com `language="en"`, um vídeo com legendas em inglês.
+Não há preview parcial de E4 nem encadeamento nesta implementação. O pedido gera a faixa
+completa do vídeo selecionado. A exclusividade atual das tools dos colegas permanece igual.
+Detalhes, testes, quotas e limites: [UC-VID-001_legendas.md](UC-VID-001_legendas.md).
 
 ---
 
@@ -354,7 +349,7 @@ Testes: um vídeo gerado a partir de uma imagem com uma cara (ex.: `ffmpeg -loop
 | Cada tool sozinha num vídeo | Resultado correto e reproduzível na vista de resultados |
 | `trim → blur_faces → convert(webm)` | Os três passos aplicados, resultado `.webm` |
 | `trim → frames(addToProject)` | Frames do excerto aparecem como imagens no projeto |
-| `subtitles(srt)` seguido de `convert` | Resultado com o `.srt` e o vídeo convertido |
+| Legendas Original/English no vídeo selecionado | WebVTT persistente; sem encadeamento com conversão; cada vídeo conserva a sua associação |
 | `frames` seguido de outra tool | Bloqueado com mensagem "must be the last tool" |
 | `rotate` (tool de imagem) num projeto só com vídeos | Bloqueado / ignorado com aviso |
 | Anónimo tenta legendas ou caras | Bloqueado (tool paga) |
