@@ -321,6 +321,25 @@ services:
       - image_data:/app/images
 
   # UC-VID-004: desfocar caras em vídeo (5 réplicas = 5 vídeos em simultâneo)
+  video_subtitles_tool:
+    build:
+      context: ./Tools
+      dockerfile: video_subtitles/Dockerfile
+    restart: on-failure
+    networks:
+      - elk
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+    volumes:
+      - image_data:/app/images
+      - whisper_models:/root/.cache
+
   blur_faces_tool:
     build:
       context: ./Tools
@@ -596,6 +615,7 @@ networks:
     driver: bridge
 
 volumes:
+  whisper_models:
   rabbitmq_data:
   project_data:
   user_data:

@@ -34,6 +34,20 @@
     ],
     "queues": [
         {
+            "name": "video_subtitles_queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
+            "name": "video_subtitles_results_queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
             "name": "project_queue",
             "vhost": "/",
             "durable": true,
@@ -207,6 +221,22 @@
         }
     ],
     "bindings": [
+        {
+            "source": "picturas",
+            "vhost": "/",
+            "destination": "video_subtitles_queue",
+            "destination_type": "queue",
+            "routing_key": "video_subtitles_queue",
+            "arguments": {}
+        },
+        {
+            "source": "picturas",
+            "vhost": "/",
+            "destination": "video_subtitles_results_queue",
+            "destination_type": "queue",
+            "routing_key": "video_subtitles_results_queue",
+            "arguments": {}
+        },
         {
             "source": "picturas",
             "vhost": "/",
