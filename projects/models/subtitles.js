@@ -13,6 +13,7 @@ const schema = new mongoose.Schema({
   detectedLanguage: String,
   original: track,
   en: track,
+  garbageKeys: { type: [String], default: [] },
   job: {
     id: String,
     language: String,

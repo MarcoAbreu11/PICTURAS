@@ -17,13 +17,13 @@ let channel;
 const service = createSubtitleService({
   Model, Project, root: path.join(__dirname, "..", "images", "subtitles", "jobs"),
   reserve: async (runner) => {
-    try { await axios.get(`${users}/${runner}/process/1`, { httpsAgent }); } catch (err) {
+    try { await axios.get(`${users}/${runner}/process/1`, { httpsAgent, timeout: 15000 }); } catch (err) {
       throw Object.assign(new Error(err.response?.data === "No more daily_operations available"
         ? "Limite diário de operações avançadas atingido" : "Não foi possível reservar a operação"),
       { status: err.response?.data === "No more daily_operations available" ? 429 : 503 });
     }
   },
-  refund: (runner) => axios.post(`${users}/${runner}/process/refund/1`, {}, { httpsAgent }),
+  refund: (runner) => axios.post(`${users}/${runner}/process/refund/1`, {}, { httpsAgent, timeout: 15000 }),
   publish: async (message) => {
     if (!channel) throw new Error("Subtitle queue unavailable");
     await new Promise((resolve, reject) => channel.publish(
@@ -43,7 +43,7 @@ const service = createSubtitleService({
     },
     upload: async (doc, key, data) => {
       const form = new FormData();
-      form.append("image", Buffer.from(data, "utf8"), { filename: key, contentType: "text/vtt" });
+      form.append("file", Buffer.from(data, "utf8"), { filename: key, contentType: "text/vtt" });
       await images.post_image(doc.user_id, doc.project_id, "subtitles", form);
     },
   },

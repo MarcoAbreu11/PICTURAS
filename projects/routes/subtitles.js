@@ -14,7 +14,7 @@ async function authorize(req, res, next) {
       return res.status(401).json({ message: "Sessão inválida" });
     // users validates the signature and expiry; never trust X-Caller-Id.
     const validated = await axios.get(`${users}/validate/${caller}`, {
-      httpsAgent, headers: { Authorization: `Bearer ${token}` },
+      httpsAgent, timeout: 15000, headers: { Authorization: `Bearer ${token}` },
     });
     if (!["free", "premium"].includes(validated.data.user.type))
       return res.status(403).json({ message: "Inicie sessão com uma conta registada para usar legendas" });

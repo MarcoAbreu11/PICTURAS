@@ -1,12 +1,16 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@/providers/session-provider";
 import { useProjectInfo } from "@/providers/project-provider";
-import { fetchSubtitles, generateSubtitles, SubtitleLanguage, subtitleLabel } from "@/lib/subtitles";
+import { fetchSubtitles, generateSubtitles, SubtitleAccess, SubtitleLanguage, subtitleLabel } from "@/lib/subtitles";
 
 type Selection = { active: SubtitleLanguage | "off"; pending?: string; requested?: SubtitleLanguage };
+type GenerationRequest = {
+  access: SubtitleAccess; language: SubtitleLanguage; key: readonly unknown[];
+  selectionKey: readonly unknown[]; active: Selection["active"];
+};
 export function useVideoSubtitles(video: string, enabled = true) {
   const session = useSession();
   const project = useProjectInfo();
@@ -18,7 +22,9 @@ export function useVideoSubtitles(video: string, enabled = true) {
   };
   const eligible = session.user.type === "free" || session.user.type === "premium";
   const key = ["video-subtitles", access.user, access.project, video, access.owner, access.share, access.token];
-  const selectionKey = [...key, "selection"];
+  const selectionKey = useMemo(() => [
+    "video-subtitles", access.user, access.project, video, access.owner, access.share, access.token, "selection",
+  ], [access.user, access.project, video, access.owner, access.share, access.token]);
   const selection = useQuery<Selection>({
     queryKey: selectionKey, queryFn: () => ({ active: "off" }), enabled: false,
     initialData: { active: "off" },
@@ -30,38 +36,43 @@ export function useVideoSubtitles(video: string, enabled = true) {
     retry: false,
   });
   const mutation = useMutation({
-    mutationFn: (language: SubtitleLanguage) => generateSubtitles(access, language),
-    onSuccess: (state, language) => {
-      client.setQueryData(key, state);
-      client.setQueryData<Selection>(selectionKey, state.tracks[language]
-        ? { active: language }
-        : { active: selection.active, pending: state.job?.id, requested: language });
+    mutationFn: (request: GenerationRequest) => generateSubtitles(request.access, request.language),
+    onSuccess: (state, request) => {
+      // A response still belongs to its original video if the carousel moved.
+      client.setQueryData(request.key, state);
+      client.setQueryData<Selection>(request.selectionKey, state.tracks[request.language]
+        ? { active: state.detectedLanguage === "en" ? "original" : request.language }
+        : { active: request.active, pending: state.job?.id, requested: request.language });
       window.dispatchEvent(new Event("session-updated"));
     },
-    onError: () => { query.refetch(); },
+    onError: (_error, request) => { client.invalidateQueries({ queryKey: request.key, exact: true }); },
   });
   useEffect(() => {
     if (!selection.pending || query.data?.job) return;
     if (selection.requested && query.data?.tracks[selection.requested]) {
-      client.setQueryData<Selection>(selectionKey, { active: selection.requested });
+      client.setQueryData<Selection>(selectionKey, {
+        active: query.data.detectedLanguage === "en" ? "original" : selection.requested,
+      });
     } else if (query.data?.error) {
       client.setQueryData<Selection>(selectionKey, { active: selection.active });
     }
-  }, [selection.pending, selection.requested, selection.active, query.data, client, JSON.stringify(selectionKey)]);
+  }, [selection.pending, selection.requested, selection.active, query.data, client, selectionKey]);
 
   function select(language: SubtitleLanguage | "off") {
     if (language === "off" || query.data?.tracks[language]) {
       client.setQueryData<Selection>(selectionKey, { active: language });
     } else {
-      mutation.mutate(language);
+      mutation.mutate({ language, access, key, selectionKey, active: selection.active });
     }
   }
   const track = enabled && eligible && selection.active !== "off"
     ? query.data?.tracks[selection.active] : undefined;
+  const currentRequest = mutation.variables?.access.video === video &&
+    mutation.variables?.access.project === project._id;
   return {
     ...query, eligible, select, selection: selection.active,
-    generating: mutation.isPending || !!query.data?.job,
-    requestError: mutation.error,
+    generating: (currentRequest && mutation.isPending) || !!query.data?.job,
+    requestError: currentRequest ? mutation.error : null,
     track: track ? {
       ...track, label: selection.active === "original" || query.data?.detectedLanguage === "en"
         ? subtitleLabel(query.data?.detectedLanguage) : "English",

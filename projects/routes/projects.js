@@ -2484,7 +2484,12 @@ router.delete( "/:user/:project", checkSharePermission, requireEditPermission, e
       const fresh = await Project.getOne(req.params.user, req.params.project);
       return res.status(409).jsonp({ message: "Project version conflict", serverVersion: fresh?.version ?? null });
     }
-    await require("../services/subtitleRuntime").service.remove(req.params.project);
+    try {
+      await require("../services/subtitleRuntime").service.remove(req.params.project);
+    } catch (err) {
+      console.error("[subtitles deletion]", err.message);
+      return res.status(503).jsonp("Project deleted; subtitle cleanup will be retried");
+    }
     return res.sendStatus(204);
   }
 );

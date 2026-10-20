@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn, isVideo } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface MediaViewProps {
   url: string;
@@ -29,12 +29,12 @@ export default function MediaView({
   const video = mediaType ? mediaType === "video" : isVideo(name);
   const videoRef = useRef<HTMLVideoElement>(null);
   const activeKey = subtitle?.key;
-  function activateSubtitle() {
+  const activateSubtitle = useCallback(() => {
     const tracks = videoRef.current?.textTracks;
     if (tracks) for (let i = 0; i < tracks.length; i++)
       tracks[i].mode = activeKey && i === 0 ? "showing" : "disabled";
-  }
-  useEffect(activateSubtitle, [activeKey, subtitle?.url]);
+  }, [activeKey]);
+  useEffect(activateSubtitle, [activateSubtitle, subtitle?.url]);
 
   if (video) {
     return (

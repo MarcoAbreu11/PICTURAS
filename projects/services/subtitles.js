@@ -18,7 +18,7 @@ function validate(body) {
       Object.keys(body).some((key) => key !== "language")) throw error(2302);
 }
 function keys(doc) {
-  return [...new Set([doc.original?.key, doc.en?.key, doc.job?.key].filter(Boolean))];
+  return [...new Set([doc.original?.key, doc.en?.key, doc.job?.key, ...(doc.garbageKeys || [])].filter(Boolean))];
 }
 
 // Dependencies are explicit so tests exercise the real lifecycle with controlled
@@ -65,10 +65,17 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   }
   async function failed(doc, code) {
     // The result consumer is serial. Conditional fail prevents duplicate refunds.
-    const claimed = await store.fail(doc.job.id, { code, message: messages[code] || messages[2301] });
+    const claimed = await store.fail(doc.job.id, { code, message: messages[code] || messages[2301] }, doc.job.key);
     if (claimed && doc.job.reserved) await refund(doc.job.runner);
+    if (claimed) await cleanupGarbage(claimed);
     await fs.rm(directory(doc.job.id), { recursive: true, force: true });
     if (doc.deleted) await cleanup({ ...doc, job: undefined });
+  }
+  async function cleanupGarbage(doc) {
+    for (const key of doc.garbageKeys || []) {
+      await storage.remove(doc, key);
+      await Model.updateOne({ _id: doc._id }, { $pull: { garbageKeys: key } });
+    }
   }
   async function dispatch(doc) {
     const dir = directory(doc.job.id);
@@ -91,6 +98,7 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   }
   async function generate(project, video, runner, body) {
     validate(body);
+    await Model.init(); // the unique video index must exist before first admission
     let doc = await store.ensure(identity(project, video));
     if (doc.deleted || doc.sourceHash !== video.og_sha256 || !(await alive(doc)))
       throw Object.assign(new Error("Vídeo indisponível"), { status: 404 });
@@ -109,7 +117,11 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
     try {
       if (!(await alive(doc))) throw error(2301, 404);
       await reserve(runner);
-      await Model.updateOne({ "job.id": id }, { $set: { "job.reserved": true } });
+      const reserved = await Model.updateOne({ "job.id": id }, { $set: { "job.reserved": true } });
+      if (!reserved.matchedCount) {
+        await refund(runner);
+        throw error(2301, 503);
+      }
       doc.job.reserved = true;
     } catch (err) {
       await failed(doc, 2301);
@@ -122,7 +134,12 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   }
   async function finish(message) {
     const doc = await store.byJob(message.correlationId);
-    if (!doc) return; // duplicate result; already committed/failed
+    if (!doc) {
+      // Also covers a crash after commit but before local cleanup.
+      if (/^subtitles-[0-9a-f-]{36}$/.test(message.correlationId || ""))
+        await fs.rm(directory(message.correlationId), { recursive: true, force: true });
+      return;
+    }
     if (doc.deleted || !(await alive(doc))) {
       await remove(doc.project_id, doc.video_id);
       return failed({ ...doc, deleted: true }, 2301);
@@ -151,8 +168,13 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
       doc.job.id, metadata.detectedLanguage, doc.job.language, doc.job.key,
     );
     if (!saved) {
-      await storage.remove(doc, doc.job.key);
-      await failed({ ...doc, deleted: true }, 2301);
+      // Another result consumer may already have committed this same job.
+      // Never delete its now-valid track when a duplicate reply loses the CAS.
+      const fresh = await store.get(doc.project_id, doc.video_id);
+      if (!fresh || fresh.deleted || !keys({ original: fresh.original, en: fresh.en }).includes(doc.job.key)) {
+        await storage.remove(doc, doc.job.key);
+        await failed({ ...doc, deleted: true }, 2301);
+      }
     } else if (!(await alive(saved))) {
       await remove(saved.project_id, saved.video_id);
     }
@@ -160,9 +182,14 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   }
   async function recover() {
     for (const doc of await Model.find({}).lean()) {
+      await cleanupGarbage(doc);
       if (doc.deleted || !(await alive(doc))) {
         await remove(doc.project_id, doc.video_id);
         // A queued/running worker still owns its directory until it responds.
+      } else if (doc.job?.id && !doc.job.reserved && Date.now() - new Date(doc.job.startedAt).getTime() > 60000) {
+        // No message can be published before the reserved CAS. A crash during
+        // quota reservation is recoverable without expiring a running worker.
+        await failed(doc, 2301);
       } else if (doc.job?.id && doc.job.reserved) {
         await dispatch(doc); // identical ID; worker receipt avoids another inference
       }
