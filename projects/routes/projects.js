@@ -90,6 +90,7 @@ const users_ms = "https://users:10001/";
 const enforcePresenceLimit = require("../middleware/enforcePresenceLimit");
 
 const advanced_tools = [
+  "video_subtitles",
   "cut_ai",
   "upgrade_ai",
   "bg_remove_ai",
@@ -115,6 +116,7 @@ function processableImgs(project) {
 
 // Parâmetros específicos de cada tool; null se ok, senão o motivo
 function validateToolParams(procedure, params) {
+  if (procedure === "video_subtitles") return "Use the selected video's subtitle controls";
   if (procedure === "extract_frames") return validateFrameParams(params);
   if (procedure === "trim") return validateTrimParams(params);
   if (procedure === "video_convert") return validateVideoConvertParams(params);
@@ -771,6 +773,7 @@ async function deleteProjectAndResources(userId, projectId) {
 
   // apagar o próprio projeto
   await Project.delete(userId, projectId);
+  await require("../services/subtitleRuntime").service.remove(projectId);
 }
 
 // ================== SHARING / LINKS ==================
@@ -1919,6 +1922,8 @@ router.post(
             return res.status(400).jsonp("Add a video to the project before configuring conversion");
         }
         const exclusiveError = checkExclusiveTools((req.body || []).map((t) => t.procedure));
+        if ((req.body || []).some((t) => t.procedure === "video_subtitles"))
+          return res.status(400).jsonp("Use the selected video's subtitle controls");
         if (exclusiveError) return res.status(400).jsonp(exclusiveError);
 
         project.tools = [];
@@ -2479,6 +2484,7 @@ router.delete( "/:user/:project", checkSharePermission, requireEditPermission, e
       const fresh = await Project.getOne(req.params.user, req.params.project);
       return res.status(409).jsonp({ message: "Project version conflict", serverVersion: fresh?.version ?? null });
     }
+    await require("../services/subtitleRuntime").service.remove(req.params.project);
     return res.sendStatus(204);
   }
 );
@@ -2574,6 +2580,7 @@ router.delete("/:user/:project/img/:img", checkSharePermission, requireEditPermi
           });
         }
 
+        await require("../services/subtitleRuntime").service.remove(req.params.project, req.params.img);
         res.set("X-Project-Version", String(updated.version));
         return res.sendStatus(204);
 

@@ -38,6 +38,27 @@ function uploadSingle(field) {
 
 const projectsURL = "https://projects:9001/";
 
+// UC-VID-001 is an operation on one original video, independent of Apply.
+router.route("/:user/:project/img/:img/subtitles")
+  .all(auth.checkToken)
+  .get(forwardSubtitles)
+  .post(forwardSubtitles);
+
+async function forwardSubtitles(req, res) {
+  try {
+    const owner = req.query.share ? (req.query.owner || req.params.user) : req.authUserId;
+    const response = await axios({
+      method: req.method, httpsAgent,
+      url: `${projectsURL}${encodeURIComponent(owner)}/${encodeURIComponent(req.params.project)}/img/${encodeURIComponent(req.params.img)}/subtitles`,
+      data: req.method === "POST" ? req.body : undefined,
+      params: req.query.share ? { share: req.query.share } : undefined,
+      headers: { Authorization: req.headers.authorization },
+    });
+    res.set("Cache-Control", "no-store");
+    res.status(response.status).json(response.data);
+  } catch (err) { forwardAxiosError(res, err, "Não foi possível aceder às legendas"); }
+}
+
 function forwardAxiosError(res, err, fallbackMsg) {
   const status = err.response?.status || 500;
   const data =

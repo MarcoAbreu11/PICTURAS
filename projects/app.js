@@ -31,10 +31,12 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use("/", require("./routes/subtitles"));
 app.use("/", projectsRouter);
 
 // Start the message processing
 process_msg();
+require("./services/subtitleRuntime").startRecovery();
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

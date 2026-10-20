@@ -11,7 +11,11 @@ async function uploadImage(userId, projectId, file, stage) {
   const ext =
     path.extname(file.originalname || "").slice(1).toLowerCase() ||
     file.mimetype.split("/")[1];
-  const imageKey = `${projectId}/${stage}/${uuidv4()}.${ext}`;
+  // E4 retries address the same object, including an upload racing with deletion.
+  if (stage === "subtitles" &&
+      (!/^subtitles-[0-9a-f-]{36}\.vtt$/.test(file.originalname) || file.mimetype !== "text/vtt"))
+    throw new Error("Invalid subtitle file");
+  const imageKey = `${projectId}/${stage}/${stage === "subtitles" ? file.originalname : `${uuidv4()}.${ext}`}`;
   const params = {
     Bucket: bucketName,
     Key: imageKey,
