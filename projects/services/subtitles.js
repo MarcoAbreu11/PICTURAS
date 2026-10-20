@@ -23,8 +23,9 @@ function keys(doc) {
 
 // Dependencies are explicit so tests exercise the real lifecycle with controlled
 // storage/worker failures, without invoking an AI model.
-function createSubtitleService({ Model, Project, storage, reserve, refund, publish, root }) {
+function createSubtitleService({ Model, Project, storage, reserve, refund, publish, root, assertPublisher = () => {} }) {
   const store = subtitleStore(Model);
+  const dispatches = new Map();
   const identity = (project, video) => ({
     user_id: project.user_id, project_id: project._id,
     video_id: video._id, sourceHash: video.og_sha256,
@@ -61,15 +62,32 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   async function remove(project, video) {
     const filter = { project_id: project, ...(video ? { video_id: video } : {}) };
     await Model.updateMany(filter, { $set: { deleted: true } });
-    for (const doc of await Model.find(filter).lean()) await cleanup(doc);
+    for (const doc of await Model.find(filter).lean()) {
+      if (doc.job?.id && (doc.job.delivery === "preparing" || !doc.job.reserved)) await failed(doc, 2301, true);
+      else await cleanup(doc);
+    }
   }
-  async function failed(doc, code) {
-    // The result consumer is serial. Conditional fail prevents duplicate refunds.
-    const claimed = await store.fail(doc.job.id, { code, message: messages[code] || messages[2301] }, doc.job.key);
-    if (claimed && doc.job.reserved) await refund(doc.job.runner);
-    if (claimed) await cleanupGarbage(claimed);
-    await fs.rm(directory(doc.job.id), { recursive: true, force: true });
-    if (doc.deleted) await cleanup({ ...doc, job: undefined });
+  async function failed(doc, code, onlyPreparing = false) {
+    // Return the pre-update job so deletion/reservation races refund its actual state.
+    const claimed = await store.fail(doc.job.id, {
+      code, message: messages[code] || messages[2301], jobId: doc.job.id, refundPending: true,
+    }, doc.job.key, onlyPreparing);
+    if (!claimed) return false;
+    let refunded = false;
+    try {
+      if (claimed.job.reserved) {
+        await refund(claimed.job.runner);
+        refunded = true;
+      }
+    } finally {
+      await Model.updateOne({ _id: claimed._id, "error.jobId": doc.job.id }, {
+        $set: { "error.refunded": refunded, "error.refundPending": false },
+      });
+      await fs.rm(directory(doc.job.id), { recursive: true, force: true });
+      await cleanupGarbage({ ...claimed, garbageKeys: [...new Set([...(claimed.garbageKeys || []), claimed.job.key])] });
+      if (claimed.deleted) await cleanup({ ...claimed, job: undefined });
+    }
+    return true;
   }
   async function cleanupGarbage(doc) {
     for (const key of doc.garbageKeys || []) {
@@ -78,14 +96,50 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
     }
   }
   async function dispatch(doc) {
+    // The HTTP request and periodic recovery must not prepare the same files together.
+    const id = doc.job.id;
+    if (dispatches.has(id)) return dispatches.get(id);
+    const pending = dispatchOnce(doc).finally(() => dispatches.delete(id));
+    dispatches.set(id, pending);
+    return pending;
+  }
+  async function dispatchOnce(snapshot) {
+    let doc = await store.byJob(snapshot.job.id);
+    if (!doc) return;
     const dir = directory(doc.job.id);
-    await fs.mkdir(dir, { recursive: true });
     const input = path.join(dir, "source");
-    try { await fs.access(input); } catch {
-      const project = await Project.findById(doc.project_id).lean();
-      const video = project?.imgs.find((i) => String(i._id) === String(doc.video_id));
-      if (!video || doc.deleted) return failed(doc, 2301);
-      await storage.download(doc, video.og_img_key, input);
+    if (doc.job.delivery === "preparing") {
+      try {
+        assertPublisher();
+        await fs.mkdir(dir, { recursive: true });
+        try { await fs.access(input); } catch {
+          const project = await Project.findById(doc.project_id).lean();
+          const video = project?.imgs.find((i) => String(i._id) === String(doc.video_id));
+          if (!video || doc.deleted) throw error(2301, 404);
+          await storage.download(doc, video.og_img_key, input);
+        }
+        if (!(await alive(doc))) throw error(2301, 404);
+        // Persist uncertainty BEFORE sending. Deletion and terminal preparation
+        // failure can only claim "preparing", so neither can release a sent job.
+        const publishing = await Model.findOneAndUpdate(
+          { "job.id": doc.job.id, "job.delivery": "preparing", "job.reserved": true, deleted: false },
+          { $set: { "job.delivery": "publishing" } }, { new: true },
+        ).lean();
+        if (!publishing) throw error(2301, 404);
+        doc = publishing;
+      } catch (err) {
+        let terminated = false;
+        try { terminated = await failed(doc, 2301, true); } catch (cleanupError) {
+          console.error("[subtitles preparation cleanup]", doc.job.id, cleanupError.message);
+        }
+        if (terminated || !(await store.byJob(doc.job.id))) {
+          // A download already in flight when deletion won may have left bytes.
+          try { await fs.rm(dir, { recursive: true, force: true }); } finally {
+            throw Object.assign(error(2301, 503), { terminalPreparation: true });
+          }
+        }
+        throw err; // A competing publisher may already own this job.
+      }
     }
     await publish({
       messageId: doc.job.id, timestamp: new Date().toISOString(), procedure: "video_subtitles",
@@ -95,6 +149,7 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
         videoId: String(doc.video_id),
       },
     });
+    await Model.updateOne({ "job.id": doc.job.id }, { $set: { "job.delivery": "delivered" } });
   }
   async function generate(project, video, runner, body) {
     validate(body);
@@ -106,7 +161,7 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
     const id = `subtitles-${randomUUID()}`;
     doc = await store.acquire(doc._id, body.language, {
       id, language: body.language, runner, startedAt: new Date(),
-      reserved: false, key: `${id}.vtt`,
+      reserved: false, delivery: "preparing", key: `${id}.vtt`,
     });
     if (!doc) {
       const fresh = await store.get(project._id, video._id);
@@ -129,7 +184,10 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
     }
     // A publish timeout is ambiguous; keep the same job/lock and retry it.
     // Never allow a new inference just because the HTTP connection failed.
-    try { await dispatch(doc); } catch (err) { console.error("[subtitles dispatch]", err.message); }
+    try { await dispatch(doc); } catch (err) {
+      if (err.terminalPreparation) throw err;
+      console.error("[subtitles dispatch]", err.message);
+    }
     return { status: 202, data: await present(doc) };
   }
   async function finish(message) {
@@ -182,16 +240,22 @@ function createSubtitleService({ Model, Project, storage, reserve, refund, publi
   }
   async function recover() {
     for (const doc of await Model.find({}).lean()) {
-      await cleanupGarbage(doc);
-      if (doc.deleted || !(await alive(doc))) {
-        await remove(doc.project_id, doc.video_id);
-        // A queued/running worker still owns its directory until it responds.
-      } else if (doc.job?.id && !doc.job.reserved && Date.now() - new Date(doc.job.startedAt).getTime() > 60000) {
-        // No message can be published before the reserved CAS. A crash during
-        // quota reservation is recoverable without expiring a running worker.
-        await failed(doc, 2301);
-      } else if (doc.job?.id && doc.job.reserved) {
-        await dispatch(doc); // identical ID; worker receipt avoids another inference
+      try {
+        await cleanupGarbage(doc);
+        if (doc.deleted || !(await alive(doc))) {
+          await remove(doc.project_id, doc.video_id);
+          // A possibly-sent job keeps its files and identity. Redelivering also
+          // settles a crash between the publishing CAS and the actual send.
+          if (doc.job?.reserved && doc.job.delivery !== "preparing") await dispatch(doc);
+        } else if (doc.job?.id && !doc.job.reserved && Date.now() - new Date(doc.job.startedAt).getTime() > 60000) {
+          // No message can be published before the reserved CAS. A crash during
+          // quota reservation is recoverable without expiring a running worker.
+          await failed(doc, 2301, doc.job.delivery === "preparing");
+        } else if (doc.job?.id && doc.job.reserved) {
+          await dispatch(doc); // identical ID; worker receipt avoids another inference
+        }
+      } catch (err) {
+        console.error("[subtitles recovery job]", doc.job?.id || String(doc._id), err.message);
       }
     }
   }

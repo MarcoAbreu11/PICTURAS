@@ -33,10 +33,13 @@ function subtitleStore(Model) {
         { new: true },
       ).lean();
     },
-    async fail(id, error, key) {
+    async fail(id, error, key, onlyPreparing = false) {
       return Model.findOneAndUpdate(
-        { "job.id": id },
-        { $set: { error }, $unset: { job: "" }, ...(key ? { $addToSet: { garbageKeys: key } } : {}) }, { new: true },
+        { "job.id": id, ...(onlyPreparing ? { $or: [
+          { "job.delivery": "preparing" },
+          { "job.delivery": { $exists: false }, "job.reserved": false },
+        ] } : {}) },
+        { $set: { error }, $unset: { job: "" }, ...(key ? { $addToSet: { garbageKeys: key } } : {}) }, { new: false },
       ).lean();
     },
   };

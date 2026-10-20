@@ -20,9 +20,11 @@ const schema = new mongoose.Schema({
     runner: String,
     startedAt: Date,
     reserved: Boolean,
+    // Missing on legacy jobs: conservatively treat those as possibly published.
+    delivery: { type: String, enum: ["preparing", "publishing", "delivered"] },
     key: String,
   },
-  error: { code: Number, message: String },
+  error: { code: Number, message: String, jobId: String, refundPending: Boolean, refunded: Boolean },
   deleted: { type: Boolean, default: false },
 }, { timestamps: true });
 schema.index({ project_id: 1, video_id: 1 }, { unique: true });

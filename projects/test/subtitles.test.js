@@ -35,14 +35,18 @@ test("UC-VID-001 persistent lifecycle", { skip: !process.env.SUBTITLES_TEST_MONG
     const video = project.imgs[0];
     const objects = new Map();
     const calls = { ai: [], reserve: 0, refund: 0, deleted: [] };
-    let uploadHook;
+    let uploadHook, downloadHook, publishHook, publisherHook, reserveHook, refundHook;
     const dependencies = {
       Model, Project, root,
-      reserve: async () => { calls.reserve++; },
-      refund: async () => { calls.refund++; },
-      publish: async (msg) => { calls.ai.push(msg); },
+      reserve: async () => { calls.reserve++; if (reserveHook) await reserveHook(); },
+      refund: async () => { calls.refund++; if (refundHook) await refundHook(); },
+      assertPublisher: () => { if (publisherHook) publisherHook(); },
+      publish: async (msg) => { if (publishHook) await publishHook(msg); calls.ai.push(msg); },
       storage: {
-        download: async (_doc, _key, dest) => fs.writeFile(dest, "original bytes"),
+        download: async (_doc, _key, dest) => {
+          if (downloadHook) await downloadHook(dest);
+          await fs.writeFile(dest, "original bytes");
+        },
         url: async (_doc, key) => `https://storage/${key}`,
         upload: async (_doc, key, data) => { objects.set(key, data); if (uploadHook) await uploadHook(); },
         remove: async (_doc, key) => { calls.deleted.push(key); objects.delete(key); },
@@ -61,12 +65,162 @@ test("UC-VID-001 persistent lifecycle", { skip: !process.env.SUBTITLES_TEST_MONG
         } },
       });
     }
-    return { project, video, calls, objects, generate, result,
+    return { project, video, calls, objects, generate, result, root,
       service: () => service,
       reopen: () => { service = createSubtitleService(dependencies); },
       onUpload: (fn) => { uploadHook = fn; },
+      onDownload: (fn) => { downloadHook = fn; },
+      onPublish: (fn) => { publishHook = fn; },
+      onPublisher: (fn) => { publisherHook = fn; },
+      onReserve: (fn) => { reserveHook = fn; },
+      onRefund: (fn) => { refundHook = fn; },
     };
   }
+
+  await t.test("F1: failed preparation cleans partial files, refunds and allows a new request", async () => {
+    const f = await fixture();
+    f.onDownload(async (dest) => {
+      await fs.writeFile(`${dest}.part`, "incomplete");
+      throw new Error("download failed");
+    });
+    await assert.rejects(f.generate("original"), { code: 2301, status: 503 });
+    const doc = await f.service().store.get(f.project._id, f.video._id);
+    assert.equal(doc.job, undefined);
+    assert.equal(doc.error.code, 2301);
+    assert.deepEqual(await fs.readdir(f.root), []);
+    assert.equal(f.calls.ai.length, 0);
+    assert.equal(f.calls.refund, 1);
+    f.onDownload(null);
+    assert.equal((await f.generate("original")).status, 202);
+    await f.result();
+  });
+  await t.test("F1: unavailable publisher before send is terminal; uncertain publish retains identity", async () => {
+    const f = await fixture();
+    f.onPublisher(() => { throw new Error("no channel"); });
+    await assert.rejects(f.generate("original"), { code: 2301 });
+    assert.equal(f.calls.refund, 1);
+    f.onPublisher(null);
+    f.onPublish(() => { throw new Error("confirmation lost"); });
+    const accepted = await f.generate("original");
+    assert.equal(accepted.status, 202);
+    const id = accepted.data.job.id;
+    assert.equal((await f.service().store.byJob(id)).job.delivery, "publishing");
+    await assert.rejects(f.generate("en"), { code: 2305 });
+    f.onPublish(null);
+    f.reopen();
+    await f.service().recover();
+    assert.equal(f.calls.ai.at(-1).messageId, id);
+    assert.equal(f.calls.refund, 1);
+    await f.result();
+  });
+  await t.test("F1: failed refund must not report an already-terminated preparation as accepted", async () => {
+    const f = await fixture();
+    f.onDownload(() => { throw new Error("download failed"); });
+    f.onRefund(() => { throw new Error("refund service unavailable"); });
+    await assert.rejects(f.generate("original"), { code: 2301, status: 503 });
+    const doc = await f.service().store.get(f.project._id, f.video._id);
+    assert.equal(doc.job, undefined);
+    assert.equal(doc.error.refunded, false);
+    assert.equal(doc.error.refundPending, false);
+    assert.deepEqual(await fs.readdir(f.root), []);
+    assert.equal(f.calls.ai.length, 0);
+  });
+  await t.test("F3: deletion during preparation cleans job/temp and never publishes", async () => {
+    const f = await fixture();
+    f.onDownload(async (dest) => {
+      await fs.writeFile(`${dest}.part`, "partial source");
+      await Project.deleteOne({ _id: f.project._id });
+      await f.service().remove(f.project._id);
+      assert.equal(await f.service().store.get(f.project._id, f.video._id), null);
+    });
+    await assert.rejects(f.generate("original"), { code: 2301 });
+    await f.service().recover();
+    assert.equal(f.calls.ai.length, 0);
+    assert.equal(f.calls.refund, 1);
+    assert.deepEqual(await fs.readdir(f.root), []);
+  });
+  await t.test("F3: deletion while reserving compensates once without publication", async () => {
+    const f = await fixture();
+    f.onReserve(async () => {
+      await Project.deleteOne({ _id: f.project._id });
+      await f.service().remove(f.project._id);
+    });
+    await assert.rejects(f.generate("original"), { code: 2301 });
+    assert.equal(f.calls.refund, 1);
+    assert.equal(f.calls.ai.length, 0);
+    assert.equal(await f.service().store.get(f.project._id, f.video._id), null);
+    assert.deepEqual(await fs.readdir(f.root), []);
+  });
+  await t.test("F3: deleted uncertain publication is redelivered and late result cleans without resurrection", async () => {
+    const f = await fixture();
+    f.onPublish(() => { throw new Error("confirmation lost"); });
+    const id = (await f.generate("original")).data.job.id;
+    await Project.deleteOne({ _id: f.project._id });
+    await f.service().remove(f.project._id);
+    assert.ok(await f.service().store.byJob(id));
+    f.onPublish(null);
+    f.reopen();
+    await f.service().recover();
+    assert.equal(f.calls.ai.at(-1).messageId, id);
+    await f.result();
+    assert.equal(f.objects.size, 0);
+    assert.equal(await f.service().store.byJob(id), null);
+    assert.deepEqual(await fs.readdir(f.root), []);
+    assert.equal(f.calls.refund, 1);
+  });
+  await t.test("legacy jobs without delivery state remain protected on deletion", async () => {
+    const f = await fixture();
+    const id = (await f.generate("original")).data.job.id;
+    await Model.updateOne({ "job.id": id }, { $unset: { "job.delivery": "" } });
+    await Project.deleteOne({ _id: f.project._id });
+    await f.service().remove(f.project._id);
+    assert.ok(await f.service().store.byJob(id));
+    await f.result();
+    assert.equal(await f.service().store.byJob(id), null);
+  });
+  await t.test("F3: interrupted unreserved legacy job can be deleted without a worker reply", async () => {
+    const f = await fixture();
+    await f.service().store.ensure({
+      user_id: f.project.user_id, project_id: f.project._id,
+      video_id: f.video._id, sourceHash: f.video.og_sha256,
+    });
+    const id = `subtitles-${randomUUID()}`;
+    await Model.updateOne({ project_id: f.project._id }, { $set: {
+      job: { id, language: "original", runner: String(f.project.user_id),
+        reserved: false, key: `${id}.vtt`, startedAt: new Date() },
+    } });
+    await fs.mkdir(path.join(f.root, id));
+    await fs.writeFile(path.join(f.root, id, "source.part"), "partial");
+    await Project.deleteOne({ _id: f.project._id });
+    await f.service().recover();
+    assert.equal(await f.service().store.byJob(id), null);
+    assert.deepEqual(await fs.readdir(f.root), []);
+    assert.equal(f.calls.refund, 0);
+  });
+  await t.test("F2: recovery logs one job's failure and still dispatches the next", async () => {
+    const f = await fixture();
+    const g = await fixture();
+    const first = (await f.generate("original")).data.job.id;
+    const second = (await g.generate("original")).data.job.id;
+    // Restrict this sweep to these two pending documents in deterministic order.
+    const records = [await f.service().store.byJob(first), await g.service().store.byJob(second)];
+    const originalFind = Model.find;
+    const errors = [];
+    const originalError = console.error;
+    Model.find = () => ({ lean: async () => records });
+    console.error = (...args) => errors.push(args);
+    f.onPublish((msg) => { if (msg.messageId === first) throw new Error("first job failed"); });
+    try { await f.service().recover(); } finally {
+      Model.find = originalFind;
+      console.error = originalError;
+    }
+    assert.equal(f.calls.ai.at(-1).messageId, second);
+    assert.ok(errors.some(args => args.includes(first) && args.includes("first job failed")));
+    f.onPublish(null);
+    // Complete each using its original fixture's output path.
+    await g.result();
+    await f.service().finish({ correlationId: first, status: "error", error: { code: 2301 } });
+  });
 
   for (const first of ["original", "en"]) {
     await t.test(`${first} first: persist, reopen, reuse, then generate only other option`, async () => {
@@ -125,6 +279,9 @@ test("UC-VID-001 persistent lifecycle", { skip: !process.env.SUBTITLES_TEST_MONG
       assert.equal(doc.original, undefined);
       assert.equal(doc.job, undefined);
       assert.equal(doc.error.code, code);
+      assert.equal(doc.error.jobId, job);
+      assert.equal(doc.error.refunded, true);
+      assert.equal(doc.error.refundPending, false);
       assert.equal(f.calls.refund, 1);
       assert.equal(f.objects.size, 0);
       assert.equal((await f.generate("original")).status, 202);

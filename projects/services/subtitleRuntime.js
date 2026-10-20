@@ -24,6 +24,9 @@ const service = createSubtitleService({
     }
   },
   refund: (runner) => axios.post(`${users}/${runner}/process/refund/1`, {}, { httpsAgent, timeout: 15000 }),
+  assertPublisher: () => {
+    if (!channel) throw new Error("Subtitle queue unavailable before publication");
+  },
   publish: async (message) => {
     if (!channel) throw new Error("Subtitle queue unavailable");
     await new Promise((resolve, reject) => channel.publish(
