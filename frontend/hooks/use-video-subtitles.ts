@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@/providers/session-provider";
 import { useProjectInfo } from "@/providers/project-provider";
+import { useUpdateSession } from "@/lib/mutations/session";
 import { fetchSubtitles, generateSubtitles, SubtitleAccess, SubtitleLanguage, subtitleLabel } from "@/lib/subtitles";
 
 type Selection = { active: SubtitleLanguage | "off"; pending?: string; requested?: SubtitleLanguage };
@@ -16,6 +17,7 @@ export function useVideoSubtitles(video: string, enabled = true) {
   const project = useProjectInfo();
   const params = useSearchParams();
   const client = useQueryClient();
+  const updateSession = useUpdateSession();
   const access = {
     user: session.user._id, project: project._id, video, token: session.token,
     owner: params.get("owner") || session.user._id, share: params.get("share") || undefined,
@@ -32,7 +34,7 @@ export function useVideoSubtitles(video: string, enabled = true) {
   const query = useQuery({
     queryKey: key, queryFn: () => fetchSubtitles(access), enabled: enabled && eligible && !!video,
     // Refresh signed URLs before expiry; poll an active job until persisted.
-    refetchInterval: (q) => q.state.data?.job ? 2000 : 30 * 60 * 1000,
+    refetchInterval: (q) => q.state.data?.job || q.state.data?.error?.refundPending ? 2000 : 30 * 60 * 1000,
     retry: false,
   });
   const mutation = useMutation({
@@ -57,6 +59,16 @@ export function useVideoSubtitles(video: string, enabled = true) {
       client.setQueryData<Selection>(selectionKey, { active: selection.active });
     }
   }, [selection.pending, selection.requested, selection.active, query.data, client, selectionKey]);
+  useEffect(() => {
+    const failure = query.data?.error;
+    if (!enabled || !eligible || !failure?.refunded || !failure.jobId) return;
+    // Toolbar and player share this marker: one refresh even with two observers,
+    // repeated polls, track changes or a component remount.
+    const noticeKey = [...selectionKey, "refunded"];
+    if (client.getQueryData(noticeKey) === failure.jobId) return;
+    client.setQueryData(noticeKey, failure.jobId);
+    updateSession.mutate({ userId: session.user._id, token: session.token });
+  }, [query.data?.error, enabled, eligible, client, selectionKey, updateSession, session.user._id, session.token]);
 
   function select(language: SubtitleLanguage | "off") {
     if (language === "off" || query.data?.tracks[language]) {

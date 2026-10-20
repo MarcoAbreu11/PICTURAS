@@ -29,6 +29,7 @@ async function main() {
       export function useCurrentImage() { return { _id: window.e4?.video || "video" }; }
       export function useCanEditProject() { return true; }
       export function useSearchParams() { return new URLSearchParams(); }
+      export function useUpdateSession() { return { mutate: input => window.e4.refreshSession(input) }; }
       export default function Image() { return null; }
     `);
     await fs.writeFile(path.join(temporary, "entry.tsx"), `
@@ -40,7 +41,7 @@ async function main() {
       import { useVideoSubtitles } from "@/hooks/use-video-subtitles";
       import { api } from "@/lib/axios";
       let state = { tracks: {}, job: null, error: null };
-      let posts = 0, last = "original", delayed, release;
+      let posts = 0, last = "original", delayed, release, sessionUpdates = 0;
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       api.defaults.adapter = async config => {
         if (config.url.includes("/img/other/"))
@@ -54,6 +55,19 @@ async function main() {
       };
       window.e4 = {
         posts: () => posts,
+        sessionUpdates: () => sessionUpdates,
+        refreshSession: input => {
+          if (input.userId !== "owner" || input.token !== "test") throw new Error("Wrong refund session");
+          sessionUpdates++;
+        },
+        refresh: () => client.invalidateQueries({queryKey:["video-subtitles"]}),
+        fail: async (refunded = false) => {
+          state = { ...state, job: null, error: {
+            code: 2304, message: "Sem fala", jobId: "job-" + posts,
+            refundPending: !refunded, refunded,
+          }};
+          await client.invalidateQueries({queryKey:["video-subtitles"]});
+        },
         prepareDelayed: async () => {
           state = {tracks:{}, job:null, error:null};
           await client.invalidateQueries({queryKey:["video-subtitles"]});
@@ -95,6 +109,7 @@ async function main() {
         alias: {
           "@/providers/session-provider": path.join(temporary, "context.tsx"),
           "@/providers/project-provider": path.join(temporary, "context.tsx"),
+          "@/lib/mutations/session": path.join(temporary, "context.tsx"),
           "next/navigation": path.join(temporary, "context.tsx"),
           "next/image": path.join(temporary, "context.tsx"),
           "@": frontend,
@@ -156,8 +171,18 @@ async function main() {
     assert.equal(await select.inputValue(), "off");
     assert.equal(await page.evaluate(() => window.e4.other()?.job), null);
     assert.equal(await page.locator("track").count(), 0);
+    await page.evaluate(() => window.e4.changeVideo("video"));
+    await page.getByRole("status").waitFor();
+    const beforeRefund = await page.evaluate(() => window.e4.sessionUpdates());
+    await page.evaluate(() => window.e4.fail(false));
+    assert.equal(await page.evaluate(() => window.e4.sessionUpdates()), beforeRefund);
+    await page.evaluate(() => window.e4.fail(true));
+    await page.waitForFunction(count => window.e4.sessionUpdates() === count + 1, beforeRefund);
+    await page.evaluate(() => window.e4.refresh());
+    await page.evaluate(() => window.e4.refresh());
+    assert.equal(await page.evaluate(() => window.e4.sessionUpdates()), beforeRefund + 1);
     assert.deepEqual(errors, []);
-    console.log("PASS Chromium: generation activates; off/switch/reopen reuse; WebVTT cues load; late response stays on its video.");
+    console.log("PASS Chromium: generation, reuse, WebVTT, late response; confirmed refund refreshes the session once across both hook observers.");
   } finally {
     if (browser) await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));

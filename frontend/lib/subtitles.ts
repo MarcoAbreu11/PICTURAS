@@ -6,7 +6,7 @@ export interface SubtitleState {
   detectedLanguage?: string;
   tracks: Partial<Record<SubtitleLanguage, SubtitleTrack>>;
   job: { id: string; language: SubtitleLanguage } | null;
-  error: { code: number; message: string } | null;
+  error: { code: number; message: string; jobId?: string; refundPending?: boolean; refunded?: boolean } | null;
 }
 export interface SubtitleAccess {
   user: string; project: string; video: string; token: string; owner: string; share?: string;
