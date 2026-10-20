@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ProjectImage } from "@/lib/projects";
 import { useSearchParams } from "next/navigation";
 import { getErrorMessage } from "@/lib/error-messages";
+import { useVideoSubtitles } from "@/hooks/use-video-subtitles";
 
 interface ImageItemProps {
   image: ProjectImage;
@@ -77,6 +78,7 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
   const video = image.media_type
     ? image.media_type === "video"
     : isVideo(image.name);
+  const subtitles = useVideoSubtitles(image._id, video && !animation && mode !== "results");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -91,6 +93,7 @@ export function ProjectImage({ image, animation = true }: ImageItemProps) {
                 mediaType={video ? "video" : "image"}
                 // na grelha (animation) o vídeo fica parado; no carrossel tem controlos
                 controls={!animation}
+                subtitle={subtitles.track}
                 className={cn(
                   "size-full object-contain row-start-1 col-start-1 z-30",
                   animation && "transition-all group-hover:scale-105",
