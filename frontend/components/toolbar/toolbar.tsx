@@ -36,6 +36,7 @@ import ExtractFramesTool from "./extract-frames-tool";
 import TrimTool from "./trim-tool";
 import VideoConvertTool from "./video-convert-tool";
 import BlurFacesTool from "./blur-faces-tool";
+import VideoSubtitlesTool from "./video-subtitles-tool";
 
 export function Toolbar() {
   const searchParams = useSearchParams();
@@ -79,6 +80,7 @@ export function Toolbar() {
             <ExtractFramesTool disabled={disabled} />
             <VideoConvertTool disabled={disabled} />
             <BlurFacesTool disabled={disabled} />
+            <VideoSubtitlesTool disabled={disabled} />
           </>
         ) : (
           <>
