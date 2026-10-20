@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const Project = require("../models/project");
 const { service, httpsAgent, users } = require("../services/subtitleRuntime");
 const { validate } = require("../services/subtitles");
+const presence = require("../utils/presence");
 
 async function authorize(req, res, next) {
   try {
@@ -49,6 +50,16 @@ router.post("/:user/:project/img/:img/subtitles", authorize, async (req, res) =>
   try {
     validate(req.body);
     const { project, video, caller } = req.subtitleContext;
+    const existing = await service.store.get(project._id, video._id);
+    if (existing?.deleted || existing?.sourceHash !== video.og_sha256 || !existing?.[req.body.language]?.key) {
+      const admission = await presence.ensureEditorSlot({
+        ownerId: String(project.user_id), projectId: String(project._id), callerId: caller,
+      });
+      if (!admission.ok) return res.status(429).json({
+        message: "Limite de editores ativos deste projeto atingido",
+        active: admission.active, limit: admission.limit,
+      });
+    }
     const result = await service.generate(project, video, caller, req.body);
     res.status(result.status).json(result.data);
   } catch (err) {
