@@ -21,11 +21,12 @@ const CAPABILITIES = {
   trim: ["video"],
   video_convert: ["video"],
   blur_faces: ["video"],
+  video_subtitles: ["video"],
 };
 
 // Tools que, no MVP, não podem ser combinadas com outras na mesma pipeline
 // (a pipeline é linear e estas geram vários resultados por item)
-const EXCLUSIVE_TOOLS = ["extract_frames", "trim", "video_convert", "blur_faces"];
+const EXCLUSIVE_TOOLS = ["extract_frames", "trim", "video_convert", "blur_faces", "video_subtitles"];
 
 function toolAccepts(procedure, mediaType) {
   return (CAPABILITIES[procedure] || []).includes(mediaType);

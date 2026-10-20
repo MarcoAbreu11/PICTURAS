@@ -6,11 +6,13 @@ Branch de implementação: `feat/video-subtitles`. Não fazer merge automático.
 
 ## Comportamento
 
-No carrossel de um vídeo, abrir **Legendas automáticas**. As opções inexistentes
-permitem gerar Original (transcrição) ou English (tradução para inglês). As existentes
-selecionam imediatamente a faixa. Desativadas oculta as legendas sem as apagar.
-Uma geração bem-sucedida ativa a faixa pedida. Quando a origem é inglês, a interface
-mostra apenas Original (Inglês), equivalente a English.
+No carrossel de um vídeo, abrir **Automatic subtitles**, escolher Original (transcrição)
+ou English (tradução para inglês) e carregar em **Save**: a ferramenta fica na pipeline do
+projeto, como as outras ferramentas de vídeo. As legendas **só são geradas no Apply**,
+para todos os vídeos do projeto (as imagens são ignoradas). No fim do Apply a página fica
+na edição e ativa a faixa gerada em cada vídeo. O mesmo painel deixa mostrar ou esconder
+as faixas que já existem ("Show subtitles"); escolher uma faixa não gera nada.
+Quando a origem é inglês, a interface mostra apenas Original (Inglês), equivalente a English.
 
 Só contas free/premium autenticadas podem consultar ou gerar. O proprietário ou uma
 partilha edit podem gerar; partilhas read podem selecionar faixas existentes.
@@ -28,15 +30,19 @@ O MVP guarda apenas o idioma predominante devolvido pelo modelo.
 | `projects/models/subtitles.js`, `controllers/subtitles.js` | Documento único por projeto/vídeo, hash da fonte, idiomas/faixas e bloqueio atómico. Coleção separada porque as atualizações atuais substituem os arrays do projeto e poderiam perder metadados concorrentes. |
 | `services/subtitles.js`, `subtitleRuntime.js` | Reutilização antes da reserva, orquestração, finalização condicional, limpeza e recuperação. Usa Mongo, armazenamento e RabbitMQ existentes. |
 | `routes/subtitles.js`, `app.js`, Gateway | GET/POST por vídeo, JWT validado pelo serviço users, autorização explícita de proprietário/partilha e perfil. Não confiar em `owner` ou `X-Caller-Id` como autorização. |
-| `projects/routes/projects.js` | Apenas registo como avançada, recusa da entrada pela pipeline genérica e três pontos de limpeza (vídeo/projeto/conta). |
+| `projects/routes/projects.js`, `utils/subtitlesTool.js`, `utils/toolCapabilities.js` | Registo como avançada e exclusiva, só para vídeos; validação de `{ language }` na pipeline; sem pré-visualização; no `/process` (Apply) chama o serviço de legendas para cada vídeo (`startSubtitleRun`); não entra na cobrança genérica, porque o serviço reserva e devolve a quota por vídeo; três pontos de limpeza (vídeo/projeto/conta). |
 | Serviço de armazenamento | Stage `subtitles`; nome determinístico por job exclusivamente neste stage, para que repetir upload não crie objetos órfãos. MIME `text/vtt`. |
 | `Tools/video_subtitles/`, Compose e RabbitMQ | Modelo small multilingue CPU/int8, cache persistente, filas E4 próprias. Preserva os contratos e o comportamento das outras tools. |
-| Hook, toolbar e player | Estado por utilizador/projeto/vídeo, consulta com renovação de URLs, polling durante geração e uma única faixa ativa via `textTracks`. |
+| Hook, toolbar e player | Estado por utilizador/projeto/vídeo, consulta com renovação de URLs, polling durante geração e uma única faixa ativa via `textTracks`. A ferramenta da toolbar usa o `ToolbarButton` das outras ferramentas (Save adiciona à pipeline). A página do projeto conta as legendas como ferramenta de vídeo e, no fim do Apply, ativa a faixa gerada. |
 
-E4 usa uma ação própria por vídeo. A pipeline global atual não representa seleção
-de faixas e tem exclusividade por ferramenta e tokens por projeto. Não foi alterada.
-Não foi acrescentado preview parcial nem cancelamento de inferência ao botão global:
-cancelar outro processamento não invalida faixas nem liberta prematuramente um worker E4.
+As legendas são uma ferramenta da pipeline e só são geradas no Apply (alteração
+posterior à primeira versão, que usava uma ação própria por vídeo). O serviço de
+legendas não mudou: o Apply chama-o para cada vídeo e o consumidor dos resultados avisa
+a página de quem aplicou quando cada vídeo termina (faixa guardada) ou falha (com o
+motivo), como as restantes ferramentas de vídeo. A seleção de faixas continua no painel
+da ferramenta. Limitação: o Cancelar do Apply não interrompe uma inferência já enviada
+ao worker; essa faixa fica guardada quando terminar. Não há pré-visualização.
+A rota POST por vídeo mantém-se na API (usada pelos testes do serviço).
 
 As chaves S3 persistem; URLs assinados são obtidos na consulta e renovados antes de
 expirarem. A mesma chave física é associada a Original e English quando a origem é `en`.

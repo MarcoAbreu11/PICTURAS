@@ -54,6 +54,7 @@ const { waitForReply, settleReply, ReplyTimeoutError } = require("../utils/pendi
 // abaixo dos 60 s em que o nginx desiste do pedido
 const ESTIMATE_TIMEOUT_MS = 50 * 1000;
 const { validateBlurParams } = require("../utils/blurFaces");
+const { SUBTITLES_TOOL, validateSubtitleToolParams } = require("../utils/subtitlesTool");
 const PreviewCache = require("../controllers/previewCache");
 const { makePreviewCacheKey, makeToolsFingerprint } = require("../utils/cacheKey");
 
@@ -116,7 +117,7 @@ function processableImgs(project) {
 
 // Parâmetros específicos de cada tool; null se ok, senão o motivo
 function validateToolParams(procedure, params) {
-  if (procedure === "video_subtitles") return "Use the selected video's subtitle controls";
+  if (procedure === SUBTITLES_TOOL) return validateSubtitleToolParams(params);
   if (procedure === "extract_frames") return validateFrameParams(params);
   if (procedure === "trim") return validateTrimParams(params);
   if (procedure === "video_convert") return validateVideoConvertParams(params);
@@ -198,7 +199,10 @@ function hasConvertedContent(project) {
 function count_advanced_tools(project) {
   const tools = project.tools || [];
   // A conversão é cobrada por execução concluída, não uma vez por configuração.
-  return tools.filter((t) => advanced_tools.includes(t.procedure) && t.procedure !== "video_convert").length;
+  // As legendas são cobradas (e devolvidas) por vídeo pelo serviço de legendas.
+  return tools.filter((t) =>
+    advanced_tools.includes(t.procedure) && t.procedure !== "video_convert" && t.procedure !== SUBTITLES_TOOL
+  ).length;
 }
 
 function requireOwner(req, res, next) {
@@ -266,6 +270,29 @@ function toolsEqual(a, b) {
   return true;
 }
 
+
+// UC-VID-001: pede ao serviço de legendas uma faixa por vídeo. O serviço reserva e devolve
+// a quota e guarda a faixa; o fim de cada vídeo é avisado pelo consumidor dos resultados
+// (services/subtitleRuntime.js). Vídeos que já têm a faixa terminam logo.
+async function startSubtitleRun(project, videos, runnerId, params) {
+  const { service } = require("../services/subtitleRuntime");
+  for (const video of videos) {
+    try {
+      const result = await service.generate(project, video, runnerId, { language: params.language });
+      if (result.status === 200)
+        send_msg_client(`update-client-process-${uuidv4()}`, new Date().toISOString(), runnerId);
+    } catch (err) {
+      send_msg_client_item_error(
+        `update-client-process-${uuidv4()}`,
+        new Date().toISOString(),
+        runnerId,
+        String(video._id),
+        err.code || 2301,
+        err.message
+      );
+    }
+  }
+}
 
 // Commita a execução quando já não há processos dela por terminar
 async function commitRunIfDone(process) {
@@ -1572,6 +1599,11 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
         return res.status(400).jsonp("Preview the excerpt in the video player");
       }
 
+      // as legendas não têm pré-visualização: veem-se no leitor depois do Apply (UC-VID-001)
+      if (project.tools.some((t) => t.procedure === SUBTITLES_TOOL)) {
+        return res.status(400).jsonp("Subtitles have no preview; apply them and watch the video");
+      }
+
       const orderedTools = [...project.tools].sort((a,b) => a.position - b.position);
       const cacheKey = makePreviewCacheKey(img.og_sha256, orderedTools);
 
@@ -1922,8 +1954,6 @@ router.post(
             return res.status(400).jsonp("Add a video to the project before configuring conversion");
         }
         const exclusiveError = checkExclusiveTools((req.body || []).map((t) => t.procedure));
-        if ((req.body || []).some((t) => t.procedure === "video_subtitles"))
-          return res.status(400).jsonp("Use the selected video's subtitle controls");
         if (exclusiveError) return res.status(400).jsonp(exclusiveError);
 
         project.tools = [];
@@ -2009,6 +2039,14 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
 
       if (processable.length === 0) {
         res.status(400).jsonp("No file is compatible with the selected tools");
+        return;
+      }
+
+      // UC-VID-001: as legendas só são geradas no Apply, pelo serviço de legendas
+      const subtitleTool = project.tools.find((t) => t.procedure === SUBTITLES_TOOL);
+      if (subtitleTool) {
+        res.status(201).jsonp({ skipped });
+        startSubtitleRun(project, processable, runnerUserId, subtitleTool.params);
         return;
       }
 

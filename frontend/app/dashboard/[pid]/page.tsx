@@ -120,8 +120,19 @@ export default function Project({
       t.procedure === "extract_frames" ||
       t.procedure === "trim" ||
       t.procedure === "video_convert" ||
-      t.procedure === "blur_faces",
+      t.procedure === "blur_faces" ||
+      t.procedure === "video_subtitles",
   );
+  // UC-VID-001: as legendas veem-se no próprio vídeo (não há resultados): no fim do Apply
+  // liga-se a faixa gerada em cada vídeo e fica-se na edição
+  const subtitlesRunRef = useRef<{ language: string; videos: string[] } | null>(null);
+  const subtitlesTool = pipelineTools.find((t) => t.procedure === "video_subtitles");
+  subtitlesRunRef.current = subtitlesTool
+    ? {
+        language: (subtitlesTool.params as { language: string }).language,
+        videos: projectItems.filter((i) => i.media_type === "video").map((i) => i._id),
+      }
+    : null;
   // a conversão (UC-VID-005) aplica-se só ao vídeo escolhido
   const convertTarget = (pipelineTools.find((t) => t.procedure === "video_convert")?.params as
     { video_id?: string } | undefined)?.video_id;
@@ -362,7 +373,22 @@ useEffect(() => {
             if (ownerFromQuery) params.set("owner", ownerFromQuery);
             if (shareFromQuery) params.set("share", shareFromQuery); 
 
-            router.push(`?${params.toString()}`);
+            const subtitlesRun = subtitlesRunRef.current;
+            if (subtitlesRun) {
+              for (const video of subtitlesRun.videos) {
+                qc.setQueryData(
+                  [
+                    "video-subtitles", session.user._id, pid, video,
+                    ownerFromQuery || session.user._id, shareFromQuery || undefined,
+                    session.token, "selection",
+                  ],
+                  { active: subtitlesRun.language },
+                );
+              }
+              qc.invalidateQueries({ queryKey: ["video-subtitles"], refetchType: "all" });
+            } else {
+              router.push(`?${params.toString()}`);
+            }
 
             if (startedAt != null) {
               const durationMs = performance.now() - startedAt;

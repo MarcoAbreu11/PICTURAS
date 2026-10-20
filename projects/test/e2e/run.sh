@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Testes ponta a ponta das ferramentas de vídeo (UC-VID-002, UC-VID-003, UC-VID-004 e UC-VID-005).
+# Testes ponta a ponta das ferramentas de vídeo (UC-VID-001, UC-VID-002, UC-VID-003, UC-VID-004 e UC-VID-005).
 # Requer a stack a correr (docker compose up -d). Uso, na raiz do repositório:
 #   bash projects/test/e2e/run.sh
 # Opcional (UC-VID-004): BLUR_FACE_VIDEO=/caminho/video_com_caras.mp4 bash projects/test/e2e/run.sh
@@ -9,7 +9,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d)"
 trap '[ -n "${KEEP_WORK:-}" ] || rm -rf "$WORK"' EXIT
 chmod 777 "$WORK"
-cp "$HERE"/frames.sh "$HERE"/trim.sh "$HERE"/convert.sh "$HERE"/blur.sh "$WORK"/
+cp "$HERE"/frames.sh "$HERE"/trim.sh "$HERE"/convert.sh "$HERE"/blur.sh "$HERE"/subtitles.sh "$WORK"/
 # vídeo com caras para a desfocagem (opcional; não se guarda nenhum no repositório)
 if [ -n "${BLUR_FACE_VIDEO:-}" ]; then cp "$BLUR_FACE_VIDEO" "$WORK/cara.mp4"; fi
 
@@ -94,7 +94,16 @@ if [ -f "$WORK/blur_src_url.txt" ]; then
   fi
 fi
 
-echo; echo "UC-VID-003: $FRAMES_RESULT"
+echo; echo "######## UC-VID-001 — Legendas automáticas (pipeline) ########"
+"${CURL[@]}" sh /media/subtitles.sh "$ANON" | tee "$WORK/subtitles.log"
+SUBS_RESULT=$(grep "^RESULT" "$WORK/subtitles.log")
+if [ -s "$WORK/subs_url.txt" ]; then
+  echo "== TST-SUB-12: a faixa guardada é WebVTT =="
+  curl -sk "$(cat "$WORK/subs_url.txt")" | head -4
+fi
+
+echo; echo "UC-VID-001: $SUBS_RESULT"
 echo "UC-VID-002: $TRIM_RESULT"
+echo "UC-VID-003: $FRAMES_RESULT"
 echo "UC-VID-004: $BLUR_RESULT"
 echo "UC-VID-005: $CONVERT_RESULT"

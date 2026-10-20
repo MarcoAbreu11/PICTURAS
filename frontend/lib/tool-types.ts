@@ -92,8 +92,14 @@ export interface BlurFacesToolParams {
   padding: number; // % de margem à volta da cara
 }
 
+// UC-VID-001: legendas automáticas, geradas no Apply
+export interface VideoSubtitlesToolParams {
+  language: "original" | "en";
+}
+
 export type ToolParams =
   | BinarizationToolParams
+  | VideoSubtitlesToolParams
   | BlurFacesToolParams
   | TrimToolParams
   | ExtractFramesToolParams
@@ -130,4 +136,5 @@ export type ToolNames =
   | "trim"
   | "video_convert"
   | "blur_faces"
+  | "video_subtitles"
   | "project";

@@ -7,7 +7,9 @@ const amqp = require("amqplib");
 const Model = require("../models/subtitles");
 const Project = require("../models/project");
 const images = require("../utils/imageStorage");
-const { createSubtitleService } = require("./subtitles");
+const { createSubtitleService, messages } = require("./subtitles");
+const { v4: uuidv4 } = require("uuid");
+const { send_msg_client, send_msg_client_item_error } = require("../utils/project_msg");
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const users = "https://users:10001";
 const requestQueue = "video_subtitles_queue";
@@ -52,6 +54,21 @@ const service = createSubtitleService({
   },
 });
 
+// UC-VID-001 na pipeline: avisa a página de quem carregou em Apply que este vídeo terminou
+// (com a faixa guardada) ou falhou (com o motivo), como as outras ferramentas de vídeo.
+async function notifyRunner(job) {
+  const after = await service.store.get(job.project_id, job.video_id);
+  const runner = job.job.runner;
+  const ts = new Date().toISOString();
+  if (after && !after.deleted && after[job.job.language]?.key && after.error?.jobId !== job.job.id) {
+    send_msg_client(`update-client-process-${uuidv4()}`, ts, runner);
+  } else {
+    const code = after?.error?.jobId === job.job.id ? after.error.code : 2301;
+    send_msg_client_item_error(`update-client-process-${uuidv4()}`, ts, runner,
+      String(job.video_id), code, messages[code] || messages[2301]);
+  }
+}
+
 // Dedicated E4 consumer: await persistence before ack. Existing tools are untouched.
 async function start() {
   try {
@@ -73,8 +90,11 @@ async function start() {
     await current.consume(resultQueue, async (message) => {
       if (!message) return;
       try {
-        await service.finish(JSON.parse(message.content.toString()));
+        const reply = JSON.parse(message.content.toString());
+        const job = await service.store.byJob(reply.correlationId);
+        await service.finish(reply);
         current.ack(message);
+        if (job?.job) notifyRunner(job).catch((err) => console.error("[subtitles notify]", err.message));
       } catch (err) {
         console.error("[subtitles result]", err.message);
         setTimeout(() => {
