@@ -14,13 +14,12 @@
 #cover(
   title: "Fase 1 — Suporte a Vídeo",
   subtitle: "Requisitos, Arquitetura, Implementação e Validação do MVP",
-  group: "Grupo {PLx-Gy}",
+  group: "Grupo 5",
   authors: (
     (name: "Cláudio Rafael Oliveira Ferreira", number: "pg63933"),
     (name: "Diogo Linhares Campos", number: "pg63948"),
     (name: "Marco António Ferreira Abreu", number: "pg64003"),
     (name: "Nelson Daniel Araújo Sousa", number: "pg64010"),
-    (name: "{Nome do 5.º elemento}", number: "{pg00000}"),
   ),
   "Outubro, 2026",
 )
