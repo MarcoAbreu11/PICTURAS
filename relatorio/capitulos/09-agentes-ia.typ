@@ -36,12 +36,12 @@ arquitetura).
     valores e da rastreabilidade.], [Documentos `docs/UC-VID-00x*.md` (v1.0–v1.1)],
     [Claude Code], [UC-VID-003], [_Worker_ `extract_frames`, capacidades por tipo de média, alterações ao
     `projects`, `ws_gateway`, `tool_msg.py` e _frontend_; testes unitários e ponta a ponta.], [Teste manual no
-    navegador de MP4 e MOV (TST-FRAME-M1); #preencher[revisão de código pela equipa]], [_commit_ `28c3917`],
+    navegador de MP4 e MOV (TST-FRAME-M1); revisão de código pelo Diogo.], [_commit_ `28c3917`],
     [Claude Code], [UC-VID-002], [_Worker_ `trim`, linha temporal e pré-visualização no _frontend_; testes.],
-    [Teste manual no navegador do corte (TST-TRIM-M1); #preencher[revisão de código pela equipa]], [_commit_ `af277ef`],
+    [Teste manual no navegador do corte (TST-TRIM-M1); revisão de código pelo Diogo.], [_commit_ `af277ef`],
     [Claude Code], [UC-VID-004], [_Worker_ `blur_faces` (OpenCV/YuNet, FFmpeg), descarte de resultados,
     testes e medição do tempo.], [Execução do teste ponta a ponta com um vídeo próprio com pessoas (2 caras
-    detetadas, TST-BLUR-03); #preencher[revisão de código e teste manual TST-BLUR-M1]], [_commit_ `809439d`],
+    detetadas, TST-BLUR-03); revisão de código pelo Marco; TST-BLUR-M1 executado em navegador automático (Capítulo 10).], [_commit_ `809439d`],
     [Claude Code], [UC-VID-005], [_Worker_ `video_convert`, ferramenta no _frontend_, regras e testes;
     verificação do caso de uso face ao código (nove lacunas encontradas e corrigidas); passagem da estimativa
     para o _worker_; módulo partilhado `video.py`; versões fixadas.], [O elemento responsável pediu a
@@ -50,10 +50,10 @@ arquitetura).
     [_commit_ `329e31a`],
     [ChatGPT Work], [UC-VID-001], [Serviço e _worker_ de legendas, rotas, leitor no _frontend_, testes de
     backend, _worker_, inferência real e Chromium.], [A nota de implementação regista que a revisão humana ainda
-    não tinha ocorrido; #preencher[registar a revisão feita pela equipa]], [_commits_ `0c0c9c0`, `8a9729d`],
+    não tinha ocorrido; revisão feita depois pelo Cláudio.], [_commits_ `0c0c9c0`, `8a9729d`],
     [Claude Code], [Todos], [Consolidação dos cinco casos de uso e das ERS neste relatório (requisitos
     partilhados, decisões de qualidade globais, matriz, realização), diagramas em PlantUML e execução de todas
-    as baterias de testes para registar os resultados.], [#preencher[revisão do relatório pela equipa]],
+    as baterias de testes para registar os resultados.], [Revisão do relatório pela equipa.],
     [`relatorio/`],
   ),
 ) <tab-ia>

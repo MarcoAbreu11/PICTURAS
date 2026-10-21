@@ -96,8 +96,8 @@ estão registadas nos documentos de cada caso de uso.
     [TST-BLUR-W1], [_Worker_], [MP4 e WebM sem caras com a mesma duração; ficheiro truncado dá erro sem parcial.],
     [STATUS-007, REL-001, COMP-001, 002], [Passa (2026-10-19)],
     [TST-BLUR-W2], [Medição], [Vídeo de 14,9 s (640×360): desfocagem em 7–8 s (≈ 0,5×).], [BLUR-041], [Passa (2026-10-19)],
-    [TST-BLUR-M1], [Manual], [Ferramenta, pré-visualização, resultados e descarte no navegador.],
-    [BLUR-002, 009, 010, 013, 014], [#preencher[Por fazer]],
+    [TST-BLUR-M1], [Interface (navegador automático)], [Ferramenta, pré-visualização, resultados e descarte no navegador.],
+    [BLUR-002, 009, 010, 013, 014], [Passa, 8/8, em navegador automático (Chromium/Playwright, 2026-10-21): painel, pré-visualização, Apply, aviso e descarte],
     [TST-CONV-01 a 10], [Unitário], [Parâmetros, limites por perfil, codecs e fronteiras de 500 MB e 10 min,
     vídeo escolhido, nome único, exclusividade e varrimento de temporários.],
     [CONV-002, 014, 015, 022, 026, 035, 037, 047, PIPE-004, RESULT-005], [10/10 (2026-10-20)],
@@ -112,8 +112,8 @@ estão registadas nos documentos de cada caso de uso.
     [CONV-003, 006, 008, 014, 015, 024, 033, 036, 039, 047, PERF-001, QUOTA-001, 003, 005], [18/18 (2026-10-20)],
     [TST-CONV-21], [Inspeção (`ffprobe`)], [O vídeo convertido é WebM VP9/Opus, 240 px (sem aumentar) e
     10,015 s para 10 s.], [CONV-005, 046, OUTPUT-001], [Passa (2026-10-20)],
-    [TST-CONV-M1], [Manual], [Conversão no navegador.], [CONV-002, 003, 011, 017],
-    [Encontrou D-01 e D-02, corrigidos; #preencher[reteste manual]],
+    [TST-CONV-M1], [Manual; reteste em navegador automático], [Conversão no navegador.], [CONV-002, 003, 011, 017],
+    [Encontrou D-01 e D-02, corrigidos; reteste em navegador automático (Chromium/Playwright, 2026-10-21): passa, 4/4 (estimativa 598 KB, Save visível, vídeo convertido no projeto)],
   ),
 ) <tab-testes>
 
