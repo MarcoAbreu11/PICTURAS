@@ -7,8 +7,8 @@
 |---|---|
 | Grupo / Equipa | [preencher] |
 | Autores | Diogo Linhares Campos - PG63948<br>Marco António Ferreira Abreu - PG64003<br>Cláudio Rafael Oliveira Ferreira - PG63933<br>Nelson Daniel Araújo Sousa - PG64010 |
-| Data | 2026-10-19 |
-| Versão do documento | v1.3 |
+| Data | 2026-10-21 |
+| Versão do documento | v1.4 |
 | Unidade Curricular | Requisitos e Arquiteturas de Software — MEI, Universidade do Minho |
 
 ---
@@ -34,9 +34,9 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 |---|---|
 | ID do Caso de Uso | UC-VID-004 |
 | Nome | Desfocar caras de um vídeo |
-| Versão | v1.3 |
+| Versão | v1.4 |
 | Autor | Diogo Linhares Campos<br>Marco António Ferreira Abreu<br>Cláudio Rafael Oliveira Ferreira<br>Nelson Daniel Araújo Sousa |
-| Data | 2026-10-19 |
+| Data | 2026-10-21 |
 | Objetivo | Permitir ao utilizador obter, a partir dos vídeos de um projeto, novos vídeos em que as caras detetadas aparecem desfocadas ou pixelizadas. |
 | Âmbito | Serviço `projects` (pipeline de ferramentas e processamento), novo worker de vídeo em `Tools/` e frontend (barra de ferramentas e resultados) |
 | Ator Principal | Utilizador registado ou premium, dono do projeto ou com permissão de edição |
@@ -118,6 +118,7 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 | A8 | No MVP uma falha não é retomada automaticamente: o utilizador volta a aplicar a pipeline. |
 | A9 | O perfil "registado" corresponde ao tipo `free` no serviço `users`. |
 | A10 | A taxa de deteção é medida num conjunto de teste definido pela equipa, com imagens de licença livre ou de pessoas que deram consentimento. |
+| A11 | A deteção corre a cada 3 frames (DQ-420): uma cara que entre no enquadramento, ou que se mova muito depressa, entre duas deteções pode ficar visível ou fora da caixa durante até 2 frames (≈ 80 ms a 25 fps). A margem à volta da cara (20 % por omissão) atenua o desalinhamento. |
 
 ## 2.8 Questões em Aberto
 
@@ -142,13 +143,14 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 | Claude | Elaboração da ERS do Exercício 2 (secção 4): classificação segundo a ISO/IEC 25010, proposta de valores (†) e decisões de qualidade, catálogo de requisitos, impacto e matriz de rastreabilidade. | [preencher: revisão da equipa] |
 | Claude Code | Revisão v1.2: alinhamento com o sistema implementado (carregamento de vídeo e limites por perfil, pipeline de ferramentas, ferramentas avançadas e quota, partilha, falha isolada por vídeo) e com o UC-VID-002 e o UC-VID-003; resultados no projeto em vez de "biblioteca"; requisitos eliminados (4.1.4); renumeração das decisões de qualidade. | [preencher: revisão da equipa] |
 | Claude Code | Implementação (v1.3): worker `Tools/blur_faces` (OpenCV/YuNet e `ffmpeg`), alterações ao `projects`, ao `apiGateway` e ao frontend (ferramenta, aviso de nenhuma cara e descarte); testes unitários (`unittest`, `node:test`) e ponta a ponta (`projects/test/e2e/blur.sh`); medição do tempo de processamento; tabela de realização e verificação (4.4). | [preencher: revisão da equipa — p. ex. teste manual no navegador da ferramenta, da pré-visualização e do descarte] |
+| Claude Code | Revisão v1.4: decisão de qualidade DQ-420 (deteção a cada 3 frames), assunção A11 com a limitação, e ligação ao BLUR-004 e ao BLUR-041; o mesmo no relatório. | Pedido pelo elemento responsável; valores confirmados no código (`DETECT_EVERY = 3`, `DETECT_MAX_SIDE = 640`). |
 
 ---
 
 # 4. Especificação de Requisitos do Sistema (ERS)
 
 **Caso de Uso:** UC-VID-004 — Desfocar caras de um vídeo  
-**Versão do dossiê:** v1.3  
+**Versão do dossiê:** v1.4  
 **Baseline do Exercício 1:** v1.0 — REQ-VID-BLUR-001 a REQ-VID-BLUR-024
 
 > O catálogo 4.1 é a fonte única dos requisitos desta ERS. A matriz 4.3 rastreia esses IDs até ao caso de uso ou às decisões de qualidade (DQ). A tabela 4.2 descreve o impacto no sistema existente. Nas tabelas 4.2 e 4.3 os IDs aparecem abreviados (por exemplo, BLUR-007 = REQ-VID-BLUR-007). Os elementos locais do caso de uso são qualificados (por exemplo, UC-VID-004/RN2). Valores marcados com (†) são propostas da equipa, a confirmar. Os IDs eliminados não são reutilizados (ver 4.1.4). As decisões de qualidade deste caso de uso usam a gama DQ-401 a DQ-499, para não colidirem com as do UC-VID-003 (DQ-001 a DQ-099) e do UC-VID-002 (DQ-101 a DQ-199).
@@ -162,7 +164,7 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 | REQ-VID-BLUR-001 | O sistema deve disponibilizar a ferramenta "Desfocar caras" na barra de ferramentas quando o item aberto é um vídeo, permitindo adicioná-la à pipeline do projeto. | Deve ter | Refinado | ALT | UC-VID-004/Trigger, UC-VID-004/Passos 1–2, DQ-401 | Ponto de entrada da funcionalidade, ao lado das restantes ferramentas de vídeo. | Dado um projeto com um vídeo aberto no carrossel, quando um utilizador registado abre a barra de ferramentas, então "Desfocar caras" está disponível. |
 | REQ-VID-BLUR-002 | O sistema deve apresentar as opções da ferramenta: tipo de anonimização e intensidade. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 2 | A intensidade determina o grau de anonimização. | Dado a ferramenta aberta, então são apresentados o tipo (desfocagem por omissão) e a intensidade, configurável entre 1 e 10 (†). |
 | REQ-VID-BLUR-003 | O sistema deve iniciar o processamento apenas quando o utilizador carrega em "Aplicar" e a validação é bem-sucedida. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 4 | Evita processamentos demorados e consumo de quota por engano. | Dado opções válidas, quando carrega em "Aplicar", então o processamento inicia; sem "Aplicar", nada é processado nem debitado. |
-| REQ-VID-BLUR-004 | O sistema deve detetar as caras presentes nos frames de cada vídeo. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 5, DQ-412 | Sem deteção não há o que desfocar. | Dado um vídeo com uma cara frontal, então a cara é detetada nos frames onde aparece. |
+| REQ-VID-BLUR-004 | O sistema deve detetar as caras presentes nos frames de cada vídeo. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 5, UC-VID-004/A11, DQ-412, DQ-420 | Sem deteção não há o que desfocar. | Dado um vídeo com uma cara frontal, então a cara é detetada nos frames onde aparece. |
 | REQ-VID-BLUR-005 | O sistema deve aplicar a desfocagem às regiões de todas as caras detetadas. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 5, UC-VID-004/RN11, DQ-414 | Núcleo funcional do caso de uso. | Dado uma cara detetada, então a região da cara aparece desfocada no vídeo gerado e o resto do frame não é alterado. |
 | REQ-VID-BLUR-006 | O sistema deve gerar, para cada vídeo, um novo vídeo que mantém o áudio original. | Deve ter | Refinado | NOVO | UC-VID-004/Passo 6, UC-VID-004/RN6 | O vídeo anonimizado tem de manter o áudio. | Dado um vídeo com áudio, então o vídeo gerado tem uma faixa de áudio com o mesmo conteúdo. |
 | REQ-VID-BLUR-007 | O sistema deve guardar os vídeos anonimizados como resultados do projeto, identificando cada um com o nome do vídeo de origem. | Deve ter | Refinado | ALT | UC-VID-004/Passo 7, UC-VID-004/Pós-condição de sucesso, DQ-401 | O PictuRAS guarda o resultado das ferramentas nos resultados do projeto. | Dado o processamento concluído de "aula.mp4", então os resultados contêm um vídeo cujo nome contém "aula". |
@@ -209,7 +211,7 @@ As regras de negócio e restrições funcionais (opções, perfis, quota e combi
 | REQ-VID-BLUR-037 | O sistema deve atualizar o estado e a percentagem de progresso apresentados com um intervalo máximo de 10 s (†). | Usabilidade (Operabilidade) | ≤ 10 s | ≤ 2 s | Mantido | UC-VID-004/Passo 5, UC-VID-004/FA3, DQ-408 | Dado um processamento de 5 min, quando se observa o ecrã durante 1 min, então o valor é atualizado pelo menos a cada 10 s. |
 | REQ-VID-BLUR-039 | O sistema deve poder ser instalado e executado, incluindo o novo worker com OpenCV, `ffmpeg` e o modelo de deteção, a partir de `docker compose up` num ambiente limpo. | Portabilidade (Instalabilidade) | Worker no `docker-compose.yaml`, com versões das dependências e do modelo fixadas | Instalação automatizada com uma só ação, com verificação de saúde do worker | Refinado | UC-VID-004/A7, DQ-411 | Dado uma máquina limpa, quando se executa `docker compose up`, então o teste de aceitação da desfocagem passa. |
 | REQ-VID-BLUR-040 | O sistema deve permitir acrescentar uma nova ferramenta de vídeo registando-a na tabela de capacidades e num novo worker, sem alterar o código das ferramentas de vídeo existentes. | Manutenibilidade (Modularidade) | Obrigatório (a desfocagem é acrescentada sem alterar o corte nem a extração de frames) | Obrigatório | Refinado | DQ-401, DQ-409 | Dado a desfocagem acrescentada, então nenhum ficheiro dos workers `trim`, `extract_frames` e `video_convert` foi alterado. |
-| REQ-VID-BLUR-041 | O sistema deve concluir a desfocagem em tempo não superior a 3× a duração do vídeo (†). | Eficiência de Desempenho (Comportamento temporal) | ≤ 3× a duração do vídeo | ≤ 1× a duração do vídeo | Mantido | UC-VID-004/A3, DQ-410 | Dado um vídeo de 10 min, quando o processamento arranca sem outros trabalhos, então termina em ≤ 30 min. |
+| REQ-VID-BLUR-041 | O sistema deve concluir a desfocagem em tempo não superior a 3× a duração do vídeo (†). | Eficiência de Desempenho (Comportamento temporal) | ≤ 3× a duração do vídeo | ≤ 1× a duração do vídeo | Mantido | UC-VID-004/A3, DQ-410, DQ-420 | Dado um vídeo de 10 min, quando o processamento arranca sem outros trabalhos, então termina em ≤ 30 min. |
 | REQ-VID-BLUR-042 | O sistema deve processar os vídeos apenas em componentes controlados pelo PictuRAS, sem os enviar a serviços externos. | Segurança (Confidencialidade) | Obrigatório | Obrigatório | Mantido | UC-VID-004/Passo 5, UC-VID-004/A2, DQ-413 | Dado um pedido de desfocagem, quando se inspeciona o tráfego de saída do worker durante o processamento, então não há envio do vídeo para destinos externos ao PictuRAS. |
 | REQ-VID-BLUR-043 | O sistema deve produzir o vídeo anonimizado no mesmo contentor do original, recodificado com o codec habitual desse contentor (MP4/MOV: H.264 e AAC; WebM: VP9 e Opus). | Compatibilidade (Interoperabilidade) | Mesmo contentor, codecs indicados | Mesmo contentor e mesmos codecs do original | Refinado | UC-VID-004/Passo 6, DQ-415 | Dado um MP4 e um WebM, quando processados, então os ficheiros gerados são MP4 com H.264/AAC e WebM com VP9/Opus (verificado com `ffprobe`). |
 | REQ-VID-BLUR-044 | O sistema deve desfocar vídeos de todos os formatos aceites no carregamento (MP4, WebM e MOV), incluindo os codecs H.264, H.265 e VP9. | Compatibilidade (Interoperabilidade) | MP4, WebM, MOV (H.264, H.265, VP9) | Mais formatos aceites no carregamento (†) | Novo | UC-VID-004/A1, DQ-403 | Dado um vídeo de cada formato e codec, quando aplica, então todos geram resultado. |
@@ -310,6 +312,7 @@ As regras de negócio e restrições funcionais (opções, perfis, quota e combi
 | UC-VID-004/A4 | Deteção não garantida em casos difíceis | BLUR-023 |
 | UC-VID-004/A7 | Worker com OpenCV e ffmpeg | BLUR-034, BLUR-039 |
 | UC-VID-004/A10 | Conjunto de teste | BLUR-023 |
+| UC-VID-004/A11 | Caras entre deteções | BLUR-004 |
 | UC-VID-004/Q1 | Escolha de caras | BLUR-005 |
 | UC-VID-004/Q2 | Taxa de deteção | BLUR-023 |
 | UC-VID-004/Q4 | Exclusividade premium | BLUR-018, BLUR-019 |
@@ -334,6 +337,7 @@ As regras de negócio e restrições funcionais (opções, perfis, quota e combi
 | DQ-417 | Nenhuma cara detetada | BLUR-013, BLUR-014 |
 | DQ-418 | Cópia para novo projeto | BLUR-048 |
 | DQ-419 | Mesmas opções para todos os vídeos | BLUR-051 |
+| DQ-420 | Deteção a cada 3 frames | BLUR-004, BLUR-041 |
 
 **Decisões de qualidade (v1.2)**
 
@@ -358,8 +362,9 @@ As regras de negócio e restrições funcionais (opções, perfis, quota e combi
 | DQ-417 | Quando não é detetada nenhuma cara, o resultado é guardado com essa indicação e o utilizador pode descartá-lo. | O processamento é assíncrono e não pode perguntar a meio; a decisão passa para os resultados. | BLUR-013, BLUR-014 |
 | DQ-418 | Os vídeos anonimizados ficam nos resultados do projeto; para os editar com outras ferramentas, copiam-se para um novo projeto como vídeos. | Permite continuar a editar sem encadeamento na pipeline. | BLUR-048 |
 | DQ-419 | As mesmas opções aplicam-se a todos os vídeos do projeto. | As ferramentas da pipeline aplicam os mesmos parâmetros a todos os itens. | BLUR-051 |
+| DQ-420 | A deteção de caras corre a cada 3 frames; nos 2 frames intermédios reutilizam-se as caixas da última deteção. A deteção é feita sobre uma cópia do frame reduzida a 640 px no lado maior, e as caixas são reescaladas. | Cada deteção é a parte mais cara do processamento: detetar em 1 de cada 3 frames reduz o custo ≈ 3× e evita que a caixa "trema" de frame para frame. Permite cumprir o BLUR-041 (≤ 3× a duração; medido ≈ 0,5× num vídeo de 640×360). Limitação aceite no MVP: uma cara que surja ou se mova muito depressa entre duas deteções pode ficar visível até 2 frames (A11). Em produção pode baixar-se para cada frame ou seguir as caixas entre deteções (tracking). | BLUR-004, BLUR-041 |
 
-**Correspondência com a numeração da v1.1** (as DQ foram renumeradas para não colidirem com as do UC-VID-002 e do UC-VID-003): DQ-001 e DQ-002 → DQ-403; DQ-003 e DQ-010 → DQ-402; DQ-004 → DQ-404; DQ-005 → DQ-405; DQ-006 → DQ-406; DQ-007 → DQ-407; DQ-008 → DQ-408; DQ-009 → DQ-409; DQ-011 → DQ-410; DQ-012 → DQ-411; DQ-013 → DQ-412; DQ-014 → DQ-413; DQ-015 → DQ-414; DQ-016 → DQ-415. DQ-416 a DQ-419 são novas.
+**Correspondência com a numeração da v1.1** (as DQ foram renumeradas para não colidirem com as do UC-VID-002 e do UC-VID-003): DQ-001 e DQ-002 → DQ-403; DQ-003 e DQ-010 → DQ-402; DQ-004 → DQ-404; DQ-005 → DQ-405; DQ-006 → DQ-406; DQ-007 → DQ-407; DQ-008 → DQ-408; DQ-009 → DQ-409; DQ-011 → DQ-410; DQ-012 → DQ-411; DQ-013 → DQ-412; DQ-014 → DQ-413; DQ-015 → DQ-414; DQ-016 → DQ-415. DQ-416 a DQ-419 são novas; DQ-420 foi acrescentada na v1.4 (deteção a cada 3 frames).
 
 **Verificações de cobertura**
 - [x] Cada requisito funcional e não funcional aparece na matriz.
@@ -418,7 +423,7 @@ Os testes ponta a ponta correm com `bash projects/test/e2e/run.sh` (stack a corr
 | BLUR-001 | FE-TOOL, P-ROUTES | Implementado | TST-BLUR-03 | ✅ Na barra de ferramentas por confirmar no navegador (M1) |
 | BLUR-002 | FE-TOOL, P-RULES | Implementado | TST-BLUR-03, U1 | ✅ |
 | BLUR-003 | P-ROUTES | Implementado (mecanismo existente) | TST-BLUR-03 | ✅ |
-| BLUR-004 | W-BLUR | Implementado | TST-BLUR-03 | ✅ 2 caras detetadas no vídeo de teste |
+| BLUR-004 | W-BLUR | Implementado | TST-BLUR-03 | ✅ 2 caras detetadas no vídeo de teste; deteção a cada 3 frames (DQ-420, `DETECT_EVERY` em `blur_faces_rules.py`) |
 | BLUR-005 | W-BLUR | Implementado | TST-BLUR-03, inspeção visual | ✅ |
 | BLUR-006 | W-BLUR | Implementado | TST-BLUR-06 | ✅ |
 | BLUR-007 | P-ROUTES, MSG | Implementado | TST-BLUR-03 | ✅ |

@@ -29,7 +29,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [A intensidade determina o grau de anonimização.],
       [Dado a ferramenta aberta, então surgem o tipo (desfocagem por omissão) e a intensidade entre 1 e 10 (†).]),
     ..rf([BLUR-004], [O sistema deve detetar as caras presentes nos frames de cada vídeo.], must, [NOVO],
-      [UC-VID-004, passo 5; DQ-017], [Sem deteção não há o que desfocar.],
+      [UC-VID-004, passo 5; UC-VID-004/A9; DQ-017, DQ-021], [Sem deteção não há o que desfocar.],
       [Dado um vídeo com uma cara frontal, então a cara é detetada nos frames onde aparece.]),
     ..rf([BLUR-005], [O sistema deve desfocar as regiões de todas as caras detetadas, sem alterar o resto do
       frame.], must, [NOVO], [UC-VID-004, passo 5; UC-VID-004/RN11], [Núcleo funcional do caso de uso.],
@@ -399,7 +399,7 @@ a Fase 2).
       [Dado o conjunto anotado, quando se corre o detetor, então a taxa (IoU ≥ 0,5) cumpre o alvo.]),
     ..rnf([BLUR-041], [O sistema deve concluir a desfocagem em tempo proporcional à duração do vídeo.],
       [Eficiência de Desempenho (Comportamento temporal)], [≤ 3× a duração → ≤ 1×], should,
-      [UC-VID-004/A3; DQ-011], [Dado 10 min sem outros trabalhos, então termina em ≤ 30 min.]),
+      [UC-VID-004/A3; DQ-011, DQ-021], [Dado 10 min sem outros trabalhos, então termina em ≤ 30 min.]),
     ..rnf([BLUR-042], [O sistema deve desfocar os vídeos apenas em componentes do PictuRAS, sem os enviar a
       serviços externos.], [Segurança (Confidencialidade)], [Obrigatório], must,
       [UC-VID-004/A2; DQ-020], [Dado um pedido, quando se inspeciona o tráfego do _worker_, então o vídeo não sai da rede interna.]),

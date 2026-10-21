@@ -24,8 +24,8 @@ vídeo.
     [TRIM-006, 022, 043, 051, COMP-002],
     [`extract_frames_tool` (W-FRAMES)], [Novo], [Extrai frames para PNG/JPEG; vários resultados por vídeo;
     5 réplicas.], [FRAME-006, 009, 010, 023, 047],
-    [`blur_faces_tool` (W-BLUR)], [Novo], [Deteta caras com OpenCV (YuNet) e desfoca/pixeliza frame a frame;
-    remonta o vídeo com o áudio; pré-visualização de um frame; 5 réplicas.], [BLUR-004, 005, 009, 010, 013, 041, 042],
+    [`blur_faces_tool` (W-BLUR)], [Novo], [Deteta caras com OpenCV (YuNet) a cada 3 frames (DQ-021) e
+    desfoca/pixeliza todos os frames; remonta o vídeo com o áudio; pré-visualização de um frame; 5 réplicas.], [BLUR-004, 005, 009, 010, 013, 041, 042],
     [`video_convert_tool` (W-CONV)], [Novo], [Recodifica com FFmpeg (MP4 H.264/AAC ou WebM VP9/Opus),
     verifica duração e áudio do resultado e calcula a estimativa de tamanho por amostras; 5 réplicas.],
     [CONV-003, 005, 015, 017, 024, 046, OUTPUT-001],

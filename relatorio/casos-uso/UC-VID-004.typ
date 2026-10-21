@@ -149,6 +149,9 @@
   [A7], [No MVP, uma falha não é retomada automaticamente.],
   [A8], [A taxa de deteção é medida num conjunto de teste da equipa, com imagens de licença livre ou de
   pessoas que deram consentimento.],
+  [A9], [A deteção corre a cada 3 frames (DQ-021): uma cara que entre no enquadramento, ou que se mova muito
+  depressa, entre duas deteções pode ficar visível ou fora da caixa durante até 2 frames (≈ 80 ms a 25 fps).
+  A margem à volta da cara (20 % por omissão) atenua o desalinhamento.],
 )
 
 === Questões em Aberto

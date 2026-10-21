@@ -96,7 +96,7 @@ qualidade (7.2).
     [UC-VID-004, pós-cond. sucesso], [Caras desfocadas, duração e áudio], [BLUR-005, OUTPUT-001, SEC-001],
     [UC-VID-004/RN1 a RN5], [Original; avançada; débito; limites; só vídeos], [SEC-001, QUOTA-001, 002, 004, SUBMIT-002, PIPE-003],
     [UC-VID-004/RN6 a RN11], [Duração; parciais; combinação; permissões; opções; todas as caras], [OUTPUT-001, REL-001, PIPE-004, 007, 006, BLUR-005],
-    [UC-VID-004/A1 a A8], [Assunções], [SUBMIT-004, BLUR-042, BLUR-023, PERF-002, PORT-001],
+    [UC-VID-004/A1 a A9], [Assunções], [SUBMIT-004, BLUR-004, BLUR-042, BLUR-023, PERF-002, PORT-001],
     [UC-VID-004/Q1 a Q8], [Questões resolvidas], [BLUR-005, BLUR-023, QUOTA-001, 002, 004, RESULT-004, PIPE-004],
     // ---------------- UC-VID-005
     [UC-VID-005, passo 2], [Vídeo, formato, resolução, qualidade por perfil], [CONV-047, CONV-002, CONV-022, CONV-035],
@@ -124,7 +124,7 @@ qualidade (7.2).
 
 == Decisões de qualidade
 
-As decisões de qualidade de cada caso de uso (gamas DQ-001 a 020, 101 a 115 e 401 a 419 nos documentos dos
+As decisões de qualidade de cada caso de uso (gamas DQ-001 a 020, 101 a 115 e 401 a 420 nos documentos dos
 exercícios) foram consolidadas numa numeração global.
 
 #tab([Decisões de qualidade],
@@ -181,6 +181,11 @@ exercícios) foram consolidadas numa numeração global.
     nativo do navegador.], [SUB-003, 006, 010, 013, 014, 015],
     [DQ-020], [Caras e vozes são processadas apenas em componentes do PictuRAS, sem serviços externos.],
     [Dados pessoais (RGPD, R3).], [BLUR-042, SUB-013],
+    [DQ-021], [Desfocagem: a deteção de caras corre a cada 3 frames, reutilizando as caixas nos 2 frames
+    intermédios, sobre uma cópia do frame reduzida a 640 px. Limitação aceite: uma cara que surja ou se mova
+    muito depressa entre deteções pode ficar visível até 2 frames (UC-VID-004/A9); em produção, deteção em
+    todos os frames ou seguimento das caixas.], [A deteção é a parte mais cara: ≈ 3× menos custo e caixas
+    estáveis; cumpre o BLUR-041 (≈ 0,5× medido).], [BLUR-004, BLUR-041],
   ),
 ) <tab-dq>
 
