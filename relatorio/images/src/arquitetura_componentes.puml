@@ -1,0 +1,86 @@
+@startuml arquitetura_componentes
+' Vista de componentes com suporte a vídeo: novos (laranja) e alterados (laranja claro).
+skinparam shadowing false
+skinparam defaultFontName Carlito
+skinparam defaultFontSize 12
+skinparam componentStyle rectangle
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #616161
+  BackgroundColor<<novo>> #FBE3CC
+  BorderColor<<novo>> #C76C1B
+  BackgroundColor<<alterado>> #FFF4E5
+  BorderColor<<alterado>> #C76C1B
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #616161
+}
+skinparam queue {
+  BackgroundColor<<alterado>> #FFF4E5
+  BorderColor<<alterado>> #C76C1B
+}
+hide stereotype
+
+actor Browser
+component "nginx\n(proxy HTTPS; uploads até 500 MB)" as nginx <<alterado>>
+
+package "UI e gateways" {
+  component "frontend (Next.js)\nferramentas de vídeo, leitor,\nprogresso, legendas" as fe <<alterado>>
+  component "api_gateway\nrotas de estimativa, legendas,\ndescartar resultado; uploads 500 MB" as gw <<alterado>>
+  component "ws_gateway\neventos de progresso e\nfalha por vídeo" as ws <<alterado>>
+}
+
+package "Serviços de domínio" {
+  component "projects\npipeline com capacidades por tipo de média,\nvalidação de vídeo (ffprobe), orquestração,\nquota por vídeo, serviço de legendas,\nlimpeza de temporários" as proj <<alterado>>
+  component users
+  component "img_storage\nextensão do original;\nstage de legendas (text/vtt)" as st <<alterado>>
+}
+
+package "Infraestrutura" {
+  queue "RabbitMQ\n+ filas trim, extract_frames,\nblur_faces, video_convert,\nvideo_subtitles(+results)" as mq <<alterado>>
+  database "projects_mongoDB\n(+ media_type, duração,\ncodecs, legendas)" as pdb
+  database "SeaweedFS (S3)" as s3
+  database "volume image_data\n(ficheiros de trabalho)" as vol
+  database "volume whisper_models" as wm
+}
+
+package "Workers de vídeo (Tools/)" {
+  component "trim_tool ×5" as w1 <<novo>>
+  component "extract_frames_tool ×5" as w2 <<novo>>
+  component "blur_faces_tool ×5\n(OpenCV YuNet)" as w3 <<novo>>
+  component "video_convert_tool ×5\n(conversão + estimativa)" as w4 <<novo>>
+  component "video_subtitles_tool ×1\n(faster-whisper small)" as w5 <<novo>>
+  component "Tools/utils\ntool_msg (progresso, erros)\nvideo.py (ffprobe/ffmpeg)" as tu <<alterado>>
+}
+
+Browser --> nginx : HTTPS
+nginx --> fe
+nginx --> gw : /api-gateway/
+nginx --> ws : /socket.io
+nginx --> s3 : /s3/ (URLs assinados)
+gw --> proj : REST
+gw --> users : REST
+proj --> users : perfil, quota,\ndébito/devolução
+proj --> st : REST
+st --> s3
+proj --> pdb
+proj --> mq : pedidos (AMQP)
+mq --> proj : resultados, progresso
+mq --> ws : ws_queue
+ws --> Browser : Socket.IO
+mq --> w1
+mq --> w2
+mq --> w3
+mq --> w4
+mq --> w5
+w1 ..> vol
+w2 ..> vol
+w3 ..> vol
+w4 ..> vol
+w5 ..> vol
+w5 ..> wm
+proj ..> vol
+w1 ..> tu
+w4 ..> tu
+@enduml

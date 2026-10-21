@@ -9,18 +9,18 @@
 #show: project
 
 // Antes de entregar: `false` esconde todas as caixas de orientação.
-#mostrar-orientacoes.update(true)
+#mostrar-orientacoes.update(false)
 
 #cover(
   title: "Fase 1 — Suporte a Vídeo",
   subtitle: "Requisitos, Arquitetura, Implementação e Validação do MVP",
-  group: "Grupo PL?-G?",   // e.g., "Grupo PL3-G2"
+  group: "Grupo {PLx-Gy}",
   authors: (
-    (name: "Nome Apelido", number: "pg00000"),
-    (name: "Nome Apelido", number: "pg00000"),
-    (name: "Nome Apelido", number: "pg00000"),
-    (name: "Nome Apelido", number: "pg00000"),
-    (name: "Nome Apelido", number: "pg00000"),
+    (name: "Cláudio Rafael Oliveira Ferreira", number: "pg63933"),
+    (name: "Diogo Linhares Campos", number: "pg63948"),
+    (name: "Marco António Ferreira Abreu", number: "pg64003"),
+    (name: "Nelson Daniel Araújo Sousa", number: "pg64010"),
+    (name: "{Nome do 5.º elemento}", number: "{pg00000}"),
   ),
   "Outubro, 2026",
 )

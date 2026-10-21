@@ -1,0 +1,75 @@
+@startuml sequencia_processamento
+' Fluxo principal de processamento de um vídeo por uma ferramenta de vídeo avançada
+' (ex.: converter, desfocar, extrair frames). O corte segue o mesmo fluxo sem quota.
+skinparam shadowing false
+skinparam defaultFontName Carlito
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign left
+autonumber
+
+actor Utilizador as U
+participant "frontend" as FE
+participant "api_gateway" as GW
+participant "projects" as P
+participant "users" as US
+participant "img_storage\n+ SeaweedFS" as S
+queue "RabbitMQ" as MQ
+participant "worker de vídeo\n(Tools/)" as W
+participant "ws_gateway" as WS
+
+U -> FE : Aplicar
+FE -> GW : POST /projects/:u/:p/process
+GW -> P : POST /:u/:p/process (JWT validado)
+P -> P : capacidades por tipo de média,\nexclusividade, parâmetros e\nmetadados guardados no upload
+P -> US : GET /:u/process/:n (reserva n operações)
+US --> P : ok | quota esgotada
+P --> GW : 201 { skipped } (≤ 2 s)
+GW --> FE : 201
+FE -> U : "Em fila"
+
+loop por cada vídeo compatível
+  P -> S : URL interna do original
+  P -> P : copia o vídeo para o volume partilhado
+  P -> MQ : pedido (procedure, parâmetros, caminhos)
+end
+
+MQ -> W : consome (≤ 5 em simultâneo por ferramenta)
+W -> MQ : progresso 0 % (saiu da fila)
+MQ -> P : progresso
+P -> MQ : ws_queue
+MQ -> WS
+WS -> FE : process-progress
+FE -> U : "Em curso · 0 %"
+W -> W : ffprobe + validação\nffmpeg / OpenCV / Whisper
+loop no máximo 1 vez por segundo
+  W -> MQ : progresso n %
+  MQ -> P
+  P -> MQ : ws_queue
+  MQ -> WS
+  WS -> FE : process-progress
+end
+
+alt sucesso
+  W -> MQ : success (ficheiro gerado, metadados)
+  MQ -> P
+  P -> S : guarda o resultado (stage out)
+  P -> P : Resultado no projeto;\napaga temporários
+  P -> MQ : ws_queue (fim do vídeo)
+  MQ -> WS
+  WS -> FE : process-update
+else falha do vídeo
+  W -> W : remove o ficheiro parcial
+  W -> MQ : error (código, causa)
+  MQ -> P
+  P -> US : POST /:u/process/refund/1
+  P -> MQ : ws_queue (falha do vídeo)
+  MQ -> WS
+  WS -> FE : process-item-error (causa)
+end
+
+FE -> FE : todos os vídeos terminados
+FE -> GW : GET /process/url
+GW -> P
+P -> S : URLs assinados
+FE -> U : resultados (reproduzir, descarregar)
+@enduml

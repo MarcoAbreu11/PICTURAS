@@ -1,0 +1,153 @@
+#import "../template.typ": *
+
+= Testes e Validação do MVP
+
+== Estratégia e ambiente de testes
+
+Os critérios de aceitação da ERS são a base dos testes, organizados em quatro níveis:
+
+- *Unitários do `projects`* (`node --test`, em `projects/test/`): regras de cada ferramenta, capacidades e
+  exclusividade, limpeza de temporários e o serviço de legendas, este último contra um MongoDB real
+  (variável `SUBTITLES_TEST_MONGO`).
+- *Unitários dos _workers_* (`python -m unittest`, em cada pasta de `Tools/`): validação, nomes, argumentos do
+  FFmpeg, codecs por contentor, regras da estimativa e o módulo partilhado `Tools/utils/video.py`, este com
+  FFmpeg real.
+- *Ponta a ponta* (`bash projects/test/e2e/run.sh`): com a stack a correr em `docker compose`, cria
+  utilizadores de teste, carrega vídeos, aplica cada ferramenta pela API e verifica resultados, quota e
+  mensagens; os ficheiros gerados são inspecionados com `ffprobe`.
+- *Manuais e inspeção*: utilização no navegador, logs do `ws_gateway` e medições de tempo.
+
+*Ambiente*: Linux (WSL2) com Docker; imagens `node:22.11.0-bookworm` e `python:3.11.10-slim-bookworm`.
+*Vídeos de teste*, gerados pelo próprio script com FFmpeg (sem material de terceiros): `aula.mp4` (10 s,
+320×240, H.264/AAC, com tom de áudio), `curto.mp4` (3 s, 640×360, H.264, sem áudio), seis cópias de
+`curto.mp4` para esgotar a quota e `foto.png`. Os testes de deteção de caras e de fala precisam de um vídeo
+real com pessoas a falar, indicado em `BLUR_FACE_VIDEO`; por privacidade, nenhum é guardado no repositório.
+A inferência real das legendas usa uma amostra de fala humana portuguesa do conjunto Google FLEURS (CC BY
+4.0), descarregada só nesse teste.
+
+== Testes realizados
+
+As execuções marcadas com 2026-10-20 foram repetidas para este relatório, na versão entregue; as restantes
+estão registadas nos documentos de cada caso de uso.
+
+#tab([Testes e resultados],
+  tabela(
+    colunas: (2.4cm, 1.6cm, 1fr, 3cm, 2.2cm),
+    tamanho: 8pt,
+    [ID], [Tipo], [Descrição (Dado… Quando… Então…)], [Requisito(s)], [Resultado],
+    [TST-SUBMIT-01], [Inspeção], [Dado um vídeo de 2 s gerado com FFmpeg e um ficheiro falso, quando passam
+    pela validação do carregamento, então o vídeo fica com 2 s e 320×240 e o falso é recusado.],
+    [SUBMIT-002 a 004], [Passa (2026-10-17)],
+    [TST-SUBMIT-M1], [Manual], [Dado uma conta registada, quando carrega um vídeo de 14 s, então aparece na
+    grelha e reproduz no carrossel.], [SUBMIT-001, 005], [Passa (2026-10-17)],
+    [TST-SUB-P1 a P3], [Unitário], [Opções aceites (`original`, `en`), só vídeos, sem combinação.],
+    [SUB-001, PIPE-003, 004], [3/3 (2026-10-20)],
+    [TST-SUB-U], [Unitário (MongoDB)], [Ciclo de vida das faixas: autorização, ambas as ordens de geração,
+    equivalência inglesa, reutilização, 12 pedidos concorrentes, falhas e devolução, eliminação durante o
+    carregamento, respostas duplicadas.], [SUB-003, 006, 007, 010 a 012, QUOTA-002, SEC-002],
+    [26/26 (2026-10-20)],
+    [TST-SUB-PY], [Unitário], [Validação do pedido, WebVTT (tempos, escape), escrita atómica, sem áudio
+    (2303), sem fala (2304).], [SUB-008, 009, 015], [15/15 (2026-10-20)],
+    [TST-SUB-01 a 07, 09, 11], [Ponta a ponta], [Dado idiomas inválidos, combinação com o corte, pré-visualização
+    e um vídeo sem fala, quando se configura e aplica, então as recusas, o erro 2304, a devolução da operação
+    e a recusa do anónimo ocorrem.], [SUB-001, 009, PIPE-002 a 004, QUOTA-002, 005], [10/10 (2026-10-20)],
+    [TST-SUB-08, 10], [Ponta a ponta], [Dado um vídeo com fala, quando aplica duas vezes, então fica com a faixa
+    e a segunda vez não gasta quota.], [SUB-002, SUB-006], [Ignorado sem vídeo com fala],
+    [TST-SUB-INF], [Integração], [Dado fala portuguesa e inglesa, quando se gera Original e English, então a
+    transcrição e a tradução são produzidas, `pt` é detetado, o _hash_ do vídeo mantém-se; sem áudio dá 2303
+    e um tom sem fala dá 2304.], [SUB-002, 003, 007 a 009, SEC-001], [Passa (registado pelo autor)],
+    [TST-SUB-CHR], [Integração (Chromium)], [Dado o leitor real com API simulada, então a faixa gerada fica
+    ativa, desativar/trocar reutiliza, os _cues_ carregam e não há erros de JavaScript.],
+    [SUB-004, 005, 015], [Passa (registado pelo autor)],
+    [TST-SUB-TR], [Integração (RabbitMQ)], [Dado a mesma mensagem duas vezes, então o _worker_ devolve o mesmo
+    recibo sem nova inferência.], [SUB-014], [Passa (registado pelo autor)],
+    [TST-TRIM-01 a 06], [Unitário], [Intervalo válido, início ≥ fim, excerto curto, parâmetros em falta, fim
+    além da duração, capacidades e exclusividade.], [TRIM-003, 014, 015, 034, PIPE-003, 004], [6/6 (2026-10-20)],
+    [TST-TRIM-PY], [Unitário], [Validação, nome, codecs por contentor e argumentos do FFmpeg.],
+    [TRIM-015, 034, 051, COMP-002], [8/8 (2026-10-20)],
+    [TST-TRIM-07 a 13, 15], [Ponta a ponta], [Dado 2 vídeos e 1 imagem, quando se valida e aplica o corte 1–2,5 s,
+    então recusas corretas, 2 vídeos cortados com o intervalo no nome, 1 ignorado, quota inalterada, cópia
+    para novo projeto e corte pelo anónimo.], [TRIM-006, 014, 015, 034, 049, 051, PIPE-001 a 005, RESULT-001, 003], [23/23 (2026-10-20)],
+    [TST-TRIM-14], [Inspeção (`ffprobe`)], [Dado o corte 1–2,5 s de um MP4, então dura 1,500 s com H.264/AAC.],
+    [TRIM-022, COMP-002, RESULT-002], [Passa (2026-10-20)],
+    [TST-TRIM-16], [Inspeção], [Dado um corte em curso, então o progresso chega ao `ws_gateway` a cada ≈ 1 s.],
+    [STATUS-003, 008], [Passa (2026-10-18)],
+    [TST-TRIM-M1], [Manual], [Corte no navegador com a linha temporal.], [TRIM-002, 003, PIPE-001], [Passa (2026-10-18)],
+    [TST-FRAME-01 a 10], [Unitário], [Instantes, limite de 100, instante além do fim, parâmetros, capacidades
+    e exclusividade.], [FRAME-002, 003, 006, 009, 013 a 015, PIPE-003 a 005], [10/10 (2026-10-20)],
+    [TST-FRAME-PY], [Unitário], [Instantes, validação e nomes no _worker_.], [FRAME-009, 013, 014, 036], [8/8 (2026-10-20)],
+    [TST-FRAME-11 a 18], [Ponta a ponta], [Dado 2 vídeos e 1 imagem, então duração guardada, 7 frames com o
+    instante no nome, 2 operações debitadas, recusas, cópia e brilho nas imagens copiadas, falha isolada com
+    1 operação devolvida e recusa do anónimo.], [SUBMIT-004, FRAME-007, 008, 013 a 015, 022, 036, 049, QUOTA-001, 002, 005, STATUS-007, REL-001], [23/23 (2026-10-20)],
+    [TST-FRAME-19, 20], [Inspeção], [Frame com a resolução do vídeo; progresso e erros com causa no
+    `ws_gateway`.], [FRAME-023, STATUS-003, 006], [Passa (2026-10-18)],
+    [TST-FRAME-M1], [Manual], [Extração de MP4 e MOV no navegador; WebM pela API.], [PIPE-001, COMP-001], [Passa (2026-10-18)],
+    [TST-BLUR-U1 a U4], [Unitário], [Opções, opções inválidas, capacidades e exclusividade.],
+    [BLUR-002, 009, 050, PIPE-003, 004], [4/4 (2026-10-20)],
+    [TST-BLUR-PY], [Unitário], [Caixa e margem, _kernel_, pixelização, nomes, codecs, áudio e duração.],
+    [BLUR-050, COMP-002, OUTPUT-001], [15/15 (2026-10-20)],
+    [TST-BLUR-01 a 04, 10 a 14], [Ponta a ponta], [Recusas (anónimo, combinação, opções, sem vídeos, quota),
+    pré-visualização sem custo, débito por vídeo, aviso e descarte sem caras.], [BLUR-010, 013, 014, 050,
+    QUOTA-001, 003, 005, PIPE-001 a 005, RESULT-001], [21/21 (2026-10-20), 2 ignorados sem vídeo com caras],
+    [TST-BLUR-03 (caras), 06, 07, 12], [Ponta a ponta e inspeção], [Dado um vídeo com pessoas, então 2 caras
+    detetadas, MP4 H.264/AAC com 14,884 s e _hash_ do original igual; cópia para novo projeto.],
+    [BLUR-004, 005, OUTPUT-001, SEC-001, RESULT-003], [Passa (registado pela equipa, 2026-10-19)],
+    [TST-BLUR-08], [Inspeção], [Progresso no `ws_gateway` a cada ≈ 1 s.], [STATUS-003, 008], [Passa (2026-10-19)],
+    [TST-BLUR-W1], [_Worker_], [MP4 e WebM sem caras com a mesma duração; ficheiro truncado dá erro sem parcial.],
+    [STATUS-007, REL-001, COMP-001, 002], [Passa (2026-10-19)],
+    [TST-BLUR-W2], [Medição], [Vídeo de 14,9 s (640×360): desfocagem em 7–8 s (≈ 0,5×).], [BLUR-041], [Passa (2026-10-19)],
+    [TST-BLUR-M1], [Manual], [Ferramenta, pré-visualização, resultados e descarte no navegador.],
+    [BLUR-002, 009, 010, 013, 014], [#preencher[Por fazer]],
+    [TST-CONV-01 a 10], [Unitário], [Parâmetros, limites por perfil, codecs e fronteiras de 500 MB e 10 min,
+    vídeo escolhido, nome único, exclusividade e varrimento de temporários.],
+    [CONV-002, 014, 015, 022, 026, 035, 037, 047, PIPE-004, RESULT-005], [10/10 (2026-10-20)],
+    [TST-CONV-PY], [Unitário], [Regras do _worker_: parâmetros, entrada, altura de saída, argumentos, amostras
+    e extrapolação da estimativa.], [CONV-005, 009, 010, 015, 024], [13/13 (2026-10-20)],
+    [TST-VIDEO-PY], [Unitário], [Módulo partilhado: ffprobe, ficheiro ilegível, progresso crescente com FFmpeg
+    real, falha do FFmpeg, limitação do progresso.], [STATUS-003, 008, MAINT-001], [5/5 (2026-10-20)],
+    [TST-CONV-11 a 20, 22], [Ponta a ponta], [Dado aula.mp4, quando se converte para WebM 360p, então 1080p é
+    recusado com sugestão de _upgrade_, estimativa com erro de 8 %, confirmação em ≤ 2 s, só o vídeo
+    escolhido, tamanhos no resultado, novo vídeo na biblioteca que fica após remover a ferramenta, 1 operação
+    consumida, acesso negado a outro utilizador, vídeo sem AAC recusado e anónimo recusado.],
+    [CONV-003, 006, 008, 014, 015, 024, 033, 036, 039, 047, PERF-001, QUOTA-001, 003, 005], [18/18 (2026-10-20)],
+    [TST-CONV-21], [Inspeção (`ffprobe`)], [O vídeo convertido é WebM VP9/Opus, 240 px (sem aumentar) e
+    10,015 s para 10 s.], [CONV-005, 046, OUTPUT-001], [Passa (2026-10-20)],
+    [TST-CONV-M1], [Manual], [Conversão no navegador.], [CONV-002, 003, 011, 017],
+    [Encontrou D-01 e D-02, corrigidos; #preencher[reteste manual]],
+  ),
+) <tab-testes>
+
+*Totais da execução de 2026-10-20*: 59/59 testes unitários no `projects`, 64/64 nos _workers_ Python e 95
+verificações ponta a ponta sem falhas (UC-VID-001: 10; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 21;
+UC-VID-005: 18), com os testes que exigem um vídeo com caras ou fala ignorados.
+
+== Limitações e defeitos conhecidos
+
+*Defeitos encontrados durante o desenvolvimento (corrigidos):*
+
+#tabela(
+  colunas: (1.2cm, 1fr, 2.6cm, 2.4cm),
+  tamanho: 8.5pt,
+  [ID], [Defeito], [Detetado por], [Estado],
+  [D-01], [O painel da conversão não tinha _scroll_ e o botão de guardar ficava fora do ecrã.], [Teste manual], [Corrigido (painéis de todas as ferramentas)],
+  [D-02], [Faltava no `api_gateway` a rota da estimativa da conversão (404).], [Teste manual], [Corrigido],
+  [D-03], [A percentagem de progresso não aparecia na conversão.], [Revisão de código], [Corrigido],
+  [D-04], [O _script_ ponta a ponta abortava antes das legendas quando não havia vídeo com caras.], [Execução para este relatório], [Corrigido],
+)
+
+*Limitações e requisitos parciais no MVP:*
+- O estado "em fila/em curso" e o aviso de fim só são visíveis com a página aberta (STATUS-002, STATUS-005
+  parciais); ao regressar, vêem-se os resultados mas não o estado.
+- Tempos de processamento não medidos com vídeos longos (CONV-045, FRAME-025, FRAME-046, TRIM-043, SUB-016) e
+  taxa de deteção de caras por medir, por falta de um conjunto anotado (BLUR-023). Não houve teste de carga
+  (PERF-002).
+- A estimativa da conversão espera pela fila: com os 5 _workers_ ocupados mais de 50 s, devolve "converter
+  ocupado". A correlação da resposta é feita em memória e pressupõe uma só instância do `projects`.
+- Cancelar o "Aplicar" não interrompe uma inferência de legendas já enviada (UC-VID-001/A5).
+- A API de quotas não tem reserva e devolução idempotentes por trabalho: uma queda entre o `users` e o
+  `projects` pode exigir reconciliação manual da quota.
+- Partilhas de leitura, conta premium e cancelamento não têm teste automático próprio (mecanismos
+  existentes).
+- Vídeos HEVC (frequentes em telemóveis) são aceites, mas podem não reproduzir em todos os navegadores.
+- Os testes unitários da conversão e das legendas usam separadores de caminho de Linux; no Windows falham
+  (a stack corre em Linux, nos contentores).
