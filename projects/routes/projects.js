@@ -281,6 +281,15 @@ async function startSubtitleRun(project, videos, runnerId, params) {
       const result = await service.generate(project, video, runnerId, { language: params.language });
       if (result.status === 200)
         send_msg_client(`update-client-process-${uuidv4()}`, new Date().toISOString(), runnerId);
+      // o worker das legendas não envia percentagem: 0 % marca o vídeo como "Em curso" na página
+      else
+        send_msg_client_progress(
+          `update-client-progress-${uuidv4()}`,
+          new Date().toISOString(),
+          runnerId,
+          String(video._id),
+          0
+        );
     } catch (err) {
       send_msg_client_item_error(
         `update-client-process-${uuidv4()}`,

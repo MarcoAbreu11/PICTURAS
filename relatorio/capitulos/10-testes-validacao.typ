@@ -101,6 +101,10 @@ estão registadas nos documentos de cada caso de uso.
     [TST-BLUR-W2], [Medição], [Vídeo de 14,9 s (640×360): desfocagem em 7–8 s (≈ 0,5×).], [BLUR-041], [Passa (2026-10-19)],
     [TST-BLUR-M1], [Interface (navegador automático)], [Ferramenta, pré-visualização, resultados e descarte no navegador.],
     [BLUR-002, 009, 010, 013, 014], [Passa, 8/8, em navegador automático (Chromium/Playwright, 2026-10-21): painel, pré-visualização, Apply, aviso e descarte],
+    [TST-STATUS-M1], [Interface (navegador automático)], [Dado um projeto com 1 e outro com 2 vídeos e a
+    desfocagem, e um com legendas, quando se aplica, então o estado passa de "Em fila" a "Em curso" e a
+    percentagem sobe até 100 % (nas legendas, 0 % até ao fim de cada vídeo).], [STATUS-002, 003, 008],
+    [Passa (2026-10-21)],
     [TST-CONV-01 a 10], [Unitário], [Parâmetros, limites por perfil, codecs e fronteiras de 500 MB e 10 min,
     vídeo escolhido, nome único, exclusividade e varrimento de temporários.],
     [CONV-002, 014, 015, 022, 026, 035, 037, 047, PIPE-004, RESULT-005], [10/10 (2026-10-20)],
@@ -139,13 +143,14 @@ testes de deteção de caras e de fala são ignorados.
   [D-02], [Faltava no `api_gateway` a rota da estimativa da conversão (404).], [Teste manual], [Corrigido],
   [D-03], [A percentagem de progresso não aparecia na conversão.], [Revisão de código], [Corrigido],
   [D-04], [O _script_ ponta a ponta abortava antes das legendas quando não havia vídeo com caras.], [Execução para este relatório], [Corrigido],
-  [D-05], [Durante o processamento de uma ferramenta de vídeo, o texto de estado fica em "Em fila" e a barra só avança quando cada vídeo termina, embora o `ws_gateway` receba o progresso (o tratador do evento na página usa valores antigos do estado).], [Teste no navegador automático], [Por corrigir],
+  [D-05], [O texto de estado ficava em "Em fila" e a barra só avançava quando cada vídeo terminava (versão de 2026-10-19).], [Teste no navegador automático], [Não se reproduz na versão final (TST-STATUS-M1)],
+  [D-06], [Nas legendas, a página mostrava "Em fila" durante toda a geração, porque o _worker_ não envia percentagem.], [Teste no navegador automático], [Corrigido: o `projects` envia 0 % quando o pedido segue para o _worker_],
 )
 
 *Limitações e requisitos parciais no MVP:*
 - O estado "em fila/em curso" e o aviso de fim só são visíveis com a página aberta (STATUS-002, STATUS-005
-  parciais); ao regressar, vêem-se os resultados mas não o estado. Durante o processamento a página mostra
-  "Em fila" e só avança a barra quando cada vídeo termina (STATUS-003 parcial, defeito D-05).
+  parciais); ao regressar, vêem-se os resultados mas não o estado. Nas legendas, a página mostra "Em curso"
+  sem percentagem intermédia (o modelo não a reporta) até ao fim de cada vídeo.
 - Tempos de processamento não medidos com vídeos longos (CONV-045, FRAME-025, FRAME-046, TRIM-043, SUB-016) e
   taxa de deteção de caras por medir, por falta de um conjunto anotado (BLUR-023). Não houve teste de carga
   (PERF-002).

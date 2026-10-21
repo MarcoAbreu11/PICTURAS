@@ -48,12 +48,29 @@ PictuRAS is a web-based image editing platform that combines traditional image p
   up to 720p, Premium up to 1080p. Anonymous accounts cannot use conversion; successful
   free-account conversions consume one daily operation (failed or cancelled ones are refunded).
   Temporary files are removed within 1 hour of a job ending.
+- **Blur faces** (`blur_faces`): detects faces with OpenCV (YuNet model, bundled in the image, runs
+  locally) and blurs or pixelates them, keeping the container, duration and audio. Detection runs
+  every 3 frames (boxes are reused in between) and every frame is anonymized; options are blur or
+  pixelate, intensity 1–10 and margin 0–100 %. The result is `<name>_blurred.<ext>`; when no face is
+  found the result shows a warning with *Keep* / *Discard*. Preview processes a single frame.
+  Registered and Premium only; one daily operation per video for free accounts (refunded on failure).
+- **Automatic subtitles** (`video_subtitles`): transcribes the audio (original language) or translates
+  it to English with faster-whisper (`small`, CPU, int8) and stores a WebVTT track shown in the video
+  player. Added to the pipeline with *Save* and generated only on *Apply*; existing tracks are reused
+  for free. The model is downloaded on first use into the `whisper_models` volume. Registered and
+  Premium only; one daily operation per video for free accounts (refunded on failure).
+
+Video tools cannot be combined with other tools in the same pipeline (MVP); images in the project
+are skipped at no cost.
 
 The video tools' images pin their base images (Node 22.11 for `projects`, Python 3.11.10
-for `trim`, `extract_frames` and `video_convert`, all on Debian 12, which ships FFmpeg 5.1).
+for `trim`, `extract_frames`, `video_convert`, `blur_faces` and `video_subtitles`, all on Debian 12,
+which ships FFmpeg 5.1).
 Tests: `node --test` in `projects/` and `python -m unittest` in each video tool folder
 (`python -m unittest utils.test_video` in `Tools/` for the shared module) for unit tests, and
-`bash projects/test/e2e/run.sh` with the stack running for end-to-end tests.
+`bash projects/test/e2e/run.sh` with the stack running for end-to-end tests. Face detection and
+speech tests need a real video with people talking:
+`BLUR_FACE_VIDEO=/path/to/video.mp4 bash projects/test/e2e/run.sh` (none is stored in the repository).
 
 ### AI-Powered Tools
 
@@ -114,7 +131,7 @@ are **not** published to the host unless noted otherwise — they talk to each o
    └────────┘ └────────┘ │     └────────┘   │
                          │                  │
                     ┌────▼──────────────────┴────┐
-                    │      RabbitMQ  :5672       │◄─── 19 tool microservices
+                    │      RabbitMQ  :5672       │◄─── 21 tool microservices
                     │    exchange "picturas"     │     (one queue per tool)
                     └────────────────────────────┘
 ```
@@ -149,12 +166,15 @@ exchange:
 
 `binarization` · `border` · `brightness` · `contrast` · `cut` · `resize` · `rotate` ·
 `saturation` · `watermark` · `bg_remove_ai` · `cut_ai` · `expand_ai` · `obj_ai` · `people_ai` ·
-`text_ai` · `upgrade_ai` · `trim` · `extract_frames` · `video_convert`
+`text_ai` · `upgrade_ai` · `trim` · `extract_frames` · `video_convert` · `blur_faces` ·
+`video_subtitles`
 
-The three **video tools** follow the same pattern and run FFmpeg only inside their own
-containers (5 replicas each, so at most 5 videos per tool are processed at once; the rest wait
-in the queue). They share `Tools/utils/video.py` (ffprobe, FFmpeg with progress, progress
-throttling) and report progress — starting with 0 % when a job leaves the queue — through
+The five **video tools** follow the same pattern and run FFmpeg (and OpenCV or Whisper) only
+inside their own containers: 5 replicas each, so at most 5 videos per tool are processed at once
+(the rest wait in the queue), except `video_subtitles`, which runs 1 replica because the model
+stays in memory and uses its own request/result queues with acknowledgements after processing.
+`trim`, `extract_frames` and `video_convert` share `Tools/utils/video.py` (ffprobe, FFmpeg with
+progress, progress throttling). The tools report progress — starting with 0 % when a job leaves the queue — through
 RabbitMQ and the WS Gateway. The **Project Service never processes media**: it only reads
 video metadata with ffprobe on upload and validates requests. Even the conversion size
 estimate is computed by the `video_convert` worker; the Project Service sends it through the

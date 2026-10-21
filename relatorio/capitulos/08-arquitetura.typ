@@ -132,8 +132,7 @@ O utilizador carrega em "Aplicar" e o _frontend_ envia o pedido ao `api_gateway`
 valida os parâmetros com os metadados guardados no carregamento; para uma ferramenta avançada, reserva no
 `users` uma operação por vídeo. Responde de imediato (≤ 2 s) e só depois copia cada vídeo do armazenamento
 para o volume partilhado e publica um pedido na fila da ferramenta. Um _worker_ livre consome o pedido e
-envia 0 % (o _frontend_ deveria passar de "Em fila" a "Em curso", o que ainda não acontece: defeito
-D-05, 10.3); durante o processamento envia o progresso, no
+envia 0 % (o _frontend_ passa de "Em fila" a "Em curso"); durante o processamento envia o progresso, no
 máximo uma vez por segundo, que o `projects` reencaminha para a `ws_queue` e o `ws_gateway` entrega ao
 _browser_. No fim, o _worker_ responde com o ficheiro gerado e os metadados; o `projects` guarda o resultado
 no armazenamento, regista-o no projeto (ou na biblioteca, na conversão), apaga os ficheiros de trabalho e
@@ -143,7 +142,8 @@ vídeos terminam, o _frontend_ pede os resultados, servidos por ligações assin
 _token_ da execução, devolve as operações e remove os resultados dessa execução; as respostas que cheguem
 depois são ignoradas e os seus ficheiros apagados. As legendas seguem o mesmo início (Aplicar), mas o
 `projects` delega no serviço de legendas, que usa filas duráveis próprias e confirma cada mensagem só depois
-de a tratar.
+de a tratar; como o modelo não reporta percentagem, o `projects` envia 0 % quando o pedido segue para o
+_worker_ e o fim quando a faixa fica guardada.
 
 == Impacto na instalação e execução
 
