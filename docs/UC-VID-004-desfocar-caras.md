@@ -22,7 +22,7 @@
 
 ### Justificação no contexto do MVP
 
-A desfocagem automática de caras permite anonimizar vídeos antes da sua publicação, respondendo a preocupações de privacidade e RGPD. Valida a parte do suporte a vídeo que o corte (UC-VID-002) e a extração de frames (UC-VID-003) não cobrem: uma ferramenta de vídeo que analisa o conteúdo de cada frame com visão computacional, é demorada e está sujeita à quota, à semelhança das ferramentas avançadas já existentes para imagens.
+A desfocagem automática de caras permite anonimizar vídeos antes da sua publicação, respondendo a preocupações de privacidade e RGPD. Valida a parte do suporte a vídeo que o corte (UC-VID-002) e a extração de frames (UC-VID-003) não cobrem: uma ferramenta de vídeo que analisa o conteúdo dos frames com visão computacional (deteção de caras a cada 3 frames e desfocagem de todos, DQ-420), é demorada e está sujeita à quota, à semelhança das ferramentas avançadas já existentes para imagens.
 
 ---
 
@@ -40,7 +40,7 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 | Objetivo | Permitir ao utilizador obter, a partir dos vídeos de um projeto, novos vídeos em que as caras detetadas aparecem desfocadas ou pixelizadas. |
 | Âmbito | Serviço `projects` (pipeline de ferramentas e processamento), novo worker de vídeo em `Tools/` e frontend (barra de ferramentas e resultados) |
 | Ator Principal | Utilizador registado ou premium, dono do projeto ou com permissão de edição |
-| Stakeholders e Interesses | - **Utilizador**: pretende partilhar vídeos sem expor a identidade das pessoas filmadas.<br>- **Proprietário do sistema**: pretende disponibilizar uma ferramenta avançada de vídeo, alinhada com a privacidade, que valorize os perfis registado e premium.<br>- **Equipa de desenvolvimento**: pretende validar o processamento de vídeo frame a frame com visão computacional na pipeline existente. |
+| Stakeholders e Interesses | - **Utilizador**: pretende partilhar vídeos sem expor a identidade das pessoas filmadas.<br>- **Proprietário do sistema**: pretende disponibilizar uma ferramenta avançada de vídeo, alinhada com a privacidade, que valorize os perfis registado e premium.<br>- **Equipa de desenvolvimento**: pretende validar o processamento de vídeo com visão computacional (deteção a cada 3 frames, desfocagem de todos) na pipeline existente. |
 | Pré-condições | - O utilizador tem sessão iniciada com um perfil registado ou premium.<br>- O utilizador é dono do projeto ou tem permissão de edição sobre ele.<br>- O projeto contém pelo menos um vídeo, carregado e validado no carregamento (formato, tamanho e duração por perfil).<br>- O utilizador registado tem operações disponíveis na quota diária. |
 | Trigger | O utilizador pretende anonimizar as caras presentes nos vídeos de um projeto. |
 
@@ -52,7 +52,7 @@ A desfocagem automática de caras permite anonimizar vídeos antes da sua public
 | 2 | O utilizador escolhe a ferramenta "Desfocar caras". | O sistema apresenta as opções da ferramenta: tipo de anonimização (desfocagem por omissão) e intensidade. |
 | 3 | O utilizador define a intensidade e guarda a ferramenta. | O sistema valida as opções e adiciona a ferramenta à pipeline do projeto. |
 | 4 | O utilizador carrega em "Aplicar". | O sistema valida a pipeline, verifica o perfil e a quota, debita as operações do perfil registado, cria um trabalho de processamento por vídeo e confirma a receção do pedido. |
-| 5 | — | O sistema analisa os frames de cada vídeo, deteta as caras presentes e aplica a desfocagem nas regiões detetadas, atualizando a percentagem de progresso. As imagens do projeto não são processadas por esta ferramenta. |
+| 5 | — | O sistema analisa os frames de cada vídeo, deteta as caras presentes (a cada 3 frames, reutilizando as caixas nos intermédios — A11) e aplica a desfocagem nas regiões detetadas em todos os frames, atualizando a percentagem de progresso. As imagens do projeto não são processadas por esta ferramenta. |
 | 6 | — | O sistema gera, para cada vídeo, um novo vídeo com a mesma duração e o áudio do original. |
 | 7 | — | O sistema guarda os novos vídeos como resultados do projeto, identificando cada um com o nome do vídeo de origem, e notifica o utilizador de que o processamento terminou. |
 | 8 | O utilizador consulta os resultados. | O sistema apresenta os vídeos anonimizados nos resultados do projeto, prontos a reproduzir e a descarregar. |

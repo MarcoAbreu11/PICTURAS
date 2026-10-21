@@ -15,7 +15,8 @@ O incremento tem duas partes. A primeira é transversal: os projetos passam a ac
 lado das imagens, com limites de tamanho e duração por perfil, e a reproduzi-los no editor. A segunda são
 *cinco ferramentas de vídeo*, cada uma com o seu caso de uso, escolhidas para cobrir tipos de processamento
 diferentes: produzir um novo vídeo a partir de um intervalo temporal (corte), extrair imagens (frames),
-alterar o conteúdo de cada frame com visão computacional (desfocar caras), recodificar o vídeo (converter ou
+alterar o conteúdo dos frames com visão computacional (desfocar caras: deteção a cada 3 frames e desfocagem
+de todos), recodificar o vídeo (converter ou
 comprimir) e obter texto a partir do áudio (legendas automáticas). Todas usam o mesmo mecanismo: são
 ferramentas da _pipeline_, executadas por _workers_ dedicados através do RabbitMQ, com estado, progresso,
 cancelamento e quota por vídeo.

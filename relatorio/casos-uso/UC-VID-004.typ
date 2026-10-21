@@ -21,7 +21,8 @@
       - *Proprietário do sistema*: oferecer uma ferramenta avançada de vídeo alinhada com a privacidade, que
         valorize os perfis registado e premium.
       - *Administrador de Sistema*: os vídeos com pessoas são dados pessoais; o processamento é local.
-      - *Equipa de desenvolvimento*: validar o processamento frame a frame com visão computacional.
+      - *Equipa de desenvolvimento*: validar o processamento de vídeo com visão computacional (deteção de caras
+        a cada 3 frames e desfocagem de todos os frames).
     ],
     [Pré-condições], [
       - O utilizador tem sessão iniciada com perfil registado ou premium.
@@ -47,8 +48,9 @@
     ferramenta à _pipeline_.],
     [4], [O utilizador carrega em "Aplicar".], [O sistema valida a _pipeline_, o perfil e a quota, debita as
     operações do registado, cria um trabalho por vídeo e confirma o pedido.],
-    [5], [—], [O sistema analisa os frames de cada vídeo, deteta as caras e aplica a desfocagem nas regiões
-    detetadas, atualizando o progresso. As imagens do projeto não são processadas.],
+    [5], [—], [O sistema analisa os frames de cada vídeo, deteta as caras (a cada 3 frames, reutilizando as
+    caixas nos intermédios — A9) e aplica a desfocagem nas regiões detetadas em todos os frames, atualizando o
+    progresso. As imagens do projeto não são processadas.],
     [6], [—], [O sistema gera, para cada vídeo, um novo vídeo com a mesma duração e o áudio do original.],
     [7], [—], [O sistema guarda os novos vídeos como resultados, com o nome do vídeo de origem, e notifica o
     utilizador.],

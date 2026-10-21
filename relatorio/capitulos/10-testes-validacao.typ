@@ -17,7 +17,10 @@ Os critérios de aceitação da ERS são a base dos testes, organizados em quatr
   mensagens; os ficheiros gerados são inspecionados com `ffprobe`.
 - *Manuais e inspeção*: utilização no navegador, logs do `ws_gateway` e medições de tempo.
 
-*Ambiente*: Linux (WSL2) com Docker; imagens `node:22.11.0-bookworm` e `python:3.11.10-slim-bookworm`.
+*Ambiente*: Linux com Docker (WSL2) e Fedora com Podman (CLI compatível com Docker); imagens
+`node:22.11.0-bookworm` e `python:3.11.10-slim-bookworm`. Os testes de interface usam um navegador
+automático (Chromium com Playwright), que não descodifica H.264: nesses testes os vídeos da desfocagem são
+WebM (VP9), formato que a ferramenta mantém.
 *Vídeos de teste*, gerados pelo próprio script com FFmpeg (sem material de terceiros): `aula.mp4` (10 s,
 320×240, H.264/AAC, com tom de áudio), `curto.mp4` (3 s, 640×360, H.264, sem áudio), seis cópias de
 `curto.mp4` para esgotar a quota e `foto.png`. Os testes de deteção de caras e de fala precisam de um vídeo
@@ -117,9 +120,12 @@ estão registadas nos documentos de cada caso de uso.
   ),
 ) <tab-testes>
 
-*Totais da execução de 2026-10-20*: 59/59 testes unitários no `projects`, 64/64 nos _workers_ Python e 95
-verificações ponta a ponta sem falhas (UC-VID-001: 10; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 21;
-UC-VID-005: 18), com os testes que exigem um vídeo com caras ou fala ignorados.
+*Totais da execução de 2026-10-21* (com um vídeo com pessoas a falar em `BLUR_FACE_VIDEO`): 36 de 37 testes
+unitários no `projects` sem falhas (1 ignorado: o ciclo de vida das legendas precisa de uma MongoDB de teste),
+64/64 nos _workers_ Python (desfocagem 15, legendas 15, corte 8, extração 8, conversão 13, módulo partilhado 5)
+e 101 verificações ponta a ponta sem falhas (UC-VID-001: 13; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 24;
+UC-VID-005: 18), mais as inspeções com `ffprobe`, o _hash_ do original e a faixa WebVTT. Sem esse vídeo, os
+testes de deteção de caras e de fala são ignorados.
 
 == Limitações e defeitos conhecidos
 
@@ -133,11 +139,13 @@ UC-VID-005: 18), com os testes que exigem um vídeo com caras ou fala ignorados.
   [D-02], [Faltava no `api_gateway` a rota da estimativa da conversão (404).], [Teste manual], [Corrigido],
   [D-03], [A percentagem de progresso não aparecia na conversão.], [Revisão de código], [Corrigido],
   [D-04], [O _script_ ponta a ponta abortava antes das legendas quando não havia vídeo com caras.], [Execução para este relatório], [Corrigido],
+  [D-05], [Durante o processamento de uma ferramenta de vídeo, o texto de estado fica em "Em fila" e a barra só avança quando cada vídeo termina, embora o `ws_gateway` receba o progresso (o tratador do evento na página usa valores antigos do estado).], [Teste no navegador automático], [Por corrigir],
 )
 
 *Limitações e requisitos parciais no MVP:*
 - O estado "em fila/em curso" e o aviso de fim só são visíveis com a página aberta (STATUS-002, STATUS-005
-  parciais); ao regressar, vêem-se os resultados mas não o estado.
+  parciais); ao regressar, vêem-se os resultados mas não o estado. Durante o processamento a página mostra
+  "Em fila" e só avança a barra quando cada vídeo termina (STATUS-003 parcial, defeito D-05).
 - Tempos de processamento não medidos com vídeos longos (CONV-045, FRAME-025, FRAME-046, TRIM-043, SUB-016) e
   taxa de deteção de caras por medir, por falta de um conjunto anotado (BLUR-023). Não houve teste de carga
   (PERF-002).
@@ -149,5 +157,9 @@ UC-VID-005: 18), com os testes que exigem um vídeo com caras ou fala ignorados.
 - Partilhas de leitura, conta premium e cancelamento não têm teste automático próprio (mecanismos
   existentes).
 - Vídeos HEVC (frequentes em telemóveis) são aceites, mas podem não reproduzir em todos os navegadores.
+- Legendas: o modelo "small" deteta o idioma automaticamente e pode errar com sotaques fortes (num vídeo em
+  inglês detetou galês e transcreveu nesse idioma); nesses casos a opção English dá melhor resultado.
+- Os códigos de erro do corte (2100–2103) e da conversão (2100–2102) sobrepõem-se; não afeta o
+  funcionamento (cada resposta é associada ao pedido pelo identificador), mas dificulta o diagnóstico.
 - Os testes unitários da conversão e das legendas usam separadores de caminho de Linux; no Windows falham
   (a stack corre em Linux, nos contentores).

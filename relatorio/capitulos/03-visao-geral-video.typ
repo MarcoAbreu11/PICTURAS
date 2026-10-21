@@ -42,7 +42,8 @@ parte diferente do suporte a vídeo, e todas reutilizem o mesmo mecanismo comum:
   existentes (OCR, contagem de pessoas, …). Validou de ponta a ponta o caminho que as restantes reutilizam:
   capacidades por tipo de média, _worker_ via RabbitMQ, progresso, quota por vídeo e vários resultados por
   item.
-- *UC-VID-004 — Desfocar caras*: valida processamento *frame a frame com visão computacional*, demorado e
+- *UC-VID-004 — Desfocar caras*: valida processamento de vídeo *com visão computacional* (deteção de caras a
+  cada 3 frames, reutilizando as caixas nos intermédios, e desfocagem de todos os frames — DQ-021), demorado e
   sujeito à quota, que altera o conteúdo do vídeo e mantém o áudio. Responde a uma necessidade de privacidade
   (RGPD) ao publicar vídeos.
 - *UC-VID-005 — Converter ou comprimir*: valida a *recodificação* (formato, resolução, qualidade), a
