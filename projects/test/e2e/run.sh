@@ -80,9 +80,14 @@ echo; echo "######## UC-VID-004 — Desfocar caras ########"
 BLUR_RESULT=$(grep "^RESULT" "$WORK/blur.log")
 
 echo; echo "== TST-BLUR-06: duração, contentor, codecs e áudio do vídeo anonimizado (BLUR-006, 022, 043) =="
-curl -sk -o "$WORK/anonimizado.mp4" "$(cat "$WORK/blur_url.txt")"
-docker run --rm -v "$WORK":/w --entrypoint ffprobe picturas-blur_faces_tool \
-  -v error -show_entries format=format_name,duration:stream=codec_type,codec_name -of compact=p=0 /w/anonimizado.mp4
+# sem vídeo com caras, o único resultado é o vídeo sem caras, descartado no TST-BLUR-04
+if [ -f "$WORK/cara.mp4" ]; then
+  curl -sk -o "$WORK/anonimizado.mp4" "$(cat "$WORK/blur_url.txt")"
+  docker run --rm -v "$WORK":/w --entrypoint ffprobe picturas-blur_faces_tool \
+    -v error -show_entries format=format_name,duration:stream=codec_type,codec_name -of compact=p=0 /w/anonimizado.mp4
+else
+  echo "SKIP TST-BLUR-06: defina BLUR_FACE_VIDEO para inspecionar o vídeo anonimizado"
+fi
 
 if [ -f "$WORK/blur_src_url.txt" ]; then
   echo; echo "== TST-BLUR-07: o original fica inalterado (BLUR-021) =="
