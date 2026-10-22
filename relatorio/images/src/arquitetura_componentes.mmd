@@ -1,0 +1,67 @@
+%% Vista de componentes com suporte a vídeo: novos (laranja) e alterados (laranja claro).
+flowchart TB
+  Browser["👤 Browser"]:::base
+  nginx["nginx<br/>(proxy HTTPS; uploads até 500 MB)"]:::alterado
+
+  subgraph UI["UI e gateways"]
+    fe["frontend (Next.js)<br/>ferramentas de vídeo, leitor,<br/>progresso, legendas"]:::alterado
+    gw["api_gateway<br/>rotas de estimativa, legendas,<br/>descartar resultado; uploads 500 MB"]:::alterado
+    ws["ws_gateway<br/>eventos de progresso e<br/>falha por vídeo"]:::alterado
+  end
+
+  subgraph DOM["Serviços de domínio"]
+    proj["projects<br/>pipeline com capacidades por tipo de média,<br/>validação de vídeo (ffprobe), orquestração,<br/>quota por vídeo, serviço de legendas,<br/>limpeza de temporários"]:::alterado
+    users["users"]:::base
+    st["img_storage<br/>extensão do original;<br/>stage de legendas (text/vtt)"]:::alterado
+  end
+
+  subgraph INF["Infraestrutura"]
+    mq[["RabbitMQ<br/>+ filas trim, extract_frames,<br/>blur_faces, video_convert,<br/>video_subtitles(+results)"]]:::alterado
+    pdb[("projects_mongoDB<br/>(+ media_type, duração,<br/>codecs, legendas)")]:::base
+    s3[("SeaweedFS (S3)")]:::base
+    vol[("volume image_data<br/>(ficheiros de trabalho)")]:::base
+    wm[("volume whisper_models")]:::base
+  end
+
+  subgraph WK["Workers de vídeo (Tools/)"]
+    w1["trim_tool ×5"]:::novo
+    w2["extract_frames_tool ×5"]:::novo
+    w3["blur_faces_tool ×5<br/>(OpenCV YuNet)"]:::novo
+    w4["video_convert_tool ×5<br/>(conversão + estimativa)"]:::novo
+    w5["video_subtitles_tool ×1<br/>(faster-whisper small)"]:::novo
+    tu["Tools/utils<br/>tool_msg (progresso, erros)<br/>video.py (ffprobe/ffmpeg)"]:::alterado
+  end
+
+  Browser -->|HTTPS| nginx
+  nginx --> fe
+  nginx -->|/api-gateway/| gw
+  nginx -->|/socket.io| ws
+  nginx -->|"/s3/ (URLs assinados)"| s3
+  gw -->|REST| proj
+  gw -->|REST| users
+  proj -->|"perfil, quota,<br/>débito/devolução"| users
+  proj -->|REST| st
+  st --> s3
+  proj --> pdb
+  proj -->|"pedidos (AMQP)"| mq
+  mq -->|"resultados, progresso"| proj
+  mq -->|ws_queue| ws
+  ws -->|Socket.IO| Browser
+  mq --> w1
+  mq --> w2
+  mq --> w3
+  mq --> w4
+  mq --> w5
+  w1 -.-> vol
+  w2 -.-> vol
+  w3 -.-> vol
+  w4 -.-> vol
+  w5 -.-> vol
+  w5 -.-> wm
+  proj -.-> vol
+  w1 -.-> tu
+  w4 -.-> tu
+
+  classDef base fill:#FFFFFF,stroke:#616161,color:#000000
+  classDef novo fill:#FBE3CC,stroke:#C76C1B,color:#000000
+  classDef alterado fill:#FFF4E5,stroke:#C76C1B,color:#000000

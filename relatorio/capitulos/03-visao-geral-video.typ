@@ -58,19 +58,17 @@ parte diferente do suporte a vídeo, e todas reutilizem o mesmo mecanismo comum:
 )
 
 #figure(
-  image("../images/diagrama_casos_uso.png", width: 100%),
+  image("../images/diagrama_casos_uso.png", height: 14.5cm),
   caption: [Diagrama de casos de uso atualizado (Fase 1 — vídeo)],
 ) <fig-casos-uso>
 
-Os cinco casos de uso de vídeo (a laranja) estendem o caso de uso de base que aplica ferramentas a um projeto
-(UC04), porque todas as ferramentas de vídeo são ferramentas da _pipeline_: são adicionadas ao projeto e
-executadas ao carregar em "Aplicar". O carregamento de ficheiros é um caso de uso de base *alterado* (passa a
-aceitar vídeos, com limites por perfil) e é pré-condição de todos os casos de uso de vídeo. Os atores seguem
-as regras de perfil (RNG-04): o *anónimo* acede apenas ao corte; o *registado* acede às cinco ferramentas, e o
-*premium* herda tudo o que o registado faz (generalização), sem limite diário. O *convidado por link* com
-permissão de edição aplica as ferramentas de vídeo de um projeto partilhado; a conversão é a exceção, porque
-o vídeo convertido fica na biblioteca do proprietário e só ele lhe acede (RNG-09). Os casos de uso de base
-UC05 a UC07 ficam a cinzento, para contexto.
+O diagrama atualizado mantém os atores e os casos de uso de base e acrescenta, a laranja, os cinco casos de
+uso de vídeo e o carregamento *alterado* (passa a aceitar vídeos, com limites por perfil), que é
+pré-condição de todos eles. As ferramentas de vídeo são ferramentas da _pipeline_: são adicionadas ao projeto
+e executadas ao carregar em "Aplicar". Os atores seguem as regras de perfil (RNG-04): o *anónimo* acede
+apenas ao corte; o utilizador com sessão acede às cinco ferramentas, e o *premium* sem limite diário. O
+*convidado* com permissão de edição aplica as ferramentas de vídeo de um projeto partilhado; a conversão é a
+exceção, porque o vídeo convertido fica na biblioteca do proprietário e só ele lhe acede (RNG-09).
 
 == Modelo de domínio (atualizado)
 
@@ -80,29 +78,23 @@ UC05 a UC07 ficam a cinzento, para contexto.
 )
 
 #figure(
-  image("../images/modelo_dominio.png", width: 100%),
+  image("../images/modelo_dominio.svg", width: 100%),
   caption: [Modelo de domínio atualizado (Fase 1 — vídeo)],
 ) <fig-modelo-dominio>
 
-O modelo de base era centrado em `Imagem`. As alterações respondem às questões das diretrizes:
+O modelo de base era centrado em `Imagem`. O modelo atualizado mantém-no e acrescenta, a laranja, apenas os
+conceitos novos:
 
-- *Vídeo e Imagem* são especializações de um conceito comum, *Item de Média* (nome, formato, tamanho). Um
-  `Vídeo` acrescenta duração, resolução e codecs, que são lidos no carregamento e usados para validar pedidos
-  sem reler o ficheiro. Um vídeo pode ser *convertido a partir de* outro vídeo (UC-VID-005).
-- Um *Projeto* contém uma *biblioteca* de itens de média que pode misturar imagens e vídeos.
-- O processamento é demorado: cada "Aplicar" cria um *Trabalho de Processamento* por item compatível, com
-  estado (em fila, em curso, concluído, falhado, cancelado), progresso e causa da falha. O trabalho produz
-  *Resultados* (imagens ou vídeos) ou uma *Faixa de Legendas*, que fica associada ao vídeo e não é um novo
-  ficheiro de média.
-- Uma *Ferramenta aceita* um ou mais *Tipos de Média*. As cinco ferramentas de vídeo aceitam apenas vídeo; as
-  ferramentas de imagem não se aplicam a frames diretamente — as imagens extraídas tornam-se itens normais
-  quando copiadas para um projeto. O corte é uma ferramenta básica; as outras quatro são avançadas e consomem
-  uma operação por item processado.
-- As quotas e limites por perfil são representados pelos *Limites de Vídeo do Perfil* (tamanho, duração,
-  resolução máxima de saída) e pela *Quota Diária* do registado.
+- *Vídeo*: um projeto contém vídeos tal como contém imagens, e as ferramentas alteram-nos. A duração, a
+  resolução e os codecs são lidos no carregamento e usados para validar pedidos sem reler o ficheiro.
+- *Legenda*: um vídeo tem no máximo duas faixas de legendas (idioma original e inglês), que ficam associadas
+  ao vídeo e não são um novo ficheiro de média.
+- Uma *Imagem* pode ser *extraída de* um vídeo (UC-VID-003); depois de copiada para um projeto é uma imagem
+  normal.
 
-Os termos são os dos casos de uso e da ERS: *biblioteca* (itens do projeto), *resultados* (o que uma
-execução da _pipeline_ produz) e *trabalho de processamento*.
+O corte é uma ferramenta básica; as outras quatro ferramentas de vídeo são avançadas e consomem uma operação
+por vídeo processado (RNG-03). Os limites por perfil e o estado de cada processamento são regras e
+requisitos (RNG-02, ERS), não conceitos novos do domínio.
 
 == Regras de negócio transversais
 

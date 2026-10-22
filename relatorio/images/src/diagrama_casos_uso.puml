@@ -1,83 +1,45 @@
 @startuml diagrama_casos_uso
-' Diagrama de casos de uso atualizado (Fase 1 — vídeo).
-' Gerar: docker run --rm -v "$PWD":/w -w /w plantuml/plantuml:1.2024.7 -tpng images/src/*.puml -o ..
+!include estilo-vp.iuml
+skinparam linetype polyline
+' Diagrama de casos de uso atualizado (Fase 1 — vídeo): o diagrama de base com os casos de uso
+' de vídeo acrescentados (a laranja: novos ou alterados).
+' Gerar (na pasta relatorio): docker run --rm -v "$PWD":/w -v "$PWD/fonts":/usr/share/fonts/carlito:ro -w /w plantuml/plantuml:1.2024.7 -tpng -Sdpi=200 images/src/*.puml -o ..
 left to right direction
-skinparam shadowing false
-skinparam defaultFontName Carlito
-skinparam defaultFontSize 13
-skinparam packageStyle rectangle
-skinparam usecase {
-  BackgroundColor<<base>> #EEEEEE
-  BorderColor<<base>> #9E9E9E
-  FontColor<<base>> #616161
-  BackgroundColor<<video>> #FBE3CC
-  BorderColor<<video>> #C76C1B
-  FontColor<<video>> #000000
-  BackgroundColor<<alt>> #FFF4E5
-  BorderColor<<alt>> #C76C1B
-}
-skinparam actorBorderColor #424242
-hide stereotype
 
-actor "Utilizador\nAnónimo" as Anon
-actor "Utilizador\nRegistado" as Reg
-actor "Utilizador\nPremium" as Prem
-actor "Convidado por Link\n(permissão de edição)" as Conv
+actor "Anónimo" as Anon
+actor "Utilizador" as User
+actor "Premium" as Prem
+actor "Utilizador Convidado" as Conv
 
-Reg -|> Anon
-Prem -|> Reg
+Anon -|> User
+Prem -|> User
+Conv -|> User
 
-rectangle "PictuRAS" {
-  usecase "Carregar vídeo para o projeto\n(estendido: imagens e vídeos)" as UCUP <<alt>>
-  usecase "UC04 — Aplicar ferramentas\nao projeto (pipeline)" as UC04 <<base>>
-  usecase "UC05 — Criar e gerir presets" as UC05 <<base>>
-  usecase "UC06 — Assistente IA na edição" as UC06 <<base>>
-  usecase "UC07 — Partilhar projeto" as UC07 <<base>>
-
-  usecase "UC-VID-002\nCortar vídeo" as V2 <<video>>
-  usecase "UC-VID-001\nGerar legendas automáticas" as V1 <<video>>
-  usecase "UC-VID-003\nExtrair frames de vídeos" as V3 <<video>>
-  usecase "UC-VID-004\nDesfocar caras de um vídeo" as V4 <<video>>
-  usecase "UC-VID-005\nConverter ou comprimir vídeo" as V5 <<video>>
+rectangle "Sistema" {
+  usecase "Registo" as Reg
+  usecase "Login" as Login
+  usecase "Carregar imagens\ne vídeos" as Up <<novo>>
+  usecase "Aplicar encadeamento\nde ferramentas" as Apl
+  usecase "Criar filtro personalizado" as Filtro
+  usecase "Partilhar projeto" as Part
+  usecase "Assistente IA na edição" as IA
+  usecase "Cortar vídeo" as V2 <<novo>>
+  usecase "Gerar legendas" as V1 <<novo>>
+  usecase "Extrair frames" as V3 <<novo>>
+  usecase "Desfocar caras" as V4 <<novo>>
+  usecase "Converter ou\ncomprimir vídeo" as V5 <<novo>>
 }
 
-Anon --> UCUP
-Anon --> UC04
-Anon --> V2
-
-Reg --> UC05
-Reg --> UC07
-Reg --> V1
-Reg --> V3
-Reg --> V4
-Reg --> V5
-Prem --> UC06
-
-Conv --> V2
-Conv --> V1
-Conv --> V3
-Conv --> V4
-
-V1 ..> UC04 : <<extend>>
-V2 ..> UC04 : <<extend>>
-V3 ..> UC04 : <<extend>>
-V4 ..> UC04 : <<extend>>
-V5 ..> UC04 : <<extend>>
-
-note bottom of V5
-  Só o proprietário do projeto
-  (resultado fica na biblioteca)
-end note
-note top of Conv
-  Aplica as ferramentas de vídeo com o perfil
-  do convidado; uma partilha só de leitura
-  apenas consulta resultados e legendas.
-end note
-legend right
-  |<back:#FBE3CC>   </back>| Caso de uso de vídeo (novo) |
-  |<back:#FFF4E5>   </back>| Caso de uso de base alterado |
-  |<back:#EEEEEE>   </back>| Caso de uso de base (contexto) |
-  Pré-condição comum dos casos de uso de vídeo: o projeto contém
-  vídeos carregados (ver "Carregar vídeo para o projeto").
-endlegend
+Anon -- Reg
+User -- Login
+User -- Up
+User -- Apl
+User -- Filtro
+User -- Part
+User -- V2
+User -- V1
+User -- V3
+User -- V4
+User -- V5
+Prem -- IA
 @enduml

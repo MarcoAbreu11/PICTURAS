@@ -12,7 +12,7 @@ vídeo.
 
 #figure(
   image("../images/arquitetura_componentes.png", width: 100%),
-  caption: [Vista de componentes da solução com suporte a vídeo (novos a laranja, alterados a laranja claro)],
+  caption: [Vista de componentes da solução com suporte a vídeo (novos ou alterados a laranja)],
 ) <fig-componentes>
 
 #tab([Componentes novos e alterados],
