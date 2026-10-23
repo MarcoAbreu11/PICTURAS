@@ -14,7 +14,7 @@ Os critérios de aceitação da ERS são a base dos testes, organizados em quatr
   FFmpeg, codecs por contentor, regras da estimativa e o módulo partilhado `Tools/utils/video.py`, este com
   FFmpeg real.
 - *Ponta a ponta*, ou _end-to-end_ (e2e) (`bash projects/test/e2e/run.sh`): com a stack a correr em `docker compose`, cria
-  utilizadores de teste, carrega vídeos, aplica cada ferramenta pela API e verifica resultados, quota e
+  utilizadores de teste, carrega vídeos, aplica cada ferramenta pela API diretamente no projects (sem browser/gateway) e verifica resultados, quota e
   mensagens; os ficheiros gerados são inspecionados com `ffprobe`.
 - *Manuais e inspeção*: utilização no navegador, logs do `ws_gateway` e medições de tempo.
 
@@ -31,7 +31,7 @@ A inferência real das legendas usa uma amostra de fala humana portuguesa do con
 
 == Testes realizados
 
-Cada linha indica a data da execução registada. As execuções de 2026-10-20 e posteriores foram feitas para este
+As datas seguintes são as dos registos históricos, quando disponíveis. Nesta revisão de 2026-10-23: Node E4 6 passam, 1 integração Mongo ignorada por falta de serviço; Python E4 15/15; Compose config válido. O teste TST-SUB-CHR passou em Edge/Chromium com API simulada, painel e mutação de processamento reais: configuração e Save sem geração, Apply, English primeiro, idioma antes da faixa Original, cues WebVTT, desativação e reutilização. Não cobre sockets da página completa nem ativação automática pós-Apply. TypeScript passou. Mongo foi tentado explicitamente: ligação recusada em 27018. E2E foi tentado: falhou no arranque por indisponibilidade do motor Docker. Cada linha indica a data da execução registada. As execuções de 2026-10-20 e posteriores foram feitas para este
 relatório; as mais recentes (2026-10-23) são as dos testes unitários do `projects` e da bateria ponta a ponta da
 conversão, repetidas na versão entregue. As restantes estão registadas nos documentos de cada caso de uso.
 
@@ -47,7 +47,7 @@ conversão, repetidas na versão entregue. As restantes estão registadas nos do
     grelha e reproduz no carrossel.], [SUBMIT-001, 005], [Passa (2026-10-17)],
     [TST-SUB-P1 a P3], [Unitário], [Opções aceites (`original`, `en`), só vídeos, sem combinação.],
     [SUB-001, PIPE-003, 004], [3/3 (2026-10-20)],
-    [TST-SUB-U], [Unitário (MongoDB)], [Ciclo de vida das faixas: autorização, ambas as ordens de geração,
+    [TST-SUB-U], [Integração (MongoDB)], [Ciclo de vida das faixas: autorização, ambas as ordens de geração,
     equivalência inglesa, reutilização, 12 pedidos concorrentes, falhas e devolução, eliminação durante o
     carregamento, respostas duplicadas.], [SUB-003, 006, 007, 010 a 012, QUOTA-002, SEC-002],
     [26/26 (2026-10-20)],
@@ -60,12 +60,12 @@ conversão, repetidas na versão entregue. As restantes estão registadas nos do
     e a segunda vez não gasta quota.], [SUB-002, SUB-006], [Ignorado sem vídeo com fala],
     [TST-SUB-INF], [Integração], [Dado fala portuguesa e inglesa, quando se gera Original e English, então a
     transcrição e a tradução são produzidas, `pt` é detetado, o _hash_ do vídeo mantém-se; sem áudio dá 2303
-    e um tom sem fala dá 2304.], [SUB-002, 003, 007 a 009, SEC-001], [Passa (registado pelo autor)],
+    e um tom sem fala dá 2304.], [SUB-002, 003, 007 a 009, SEC-001], [Histórico: passa segundo o autor; data de execução não registada; não reexecutado em 2026-10-23],
     [TST-SUB-CHR], [Integração (Chromium)], [Dado o leitor real com API simulada, então a faixa gerada fica
-    ativa, desativar/trocar reutiliza, os _cues_ carregam e não há erros de JavaScript.],
-    [SUB-004, 005, 015], [Passa (registado pelo autor)],
+    selecionada é mostrada, desativar e reutilizar não geram nova faixa, os _cues_ carregam e English primeiro revela o idioma original.],
+    [SUB-004, 015, 018], [Passa (2026-10-23, Edge/Chromium, API simulada); ativação automática SUB-005 não coberta],
     [TST-SUB-TR], [Integração (RabbitMQ)], [Dado a mesma mensagem duas vezes, então o _worker_ devolve o mesmo
-    recibo sem nova inferência.], [SUB-014], [Passa (registado pelo autor)],
+    recibo sem nova inferência.], [SUB-014], [Histórico: passa segundo o autor; data de execução não registada; não reexecutado em 2026-10-23],
     [TST-TRIM-01 a 06], [Unitário], [Intervalo válido, início ≥ fim, excerto curto, parâmetros em falta, fim
     além da duração, capacidades e exclusividade.], [TRIM-003, 014, 015, 034, PIPE-003, 004], [6/6 (2026-10-20)],
     [TST-TRIM-PY], [Unitário], [Validação, nome, codecs por contentor e argumentos do FFmpeg.],
@@ -152,7 +152,7 @@ conversão, repetidas na versão entregue. As restantes estão registadas nos do
   ),
 ) <tab-testes>
 
-*Totais da execução de 2026-10-21* (com um vídeo com pessoas a falar em `BLUR_FACE_VIDEO`): 59/59 testes
+*Totais históricos declarados da execução de 2026-10-21* (com um vídeo com pessoas a falar em `BLUR_FACE_VIDEO`): 59/59 testes
 unitários no `projects` (repetidos a 2026-10-23 contra o `projects_mongoDB`, sem nenhum ignorado),
 64/64 nos _workers_ Python (desfocagem 15, legendas 15, corte 8, extração 8, conversão 13, módulo partilhado 5)
 e 106 verificações ponta a ponta sem falhas (UC-VID-001: 13; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 24;

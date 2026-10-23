@@ -63,7 +63,7 @@
     [Instalação (`docker-compose.yaml`, RabbitMQ, nginx)], [Estender], [Cinco novos _workers_, novas filas,
     volume do modelo de legendas e limite de carregamento de 500 MB no nginx e no gateway.], [Todos],
     [PORT-001, PERF-002, SUB-017],
-    [Encadeamento de ferramentas e processamento em lote], [Manter], [Sem alterações no MVP: as ferramentas de
+    [Encadeamento de ferramentas e processamento em lote], [Estender], [A extensão introduz exclusividade (PIPE-004): as ferramentas de
     vídeo não se encadeiam; aplicam-se a todos os vídeos do projeto.], [Todos], [PIPE-004, PIPE-006],
   ),
 ) <tab-impacto>

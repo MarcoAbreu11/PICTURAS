@@ -23,7 +23,7 @@ ferramenta básica, como o recorte de imagem, e não consome operações.
     [RNG-02, RNG-04; SUBMIT-002, QUOTA-005, TRIM-049],
     [Registado], [Gratuito, até 5 operações/dia],
     [Carrega vídeos até *100 MB e 60 s* (†). Cada vídeo processado por uma ferramenta avançada consome uma
-    operação, debitada no pedido e devolvida em falha ou cancelamento. Resolução máxima de saída da conversão:
+    operação, debitada no pedido e devolvida em falha ou cancelamento (exceção das legendas já enviadas: RNG-03). Resolução máxima de saída da conversão:
     *720p*.],
     [RNG-02, RNG-03, RNG-11; SUBMIT-002, QUOTA-001 a 003, CONV-022],
     [Premium], [Pago, uso ilimitado],

@@ -38,7 +38,7 @@ function uploadSingle(field) {
 
 const projectsURL = "https://projects:9001/";
 
-// UC-VID-001 is an operation on one original video, independent of Apply.
+// UC-VID-001 is an operation on one original video, also used by the project Apply flow.
 router.route("/:user/:project/img/:img/subtitles")
   .all(auth.checkToken)
   .get(forwardSubtitles)

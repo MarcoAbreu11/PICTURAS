@@ -96,7 +96,7 @@ Os testes não afirmam que houve revisão humana. Comandos:
 ```sh
 # Backend: testes existentes e E4; usar um Mongo exclusivo para testes.
 cd projects
-SUBTITLES_TEST_MONGO=mongodb://127.0.0.1:27028 node --test test/*.test.js
+SUBTITLES_TEST_MONGO=mongodb://127.0.0.1:27018 node --test test/*.test.js
 
 # Worker e regras, sem descarregar modelo.
 PYTHONPATH=Tools python -m unittest discover -s Tools/video_subtitles -p 'test_*.py'
@@ -140,4 +140,8 @@ API Whisper confirmada no [código da versão 1.2.1](https://github.com/SYSTRAN/
 
 ChatGPT/ChatGPT Work foi usado para análise do repositório e documentos, planeamento,
 implementação assistida, revisão do diff, criação e execução de testes.
-A revisão humana pela equipa ainda não ocorreu.
+A funcionalidade e a documentação foram revistas posteriormente pelo Cláudio/Rafael.
+
+## Revisão final de 2026-10-23
+
+Resultados acima são históricos. Nesta revisão: Node E4 6 passam e 1 integração Mongo ignorada; tentativa explícita de Mongo falhou com ECONNREFUSED em 27018. Python E4 15/15, TypeScript e Compose config passaram. Teste atualizado passou em Edge/Chromium com painel e mutação Apply reais e API simulada: Save sem geração, Apply, English primeiro e idioma junto de Original antes da sua faixa, cues, desativação e reutilização. Não valida a página completa/sockets nem ativação automática após Apply. E2E tentou arrancar e falhou: motor Docker indisponível. Datas históricas de inferência e transporte não comprovadas; não reexecutados.

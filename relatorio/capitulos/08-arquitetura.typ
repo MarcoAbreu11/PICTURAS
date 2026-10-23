@@ -48,7 +48,7 @@ vídeo.
     perfil; guarda duração, resolução, tamanho e codecs.], [SUBMIT-001 a 004],
     [`projects`: legendas (P-SUBS)], [Novo], [Serviço, rotas e coleção próprios para as faixas: autorização,
     reserva atómica por vídeo, reutilização por _hash_, filas duráveis com confirmação, recuperação e
-    eliminação.], [SUB-001, 003, 006, 010 a 012, QUOTA-001, 002],
+    eliminação.], [SUB-001, 003, 006, 007, 019, 010 a 012, QUOTA-001, 002],
     [`projects`: temporários (P-TEMP)], [Novo], [Elimina a cópia local depois de cada trabalho e varre a cada
     10 min os ficheiros de vídeo com mais de 50 min sem trabalho ativo.], [RESULT-005],
     [`users` (USERS)], [Mantido], [Reserva e devolução de operações (`/process/:n`, `/process/refund/:n`)
@@ -60,7 +60,7 @@ vídeo.
     [`ws_gateway` (WS)], [Alterado], [Eventos `process-progress` e `process-item-error`.], [STATUS-003, 006],
     [_frontend_ (FE-TOOLS, FE-PAGE, FE-MEDIA)], [Alterado], [Ferramentas de vídeo na barra (linha temporal,
     opções, estimativa, idiomas); progresso e estados "Em fila"/"Em curso"; leitor de vídeo com faixas de
-    legendas; grelha com o primeiro frame.], [PIPE-001, STATUS-002, 003, SUB-004, 005, SUBMIT-005, TRIM-002 a 004],
+    legendas; grelha com o primeiro frame.], [PIPE-001, STATUS-002, 003, SUB-004, 005, 018, SUBMIT-005, TRIM-002 a 004],
     [Infraestrutura (INFRA)], [Alterado], [`docker-compose.yaml` com os cinco _workers_ e o volume do modelo;
     filas em `rabbitMQ/definitions.json`; nginx com `client_max_body_size 500M` e _timeouts_ de 600 s.],
     [PORT-001, PERF-002],
@@ -143,7 +143,8 @@ notifica o _frontend_. Se o vídeo falhar, o _worker_ remove o ficheiro parcial 
 `projects` devolve a operação e envia uma falha desse vídeo, sem interromper os restantes. Quando todos os
 vídeos terminam, o _frontend_ pede os resultados, servidos por ligações assinadas. O cancelamento invalida o
 _token_ da execução, devolve as operações e remove os resultados dessa execução; as respostas que cheguem
-depois são ignoradas e os seus ficheiros apagados. As legendas seguem o mesmo início (Aplicar), mas o
+depois são ignoradas e os seus ficheiros apagados. Excetuam-se as legendas já enviadas ao worker:
+a faixa fica guardada quando termina e a operação conta como gerada. As legendas seguem o mesmo início (Aplicar), mas o
 `projects` delega no serviço de legendas, que usa filas duráveis próprias e confirma cada mensagem só depois
 de a tratar; como o modelo não reporta percentagem, o `projects` envia 0 % quando o pedido segue para o
 _worker_ e o fim quando a faixa fica guardada.

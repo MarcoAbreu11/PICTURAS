@@ -206,7 +206,7 @@ número nos documentos de base; RF45/UC07: partilha; RF64: sugestão de _upgrade
       [Reinterpreta a quota diária para vídeo; o débito no início impede ultrapassá-la com pedidos simultâneos.],
       [Dado um registado com 5 operações e 2 vídeos, quando aplica a extração, então ficam 3.]),
     ..rf([QUOTA-002], [O sistema deve devolver as operações dos vídeos cujo processamento falha e de todos os
-      vídeos quando o processamento é cancelado.], must, [ALT (T-07)],
+      vídeos quando o processamento é cancelado, exceto legendas já enviadas ao worker, que contam como geradas.], must, [ALT (T-07)],
       [UC-VID-001/Exc. 3, 4, 7; UC-VID-003/Exc. 6–7; UC-VID-004/RN3; UC-VID-005/RN2, FA6; RNG-03; DQ-005],
       [Só os sucessos contam; falhas não penalizam o utilizador.],
       [Dado 2 vídeos e uma falha num deles, quando termina, então só 1 operação fica consumida.]),
@@ -286,7 +286,7 @@ número nos documentos de base; RF45/UC07: partilha; RF64: sugestão de _upgrade
     ..rf([SUB-002], [O sistema deve gerar, ao aplicar, legendas a partir da fala de cada vídeo do projeto, no
       idioma escolhido.], must, [NOVO], [UC-VID-001, passo 5],
       [Núcleo funcional do caso de uso.],
-      [Dado um vídeo com fala portuguesa e "Original", então a faixa contém a transcrição em português.]),
+      [Dado um vídeo com fala portuguesa, quando pede Original e English em qualquer ordem, incluindo English primeiro, então cada pedido gera apenas a opção solicitada: transcrição portuguesa ou tradução inglesa.]),
     ..rf([SUB-003], [O sistema deve guardar as legendas como uma faixa WebVTT associada ao vídeo, sem alterar
       o vídeo, até este ser eliminado.], must, [NOVO],
       [UC-VID-001, passo 6; UC-VID-001/RN1; UC-VID-001/Q5; RNG-05; DQ-019],
@@ -303,10 +303,15 @@ número nos documentos de base; RF45/UC07: partilha; RF64: sugestão de _upgrade
       geração nem consumo de quota.], must, [NOVO], [UC-VID-001/FA1; UC-VID-001/RN2, RN5; RNG-03; DQ-019],
       [Evita custo e espera repetidos.],
       [Dado uma faixa existente, quando aplica de novo, então a quota não muda.]),
-    ..rf([SUB-007], [O sistema deve guardar o idioma predominante detetado e, quando é inglês, usar a mesma
-      faixa para Original e English.], should, [NOVO], [UC-VID-001/FA3; UC-VID-001/A4],
-      [Evita gerar duas vezes o mesmo texto.],
-      [Dado um vídeo em inglês, então Original e English apontam para a mesma faixa.]),
+    ..rf([SUB-007], [O sistema deve guardar o idioma predominante detetado na primeira geração válida.], must,
+      [NOVO], [UC-VID-001, passos 5–6; UC-VID-001/A4], [Reutiliza a deteção nas gerações seguintes.],
+      [Dado English primeiro, quando termina com fala válida, então o idioma de origem fica persistido.]),
+    ..rf([SUB-018], [O sistema deve apresentar o idioma detetado junto de Original mesmo sem faixa Original.], must,
+      [NOVO], [UC-VID-001, passos 2, 5–6; UC-VID-001/A2], [Identifica o idioma de origem.],
+      [Dado English gerado primeiro com idioma pt, quando abre o painel, então mostra Original (Português); antes de deteção válida mostra apenas Original.]),
+    ..rf([SUB-019], [O sistema deve reutilizar uma única geração e uma única faixa física para Original e English quando a origem é inglês.], must,
+      [NOVO], [UC-VID-001/FA3], [Evita duplicação.],
+      [Dado origem inglesa, quando pede ambas as opções em qualquer ordem, então há uma execução e uma chave física partilhada.]),
     ..rf([SUB-008], [O sistema deve terminar a geração de um vídeo sem faixa de áudio com a mensagem "O vídeo
       não tem faixa de áudio".], must, [NOVO], [UC-VID-001/Exc. 3], [Causa clara e acionável.],
       [Dado um vídeo sem áudio, então a geração termina com o código 2303 e sem faixa.]),

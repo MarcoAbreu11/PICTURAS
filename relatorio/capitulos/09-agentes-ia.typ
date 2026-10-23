@@ -54,7 +54,7 @@ repositório:
     [_commit_ `329e31a`],
     [ChatGPT Work], [UC-VID-001], [Serviço e _worker_ de legendas, rotas, leitor no _frontend_, testes de
     backend, _worker_, inferência real e Chromium.], [A nota de implementação regista que a revisão humana ainda
-    não tinha ocorrido; revisão feita depois pelo Cláudio.], [_commits_ `0c0c9c0`, `8a9729d`],
+    não tinha ocorrido; funcionalidade e documentação revistas posteriormente pelo Cláudio/Rafael.], [_commits_ `0c0c9c0`, `8a9729d`],
     [Claude Code], [Todos], [Consolidação dos cinco casos de uso e das ERS neste relatório (requisitos
     partilhados, decisões de qualidade globais, matriz, realização), diagramas e execução de todas
     as baterias de testes para registar os resultados.], [Revisão do relatório pela equipa.],
