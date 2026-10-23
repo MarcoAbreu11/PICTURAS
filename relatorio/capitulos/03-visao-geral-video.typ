@@ -53,11 +53,6 @@ parte diferente do suporte a vídeo, e todas reutilizem o mesmo mecanismo comum:
 == Diagrama de casos de uso (atualizado)
 
 #figure(
-  image("../images/baseline/diagrama_casos_uso_base.png", width: 70%),
-  caption: [Diagrama de casos de uso da solução de base],
-)
-
-#figure(
   image("../images/diagrama_casos_uso.svg", width: 100%),
   caption: [Diagrama de casos de uso atualizado (Fase 1, vídeo)],
 ) <fig-casos-uso>
@@ -73,11 +68,6 @@ Convidado* com permissão de edição aplica as ferramentas de vídeo de um proj
 exceção, porque o vídeo convertido fica na biblioteca do proprietário e só ele lhe acede (RNG-09).
 
 == Modelo de domínio (atualizado)
-
-#figure(
-  image("../images/baseline/modelo_dominio_base.png", width: 85%),
-  caption: [Modelo de domínio da solução de base],
-)
 
 #figure(
   image("../images/modelo_dominio.svg", width: 100%),

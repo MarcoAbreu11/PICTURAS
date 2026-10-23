@@ -26,6 +26,8 @@ repositório:
 - `.claude/skills/nova-ferramenta-video`: passos para acrescentar uma ferramenta de vídeo (_worker_, fila,
   regras no `projects`, _frontend_, testes e relatório).
 - `.claude/skills/testes`: como correr os testes unitários, dos _workers_ e ponta a ponta, e registá-los.
+- `.claude/prompts.md`: _prompts_ relevantes dados ao Claude Code, copiados da transcrição das sessões, com o
+  resultado e a validação de cada um (secção seguinte).
 
 == Tarefas apoiadas e validação
 
@@ -61,6 +63,40 @@ repositório:
     [`relatorio/`],
   ),
 ) <tab-ia>
+
+== Prompts relevantes
+
+Seleção dos _prompts_ dados ao Claude Code (texto original, da transcrição da sessão); a lista completa, com
+o resultado de cada um, está em `.claude/prompts.md`. Os _prompts_ do UC-VID-001 estão descritos na nota de
+implementação `docs/UC-VID-001_legendas.md`.
+
+#tab([Prompts relevantes dados ao Claude Code],
+  tabela(
+    colunas: (1.9cm, 1fr, 1fr),
+    tamanho: 8pt,
+    [Data], [_Prompt_], [Resultado e validação],
+    [2026-10-17], ["Temos os seguintes use cases: [...] Cria um guião especifico de que cada elemento deve
+    fazer"], [Guião `docs/GUIAO_TOOLS_VIDEO.md` com a divisão das ferramentas pelos elementos.],
+    [2026-10-17], ["Sim, implementa o primeiro marco do guião: infraestrutura de upload, media_type no upload e
+    no /imgs, e o MediaView no frontend."], [Carregamento e leitor de vídeo; testado à mão com um vídeo
+    próprio.],
+    [2026-10-19], ["implementa no picturas esta funcionalidade tendo em conta o use case e mantem o flow do
+    trabalho"], [_Worker_ `blur_faces` e integração (UC-VID-004); TST-BLUR-03 com um vídeo próprio e revisão
+    de código pelo Marco.],
+    [2026-10-20], ["Neste momento a tool de legendas não está a ser adicionada à pipeline podes fazer isso e só
+    ser aplicada depois de fazer apply"], [Legendas como ferramenta da _pipeline_, geradas no Apply; testes
+    ponta a ponta das legendas.],
+    [2026-10-21], ["Na página 5 diz lá que o desfocar desfoca a cara frame a frame mas isso e mentira porque só
+    faz isso a cada 3 frames, verifica ainda se tem alguma coisa fora do que temos realmente no trabalho e
+    corrige."], [Relatório verificado contra o código; DQ-021 e correção das afirmações falsas.],
+    [2026-10-23], ["quero que faz ao repositório e vejas as alterações que foram feitas e verifica se está tudo
+    pronto para a entrega"], [Todas as baterias de testes executadas; pacotes com fins de linha CRLF
+    regenerados.],
+    [2026-10-23], ["Isto é verdade?" (auditoria final) e "Se for do código original não é para mejer"],
+    [Defeitos verificados no código e na origem; D-07 e D-08 corrigidos (TST-SUB-13), D-09 a D-11
+    registados.],
+  ),
+)
 
 == Análise crítica
 
