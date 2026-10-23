@@ -90,8 +90,8 @@ implementação `docs/UC-VID-001_legendas.md`.
     faz isso a cada 3 frames, verifica ainda se tem alguma coisa fora do que temos realmente no trabalho e
     corrige."], [Relatório verificado contra o código; DQ-021 e correção das afirmações falsas.],
     [2026-10-23], ["quero que faz ao repositório e vejas as alterações que foram feitas e verifica se está tudo
-    pronto para a entrega"], [Todas as baterias de testes executadas; pacotes com fins de linha CRLF
-    regenerados.],
+    pronto para a entrega"], [Todas as baterias de testes executadas; pacotes, que estavam com fins de
+    linha CRLF, regenerados com LF.],
     [2026-10-23], ["Isto é verdade?" (auditoria final) e "Se for do código original não é para mejer"],
     [Defeitos verificados no código e na origem; D-07 e D-08 corrigidos (TST-SUB-13), D-09 a D-11
     registados.],
