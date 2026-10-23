@@ -22,7 +22,7 @@ das legendas é descarregado na primeira utilização para o volume `whisper_mod
 
 *Utilização rápida*: criar um projeto, carregar um vídeo MP4 (até 60 s numa conta registada), abri-lo no
 carrossel, escolher uma ferramenta de vídeo na barra lateral, guardar e carregar em "Apply". Os resultados
-aparecem em "Results"; o vídeo convertido aparece também na lista de itens do projeto.
+aparecem em "Results", exceto as legendas, associadas ao vídeo original e visíveis no leitor; o vídeo convertido aparece também na lista de itens do projeto.
 
 *Testes automáticos*:
 
@@ -34,7 +34,8 @@ cd projects && SUBTITLES_TEST_MONGO=mongodb://127.0.0.1:27018 node --test test/*
 # unitários dos workers (dentro das imagens, que já têm FFmpeg e OpenCV)
 docker run --rm --entrypoint sh picturas-video_convert_tool -c "python -m unittest test_convert_rules utils.test_video"
 
-# ponta a ponta, com a stack a correr (opcional: vídeo com caras e fala)
+cd ..
+# ponta a ponta pela API, com a stack a correr (opcional: vídeo com caras e fala)
 BLUR_FACE_VIDEO=/caminho/video_com_pessoas.mp4 bash projects/test/e2e/run.sh
 ```
 

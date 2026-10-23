@@ -41,7 +41,7 @@
     [1], [O utilizador abre um projeto e abre um dos vídeos.], [O sistema reproduz o vídeo e apresenta as
     ferramentas de vídeo.],
     [2], [O utilizador escolhe "Legendas automáticas".], [O sistema apresenta o idioma das legendas
-    (Original ou English) e as faixas já existentes desse vídeo.],
+    (Original ou English), o idioma detetado junto de Original mesmo sem essa faixa e as faixas já existentes desse vídeo.],
     [3], [O utilizador escolhe o idioma e guarda a ferramenta.], [O sistema valida a opção e adiciona a
     ferramenta à _pipeline_ do projeto.],
     [4], [O utilizador carrega em "Aplicar".], [O sistema valida a _pipeline_, o perfil e a quota, reserva
@@ -67,7 +67,7 @@
     [FA2 – Mostrar, esconder ou trocar faixa], [Passo 2: o utilizador escolhe uma faixa existente ou
     "Desligado" → o sistema mostra ou esconde essa faixa no leitor, sem gerar nada → fim.],
     [FA3 – Vídeo falado em inglês], [Passo 6: o idioma detetado é inglês → a faixa Original e a faixa English
-    são a mesma; a interface mostra apenas "Original (Inglês)" → continua no passo 7.],
+    são a mesma, com uma só geração e um ficheiro físico em qualquer ordem dos pedidos; a interface mostra apenas "Original (Inglês)" → continua no passo 7.],
     [FA4 – Partilha só de leitura], [Passo 2: o utilizador acede por uma partilha de leitura → pode selecionar
     as faixas existentes (FA2), mas não adicionar a ferramenta nem gerar legendas → fim.],
     [FA5 – Projeto com imagens e vídeos], [Passo 4: o projeto contém imagens → o sistema processa apenas os

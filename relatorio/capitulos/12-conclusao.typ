@@ -9,9 +9,9 @@ computacional (caras), de recodificação (conversão) e de reconhecimento de fa
 contribuição mais reutilizável: capacidades por tipo de média, _workers_ dedicados atrás do RabbitMQ, estado e
 progresso por vídeo, falha isolada por vídeo e quota por vídeo com devolução. Foi acrescentado sem
 reestruturar a arquitetura de base, e cada ferramenta nova entrou como um _worker_ próprio, registado nas
-capacidades. O ciclo caso de uso → requisito → componente → teste está fechado para todos os requisitos
-implementados, exceto a taxa de deteção de caras (BLUR-023), ainda por medir, com 59 testes unitários no
-`projects`, 64 nos _workers_ e 106 verificações ponta a ponta a passar.
+capacidades. A rastreabilidade distingue validação realizada e parcial: TRIM-004, TRIM-009/010/013,
+H.265 (COMP-001) e RESULT-004 mantêm validação parcial. PERF-002 (carga) e BLUR-023 (taxa de deteção)
+não foram medidos. Os resultados históricos do Capítulo 10 não equivalem à reexecução de toda a bateria na versão final.
 
 *O que ficou por fazer e porquê.* Ficaram parciais o acompanhamento do estado depois de sair da página e as
 notificações fora dela, porque exigem persistir o estado dos trabalhos, fora do âmbito do MVP. Ficou por

@@ -117,7 +117,7 @@ básica; as outras quatro ferramentas de vídeo são avançadas e consomem uma o
     [RNG-03], [Cada vídeo processado por uma ferramenta de vídeo *avançada* (extrair frames, desfocar caras,
     converter, legendas) consome uma operação da quota diária do registado, independentemente da duração ou
     do número de imagens geradas. A operação é debitada no pedido e devolvida se o vídeo falhar ou o
-    processamento for cancelado: só os sucessos contam. Reutilizar legendas já geradas não consome. O corte é
+    processamento for cancelado, exceto legendas já enviadas ao worker, que contam como geradas. Reutilizar legendas já geradas não consome. O corte é
     básico e não consome.],
     [Reinterpreta "até 5 operações por dia" para vídeo de forma simples e previsível; o débito no pedido
     impede ultrapassar a quota com pedidos simultâneos.],

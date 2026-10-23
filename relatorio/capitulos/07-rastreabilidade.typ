@@ -27,8 +27,8 @@ qualidade (7.2).
     [UC-VID-001, passo 7], [Notificar e ativar a faixa], [STATUS-005, SUB-005],
     [UC-VID-001, passo 8], [Legendas no leitor], [SUB-004, SUB-015],
     [UC-VID-001/FA1], [Faixa existente reutilizada], [SUB-006],
-    [UC-VID-001/FA2], [Mostrar, esconder, trocar faixa], [SUB-004],
-    [UC-VID-001/FA3], [Vídeo em inglês], [SUB-007],
+    [UC-VID-001/FA2], [Mostrar, esconder, trocar faixa], [SUB-004, SUB-018],
+    [UC-VID-001/FA3], [Vídeo em inglês], [SUB-019],
     [UC-VID-001/FA4], [Partilha só de leitura], [SUB-011],
     [UC-VID-001/FA5], [Imagens ignoradas], [PIPE-003],
     [UC-VID-001/FA6], [Segundo plano], [STATUS-001],
@@ -38,7 +38,7 @@ qualidade (7.2).
     [UC-VID-001/Exc. 6], [Geração já em curso], [SUB-010, SUB-014],
     [UC-VID-001/Exc. 7], [Falha da inferência], [STATUS-006, QUOTA-002, REL-001],
     [UC-VID-001, pós-cond. sucesso], [Faixa no idioma, vídeo inalterado], [SUB-003, SEC-001],
-    [UC-VID-001, pós-cond. mínima], [Sem faixa incompleta; faixas eliminadas com o vídeo], [REL-001, SUB-012, QUOTA-002],
+    [UC-VID-001, pós-cond. mínima], [Sem faixa incompleta; operações de falhas devolvidas], [REL-001, QUOTA-002],
     [UC-VID-001/RN1, RN5, RN7], [Faixa separada; uma por idioma; não herdada], [SUB-003, SUB-006],
     [UC-VID-001/RN2, RN3], [Avançada; premium sem limite], [QUOTA-001, QUOTA-004, SUB-006],
     [UC-VID-001/RN4], [Idiomas original e inglês], [SUB-001],
@@ -195,7 +195,7 @@ iniciais de cada caso de uso) foram consolidadas numa numeração global.
 
 == Realização e verificação dos requisitos
 
-Estado à data de 2026-10-21 (ramo `main`). Os componentes estão descritos na tabela de componentes (8.1) e
+Estado à data de 2026-10-23 (ramo `fix/final-audit-subtitles`; resultados históricos identificados no Capítulo 10). Os componentes estão descritos na tabela de componentes (8.1) e
 os testes no Capítulo 10. "Inspeção" indica verificação por leitura de código ou de configuração.
 
 #tab([Realização e verificação dos requisitos],
@@ -235,9 +235,12 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [SUB-001], [FE-TOOLS, P-SUBS], [Implementado], [TST-SUB-01, 02, P1], [Passa],
     [SUB-002], [W-SUB, P-SUBS], [Implementado], [TST-SUB-INF, TST-SUB-08], [Passa com fala portuguesa e inglesa (TST-SUB-INF); TST-SUB-08 exige um vídeo com fala],
     [SUB-003], [P-SUBS, ST], [Implementado], [TST-SUB-U, TST-SUB-INF], [Passa],
-    [SUB-004, SUB-005], [FE-TOOLS, FE-MEDIA], [Implementado], [TST-SUB-CHR], [Passa (Chromium, API simulada)],
+    [SUB-004], [FE-TOOLS, FE-MEDIA], [Implementado], [TST-SUB-CHR], [Passa em 2026-10-23 (API simulada): seleção, desativação e reutilização],
+    [SUB-005], [FE-PAGE, FE-MEDIA], [Implementado; validação parcial], [TST-SUB-CHR histórico], [O teste atualizado não cobre ativação automática por sockets após Apply],
     [SUB-006], [P-SUBS], [Implementado], [TST-SUB-U, TST-SUB-10], [Passa],
     [SUB-007], [W-SUB, P-SUBS], [Implementado], [TST-SUB-U, TST-SUB-INF], [Passa],
+    [SUB-018], [FE-TOOLS], [Implementado], [TST-SUB-CHR], [Passa em 2026-10-23: English primeiro revela Original (Português) antes da faixa Original],
+    [SUB-019], [W-SUB, P-SUBS], [Implementado], [TST-SUB-U], [Evidência histórica de ambas as ordens; não reexecutado nesta revisão],
     [SUB-008, SUB-009], [W-SUB], [Implementado], [TST-SUB-PY, TST-SUB-07, TST-SUB-INF], [Passa],
     [SUB-010], [P-SUBS], [Implementado], [TST-SUB-U], [Passa (12 pedidos concorrentes)],
     [SUB-011], [P-SUBS (rotas)], [Implementado], [TST-SUB-U], [Passa],
@@ -284,7 +287,7 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [SEC-003], [ST (existente)], [Implementado], [TST-INSP-02], [Ligações assinadas com expiração de 1 h],
     [STATUS-008], [W-\*, WS], [Implementado], [TST-TRIM-16, TST-FRAME-20, TST-BLUR-08], [≈ 1 s (`ws_gateway` e página, TST-STATUS-M1)],
     [SUB-014], [W-SUB], [Implementado], [TST-SUB-TR], [Passa (mesmo recibo sem nova inferência)],
-    [SUB-015], [FE-MEDIA], [Implementado], [TST-SUB-CHR], [Passa (Chromium)],
+    [SUB-015], [FE-MEDIA], [Implementado], [TST-SUB-CHR], [Passa em 2026-10-23 (Edge/Chromium; API simulada)],
     [TRIM-022], [W-TRIM], [Implementado], [TST-TRIM-14], [Passa (1,500 s exatos)],
   ),
 ) <tab-realizacao>

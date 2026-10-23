@@ -19,7 +19,7 @@ Fase 1: suporte a vídeo num MVP. O relatório da fase está em `relatorio/` (Ty
 - Cada ferramenta declara o tipo de média que aceita (`projects/utils/toolCapabilities.js`); as de vídeo
   são exclusivas na pipeline (`EXCLUSIVE_TOOLS`).
 - Quota: o registado gasta 1 operação por vídeo numa ferramenta avançada, debitada no pedido e devolvida
-  em falha ou cancelamento; o corte é básico e não gasta; o premium não tem limite; o anónimo não usa
+  em falha ou cancelamento, exceto legendas já enviadas ao worker, que contam como geradas; o corte é básico e não gasta; o premium não tem limite; o anónimo não usa
   ferramentas avançadas.
 - Um vídeo original nunca é alterado; as falhas são isoladas por vídeo (sem resultado parcial).
 - Partilhas: dono e partilhas de edição aplicam ferramentas; vídeos convertidos e resultados de uma

@@ -73,7 +73,7 @@ export default function VideoSubtitlesTool({ disabled }: { disabled: boolean }) 
                   setHasUnsavedChanges(true);
                 }}
               >
-                {language === "original" ? "Original language" : "English"}
+                {language === "original" ? subtitleLabel(data?.detectedLanguage) : "English"}
               </Button>
             ))}
           </div>
