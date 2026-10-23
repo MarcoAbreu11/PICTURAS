@@ -30,7 +30,7 @@ cancelamento e quota por vídeo.
   [Documento de solução arquitetural de base], [doc-sol-arquitetural.pdf (RAS 2025/2026, Fase 2; tarefas T-01 a T-11)],
   [Repositório de partida], [#link("https://github.com/picturas-um/picturas-27")[picturas-um/picturas-27], _commit_ `781a63e` (2026-10-07), já com o SeaweedFS no lugar do MinIO],
   [Repositório da equipa], [#link("https://github.com/MarcoAbreu11/PICTURAS")[MarcoAbreu11/PICTURAS], ramo `main`],
-  [Solução entregue], [solucao-ext-mvp.zip; commit de referência da solução (código e teste): `e092865fe2387765da1cbc9508facf6ffa5ec101`. O commit documental posterior regenera os artefactos e não se autorreferencia.],
+  [Solução entregue], [solucao-ext-mvp.zip; commit de referência da solução (código e teste): `1248c9da12f1608e29ecff89cfa068f0807e6973`. O commit documental posterior regenera os artefactos e não se autorreferencia.],
 )
 
 Este relatório *estende* os documentos de base: descreve apenas o que muda com o vídeo e refere os elementos de

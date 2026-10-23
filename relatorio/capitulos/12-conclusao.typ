@@ -11,7 +11,9 @@ progresso por vídeo, falha isolada por vídeo e quota por vídeo com devoluçã
 reestruturar a arquitetura de base, e cada ferramenta nova entrou como um _worker_ próprio, registado nas
 capacidades. A rastreabilidade distingue validação realizada e parcial: TRIM-004, TRIM-009/010/013,
 H.265 (COMP-001) e RESULT-004 mantêm validação parcial. PERF-002 (carga) e BLUR-023 (taxa de deteção)
-não foram medidos. Os resultados históricos do Capítulo 10 não equivalem à reexecução de toda a bateria na versão final.
+não foram medidos. A bateria automática completa foi reexecutada na versão final (2026-10-23: 59/59, 64/64
+e 104 verificações ponta a ponta sem falhas); os testes de deteção de caras e de fala, a inferência real e os
+testes manuais ficam com os resultados históricos do Capítulo 10.
 A auditoria final encontrou dois defeitos nas legendas, corrigidos (D-07 e D-08), e três defeitos que ficam
 registados para a Fase 2 (D-09 a D-11): dois herdados do código de base (o parâmetro `owner` no `api_gateway`
 e a reserva de quota não atómica no `users`) e o seletor de faixas nas partilhas só de leitura; por isso

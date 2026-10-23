@@ -140,7 +140,7 @@ API Whisper confirmada no [código da versão 1.2.1](https://github.com/SYSTRAN/
 
 ChatGPT/ChatGPT Work foi usado para análise do repositório e documentos, planeamento,
 implementação assistida, revisão do diff, criação e execução de testes.
-A funcionalidade e a documentação foram revistas posteriormente pelo Cláudio/Rafael.
+A funcionalidade e a documentação foram revistas posteriormente pelo Cláudio.
 
 ## Revisão final de 2026-10-23
 

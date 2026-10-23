@@ -31,9 +31,17 @@ A inferência real das legendas usa uma amostra de fala humana portuguesa do con
 
 == Testes realizados
 
-As datas seguintes são as dos registos históricos, quando disponíveis. Nesta revisão de 2026-10-23: Node E4 6 passam, 1 integração Mongo ignorada por falta de serviço; Python E4 15/15; Compose config válido. O teste TST-SUB-CHR passou em Edge/Chromium com API simulada, painel e mutação de processamento reais: configuração e Save sem geração, Apply, English primeiro, idioma antes da faixa Original, cues WebVTT, desativação e reutilização. Não cobre sockets da página completa nem ativação automática pós-Apply. TypeScript passou. Mongo foi tentado explicitamente: ligação recusada em 27018. E2E foi tentado: falhou no arranque por indisponibilidade do motor Docker. Cada linha indica a data da execução registada. As execuções de 2026-10-20 e posteriores foram feitas para este
-relatório; as mais recentes (2026-10-23) são as dos testes unitários do `projects` e da bateria ponta a ponta da
-conversão, repetidas na versão entregue. As restantes estão registadas nos documentos de cada caso de uso.
+As datas seguintes são as dos registos históricos, quando disponíveis. Na revisão das legendas de
+2026-10-23, numa máquina sem a stack a correr, só foi possível executar os unitários do `projects` sem a
+MongoDB (6 passam, 1 de integração ignorado), os 15 unitários do _worker_ das legendas e a verificação do
+TypeScript; o teste TST-SUB-CHR passou em Edge/Chromium, com a API simulada e o painel e o pedido de
+processamento reais (configuração e Save sem geração, Apply, English primeiro, idioma antes da faixa
+Original, _cues_ WebVTT, desativação e reutilização), sem cobrir os _sockets_ da página nem a ativação
+automática depois do Apply. Essa execução parcial foi substituída, no mesmo dia, pela execução completa
+registada no fim desta secção (59/59, 64/64 e 104 verificações ponta a ponta sem falhas). Cada linha indica
+a data da execução registada. As execuções de 2026-10-20 e posteriores foram feitas para este
+relatório; as mais recentes (2026-10-23) são as da bateria automática completa (unitários do `projects` e dos _workers_ e ponta a ponta),
+repetida na versão entregue. As restantes estão registadas nos documentos de cada caso de uso.
 
 #tab([Testes e resultados],
   tabela(
