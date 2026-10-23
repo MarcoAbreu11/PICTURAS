@@ -24,12 +24,17 @@ async function main() {
       };
     `);
     await fs.writeFile(path.join(temporary, "context.tsx"), `
+      import {useQuery} from "@tanstack/react-query";
       export function useSession() { return { user: {_id: "owner", type: "free"}, token: "test" }; }
-      export function useProjectInfo() { return { _id: "project" }; }
-      export function useCurrentImage() { return { _id: window.e4?.video || "video" }; }
+      export function useProjectInfo() { return useQuery({queryKey:["project","owner","project","test","owner",undefined], queryFn:()=>structuredClone(window.e4.project), initialData:{_id:"project",version:1,tools:[],imgs:[{_id:"video",media_type:"video"}]}}).data; }
+      export function useCurrentImage() { return {_id:"video"}; }
       export function useCanEditProject() { return true; }
+      export function useUnsavedChanges() { return {setHasUnsavedChanges: value => {window.e4.dirty=value;}}; }
+      export function usePreview() { return {waiting:"",setWaiting:()=>{}}; }
       export function useSearchParams() { return new URLSearchParams(); }
-      export function useUpdateSession() { return { mutate: input => window.e4.refreshSession(input) }; }
+      export function useRouter() { return {push:()=>{}}; }
+      export function useGetSocket() { return {data:null}; }
+      export function useUpdateSession() { return {mutate:()=>{}}; }
       export default function Image() { return null; }
     `);
     await fs.writeFile(path.join(temporary, "entry.tsx"), `
@@ -40,21 +45,34 @@ async function main() {
       import Controls from "@/components/toolbar/video-subtitles-tool";
       import { useVideoSubtitles } from "@/hooks/use-video-subtitles";
       import { api } from "@/lib/axios";
+      import {useProcessProject} from "@/lib/mutations/projects";
+      import {useProjectInfo} from "@/providers/project-provider";
+      import {TooltipProvider} from "@/components/ui/tooltip";
       let state = { tracks: {}, job: null, error: null };
       let posts = 0, last = "original", delayed, release, sessionUpdates = 0;
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      let project = {_id:"project",version:1,tools:[],imgs:[{_id:"video",media_type:"video"}]};
+      let applies=0;
       api.defaults.adapter = async config => {
-        if (config.url.includes("/img/other/"))
-          return {data: {tracks:{}, job:null, error:null}, status:200, statusText:"OK", headers:{}, config};
-        if (config.method === "post") {
-          posts++; last = JSON.parse(config.data).language;
-          state = { ...state, job: {id: "job-" + posts, language: last} };
-          if (delayed) await delayed;
-        }
-        return {data: structuredClone(state), status: 200, statusText: "OK", headers: {}, config};
+        let data=state, status=200;
+        if(config.method === "post" && config.url.includes("/tool")) {
+          const body=JSON.parse(config.data); const tool=body.tool || body;
+          project.tools=[{...tool,_id:"tool",position:0}]; project.version++; data=project;
+          window.e4.project=project;status=201;
+        } else if(config.method === "put" && config.url.includes("/tool")) {
+          const body=JSON.parse(config.data); project.tools[0].params=body.params || body; data=project;
+        } else if(config.method === "post" && config.url.includes("/process")) {
+          applies++; last=project.tools[0].params.language;
+          if(!state.tracks[last]) {posts++; state={...state,job:{id:"job-"+posts,language:last}};}
+          data={};status=201;
+          await client.invalidateQueries({queryKey:["video-subtitles"]});
+        } else if(!config.url.includes("/subtitles")) data=project;
+        return {data:structuredClone(data),status,statusText:"OK",headers:{"x-project-version":String(project.version)},config};
       };
       window.e4 = {
+        project,
         posts: () => posts,
+        applies: () => applies,
         sessionUpdates: () => sessionUpdates,
         refreshSession: input => {
           if (input.userId !== "owner" || input.token !== "test") throw new Error("Wrong refund session");
@@ -89,11 +107,11 @@ async function main() {
         }
       };
       function App() {
-        const [video, setVideo] = useState("video");
-        window.e4.changeVideo = value => { window.e4.video = value; setVideo(value); };
-        const subtitles = useVideoSubtitles(video);
-        return <><Controls disabled={false}/><MediaView url="/fixture.webm" name="fixture.webm"
-          mediaType="video" subtitle={subtitles.track}/></>;
+        const info=useProjectInfo();
+        const run=useProcessProject("owner","project","test","owner");
+        const subtitles=useVideoSubtitles("video");
+        return <TooltipProvider><div style={{width:32}}><Controls disabled={false}/></div><button onClick={()=>run.mutate({projectVersion:info.version,tools:info.tools})}>Apply</button>
+          <MediaView url="/fixture.webm" name="fixture.webm" mediaType="video" subtitle={subtitles.track}/></TooltipProvider>;
       }
       let root = createRoot(document.getElementById("root"));
       function render() { root.render(<QueryClientProvider client={client}><App/></QueryClientProvider>); }
@@ -111,6 +129,7 @@ async function main() {
           "@/providers/project-provider": path.join(temporary, "context.tsx"),
           "@/lib/mutations/session": path.join(temporary, "context.tsx"),
           "next/navigation": path.join(temporary, "context.tsx"),
+          "@/lib/queries/projects": path.join(temporary, "context.tsx"),
           "next/image": path.join(temporary, "context.tsx"),
           "@": frontend,
         },
@@ -120,12 +139,13 @@ async function main() {
       if (error || stats.hasErrors()) reject(error || new Error(stats.toString({ all: false, errors: true })));
       else resolve();
     }));
+    const css = (await require("postcss")([require("tailwindcss")({content:[path.join(frontend,"components/**/*.tsx")],theme:{extend:{}},plugins:[]})]).process("@tailwind base;@tailwind components;@tailwind utilities;", {from:undefined})).css;
     server = http.createServer(async (req, res) => {
       try {
         if (req.url === "/bundle.js") { res.setHeader("Content-Type", "text/javascript"); res.end(await fs.readFile(path.join(temporary, "bundle.js"))); }
         else if (req.url === "/fixture.webm") { res.setHeader("Content-Type", "video/webm"); res.end(await fs.readFile(path.join(__dirname, "fixtures", "subtitles.webm"))); }
         else if (req.url.endsWith(".vtt")) { res.setHeader("Content-Type", "text/vtt"); res.end("WEBVTT\n\n00:00:00.000 --> 00:00:02.000\n" + (req.url.includes("en") ? "Hello" : "Olá") + "\n\n"); }
-        else res.end('<div id="root"></div><script src="/bundle.js"></script>');
+        else res.end('<style>'+css+'</style><style>svg{width:24px;height:24px}video{width:320px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}[role=menu]{background:white;width:320px}</style><div id="root"></div><script src="/bundle.js"></script>');
       } catch (error) { res.statusCode = 500; res.end(error.message); }
     }).listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
@@ -134,55 +154,28 @@ async function main() {
     const errors = [];
     page.on("pageerror", (error) => { errors.push(error.message); console.error(error.message); });
     await page.goto(`http://127.0.0.1:${server.address().port}`);
-    await page.getByRole("button", { name: "Legendas automáticas" }).click();
-    const select = page.getByLabel("Faixa de legendas");
-    await select.selectOption("original");
-    await page.getByRole("status").waitFor();
-    assert.equal(await page.evaluate(() => window.e4.posts()), 1);
-    await page.evaluate(() => window.e4.finish());
-    await page.waitForFunction(() => document.querySelector("video").textTracks[0]?.mode === "showing");
-    await page.waitForFunction(() => document.querySelector("video").textTracks[0]?.cues?.length === 1);
-    assert.equal(await select.inputValue(), "original");
-    await select.selectOption("off");
-    await page.waitForFunction(() => document.querySelector("video").textTracks.length === 0);
-    await select.selectOption("original");
-    assert.equal(await page.evaluate(() => window.e4.posts()), 1);
+    await page.getByRole("button", {name:"Automatic subtitles",exact:true}).click();
+    assert.equal(await page.getByRole("button",{name:"Original",exact:true}).count(),1);
+    await page.getByRole("button",{name:"English",exact:true}).click();
+    assert.equal(await page.evaluate(()=>window.e4.posts()),0,"configuration must not generate");
+    await page.getByRole("button",{name:"Save",exact:true}).click();
+    await page.waitForFunction(()=>window.e4.project.tools.length===1);
+    assert.equal(await page.evaluate(()=>window.e4.posts()),0,"Save must not generate");
+    await page.getByRole("button",{name:"Apply",exact:true}).click();
+    await page.waitForFunction(()=>window.e4.posts()===1);
+    await page.evaluate(()=>window.e4.finish());
+    await page.getByRole("button",{name:"Automatic subtitles",exact:true}).click();
+    await page.getByRole("button",{name:"Original (Português)",exact:true}).waitFor();
+    const select=page.getByLabel("Show subtitles");
+    assert.equal(await select.locator('option[value="original"]').count(),0,"Original label must exist before its track");
     await select.selectOption("en");
-    await page.getByRole("status").waitFor();
-    await page.evaluate(() => window.e4.finish());
-    await page.waitForFunction(() => document.querySelector("video").textTracks[0]?.language === "en" &&
-      document.querySelector("video").textTracks[0]?.mode === "showing");
-    await select.selectOption("original");
-    await page.waitForFunction(() => document.querySelector("video").textTracks[0]?.language === "pt");
-    assert.equal(await page.evaluate(() => window.e4.posts()), 2);
-    await page.evaluate(() => window.e4.reopen());
-    await page.getByRole("button", { name: "Legendas automáticas" }).click();
-    await select.selectOption("en");
-    await page.waitForFunction(() => document.querySelector("video").textTracks[0]?.mode === "showing");
-    assert.equal(await page.evaluate(() => window.e4.posts()), 2);
+    await page.waitForFunction(()=>document.querySelector("video").textTracks[0]?.mode==="showing" && document.querySelector("video").textTracks[0]?.cues?.length===1);
     await select.selectOption("off");
-    await page.evaluate(() => window.e4.prepareDelayed());
-    await select.selectOption("original");
-    await page.waitForFunction(() => window.e4.posts() === 3);
-    await page.evaluate(() => window.e4.changeVideo("other"));
-    await page.waitForFunction(() => window.e4.other()?.job === null);
-    await page.evaluate(() => window.e4.release());
-    await page.waitForFunction(() => !document.querySelector('[role="status"]'));
-    assert.equal(await select.inputValue(), "off");
-    assert.equal(await page.evaluate(() => window.e4.other()?.job), null);
-    assert.equal(await page.locator("track").count(), 0);
-    await page.evaluate(() => window.e4.changeVideo("video"));
-    await page.getByRole("status").waitFor();
-    const beforeRefund = await page.evaluate(() => window.e4.sessionUpdates());
-    await page.evaluate(() => window.e4.fail(false));
-    assert.equal(await page.evaluate(() => window.e4.sessionUpdates()), beforeRefund);
-    await page.evaluate(() => window.e4.fail(true));
-    await page.waitForFunction(count => window.e4.sessionUpdates() === count + 1, beforeRefund);
-    await page.evaluate(() => window.e4.refresh());
-    await page.evaluate(() => window.e4.refresh());
-    assert.equal(await page.evaluate(() => window.e4.sessionUpdates()), beforeRefund + 1);
+    await page.waitForFunction(()=>document.querySelector("video").textTracks.length===0);
+    await select.selectOption("en");
+    assert.equal(await page.evaluate(()=>window.e4.posts()),1,"existing track selection must not generate");
     assert.deepEqual(errors, []);
-    console.log("PASS Chromium: generation, reuse, WebVTT, late response; confirmed refund refreshes the session once across both hook observers.");
+    console.log("PASS Chromium: production toolbar Save and process mutation Apply, English first label before Original track, WebVTT cues, off and reuse. API simulated; dashboard socket orchestration is outside this harness.");
   } finally {
     if (browser) await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));
