@@ -31,8 +31,9 @@ A inferência real das legendas usa uma amostra de fala humana portuguesa do con
 
 == Testes realizados
 
-As execuções marcadas com 2026-10-20 foram repetidas para este relatório, na versão entregue; as restantes
-estão registadas nos documentos de cada caso de uso.
+Cada linha indica a data da execução registada. As execuções de 2026-10-20 e posteriores foram feitas para este
+relatório; as mais recentes (2026-10-23) são as dos testes unitários do `projects` e da bateria ponta a ponta da
+conversão, repetidas na versão entregue. As restantes estão registadas nos documentos de cada caso de uso.
 
 #tab([Testes e resultados],
   tabela(
@@ -122,6 +123,32 @@ estão registadas nos documentos de cada caso de uso.
     10,015 s para 10 s.], [CONV-005, 046, OUTPUT-001], [Passa (2026-10-20)],
     [TST-CONV-M1], [Manual; reteste em navegador automático], [Conversão no navegador.], [CONV-002, 003, 011, 017],
     [Encontrou D-01 e D-02, corrigidos; reteste em navegador automático (Chromium/Playwright, 2026-10-21): passa, 4/4 (estimativa 598 KB, Save visível, vídeo convertido no projeto)],
+    [TST-QUOTA-01], [Ponta a ponta (API)], [Dado um premium e 6 vídeos, quando aplica a extração de frames, então
+    os 6 são processados e não há limite diário (`remaining_operations` nulo).], [QUOTA-004],
+    [Passa (2026-10-23)],
+    [TST-STATUS-01], [Ponta a ponta (API)], [Dado um registado e um vídeo de 55 s com a desfocagem em curso,
+    quando cancela, então não ficam resultados e a operação debitada é devolvida.], [STATUS-004, QUOTA-002],
+    [Passa (2026-10-23)],
+    [TST-FRAME-21], [Ponta a ponta (API)], [Dado o modo frame único no instante 1 s, quando pede a
+    pré-visualização, então o _worker_ gera o frame e o `ws_gateway` envia-o ao _browser_.], [FRAME-004],
+    [Passa (2026-10-23)],
+    [TST-PIPE-01], [Ponta a ponta (API)], [Dado um projeto com uma partilha de leitura e outra de edição, quando
+    o convidado adiciona e aplica o corte, então a leitura recebe 403 e a edição consegue.], [PIPE-007],
+    [Passa (2026-10-23)],
+    [TST-INSP-01], [Inspeção], [Dado o `docker-compose.yaml`, então cada ferramenta de vídeo tem 5 réplicas e
+    as legendas 1.], [PERF-002], [Passa (2026-10-23)],
+    [TST-INSP-02], [Inspeção], [Dado o `img_storage`, então as ligações de descarga são assinadas (S3) com
+    expiração de 1 h.], [SEC-003], [Passa (2026-10-23)],
+    [TST-INSP-03], [Inspeção (_git_)], [Dado o _commit_ que acrescenta cada ferramenta de vídeo, então nenhum
+    altera os _workers_ anteriores.], [MAINT-001], [Passa com ressalva (2026-10-23): o da conversão refatorou
+    também o corte e a extração para o módulo `video.py`],
+    [TST-INSP-04], [Inspeção], [Dado o código dos _workers_ de desfocagem e de legendas, então não há chamadas a
+    serviços externos; o YuNet vem na imagem e o modelo Whisper é descarregado uma vez para um volume.],
+    [BLUR-042, SUB-013], [Passa (2026-10-23)],
+    [TST-MED-01 a 05], [Medição], [Dado um vídeo de 10 min (640×360, H.264/AAC) e uma conta premium, sem outros
+    trabalhos: frame único, 100 imagens (N = 6), excerto de 5 min e conversão para MP4 360p; e um vídeo de 70 s
+    com fala em inglês nas legendas.], [FRAME-025, FRAME-046, TRIM-043, CONV-045, SUB-016],
+    [Passa (2026-10-23): 1 s, 14 s, 12 s, 34 s e 8 s, todos dentro do alvo],
   ),
 ) <tab-testes>
 
@@ -152,16 +179,14 @@ testes de deteção de caras e de fala são ignorados.
 - O estado "em fila/em curso" e o aviso de fim só são visíveis com a página aberta (STATUS-002, STATUS-005
   parciais); ao regressar, vêem-se os resultados mas não o estado. Nas legendas, a página mostra "Em curso"
   sem percentagem intermédia (o modelo não a reporta) até ao fim de cada vídeo.
-- Tempos de processamento não medidos com vídeos longos (CONV-045, FRAME-025, FRAME-046, TRIM-043, SUB-016) e
-  taxa de deteção de caras por medir, por falta de um conjunto anotado (BLUR-023). Não houve teste de carga
-  (PERF-002).
+- Os tempos com vídeos longos foram medidos num vídeo sintético (TST-MED-01 a 05), fácil de codificar; com
+  vídeos reais, a conversão e o corte devem demorar mais. A taxa de deteção de caras continua por medir, por
+  falta de um conjunto anotado (BLUR-023). Não houve teste de carga (PERF-002).
 - A estimativa da conversão espera pela fila: com os 5 _workers_ ocupados mais de 50 s, devolve "converter
   ocupado". A correlação da resposta é feita em memória e pressupõe uma só instância do `projects`.
 - Cancelar o "Aplicar" não interrompe uma inferência de legendas já enviada (UC-VID-001/A5).
 - A API de quotas não tem reserva e devolução idempotentes por trabalho: uma queda entre o `users` e o
   `projects` pode exigir reconciliação manual da quota.
-- Partilhas de leitura, conta premium e cancelamento não têm teste automático próprio (mecanismos
-  existentes).
 - Vídeos HEVC (frequentes em telemóveis) são aceites, mas podem não reproduzir em todos os navegadores.
 - Legendas: o modelo "small" deteta o idioma automaticamente e pode errar com sotaques fortes (num vídeo em
   inglês detetou galês e transcreveu nesse idioma); nesses casos a opção English dá melhor resultado.

@@ -25,14 +25,14 @@ images/src/          fontes dos diagramas
 
 ## Diagramas
 
-| Figura | Ficheiro | Fonte | Gerar (na pasta `relatorio`) |
-|---|---|---|---|
-| Casos de uso | `images/diagrama_casos_uso.svg` | `images/src/diagrama_casos_uso.py` | `python3 images/src/diagrama_casos_uso.py images/diagrama_casos_uso.svg` |
-| Modelo de domínio | `images/modelo_dominio.svg` | `images/src/modelo_dominio.py` | `python3 images/src/modelo_dominio.py images/modelo_dominio.svg` |
-| Componentes | `images/arquitetura_componentes.png` | `images/src/arquitetura_componentes.puml` | ver abaixo |
-| Sequência | `images/sequencia_processamento.png` | `images/src/sequencia_processamento.puml` | ver abaixo |
+| Figura | Ficheiro | Fonte |
+|---|---|---|
+| Casos de uso | `images/diagrama_casos_uso.svg` | o próprio SVG |
+| Modelo de domínio | `images/modelo_dominio.svg` | o próprio SVG |
+| Componentes | `images/arquitetura_componentes.png` | `images/src/arquitetura_componentes.puml` |
+| Sequência | `images/sequencia_processamento.png` | `images/src/sequencia_processamento.puml` |
 
-Os diagramas PlantUML partilham o estilo `images/src/estilo-vp.iuml` e geram-se com:
+Os diagramas PlantUML partilham o estilo `images/src/estilo-vp.iuml` e geram-se, na pasta `relatorio`, com:
 
 ```bash
 docker run --rm -v "$PWD":/w -v "$PWD/fonts":/usr/share/fonts/carlito:ro -w /w plantuml/plantuml:1.2024.7 \

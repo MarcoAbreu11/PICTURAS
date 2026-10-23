@@ -15,14 +15,16 @@ Utilizador -> frontend : Aplicar
 frontend -> api_gateway : processar projeto
 api_gateway -> projects : processar projeto
 projects -> users : reservar operação
-projects --> frontend : em fila
+projects --> api_gateway : em fila
+api_gateway --> frontend : em fila
 projects -> RabbitMQ : pedido por vídeo
 RabbitMQ -> W : pedido
 
 loop durante o processamento
   W -> RabbitMQ : progresso
   RabbitMQ -> projects : progresso
-  projects -> ws_gateway : progresso
+  projects -> RabbitMQ : progresso (ws_queue)
+  RabbitMQ -> ws_gateway : progresso
   ws_gateway -> frontend : progresso
 end
 
@@ -36,7 +38,12 @@ else falha
   projects -> users : devolver operação
 end
 
-projects -> ws_gateway : vídeo terminado
+projects -> RabbitMQ : vídeo terminado (ws_queue)
+RabbitMQ -> ws_gateway : vídeo terminado
 ws_gateway -> frontend : vídeo terminado
+frontend -> api_gateway : pedir resultados
+api_gateway -> projects : pedir resultados
+projects --> api_gateway : ligações assinadas
+api_gateway --> frontend : ligações assinadas
 frontend -> Utilizador : mostrar resultado
 @enduml

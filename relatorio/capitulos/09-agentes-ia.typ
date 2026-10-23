@@ -18,10 +18,14 @@
   implementar, rever o _diff_ e criar e executar os testes (nota de implementação `docs/UC-VID-001_legendas.md`).],
 )
 
-O repositório *não contém ficheiros de configuração dos agentes* (_skills_ em `.claude/skills/`, `CLAUDE.md`
-ou `AGENTS.md`): as instruções foram dadas em cada sessão. É uma lacuna face às diretrizes, a corrigir na
-Fase 2 com instruções de projeto versionadas (convenções de código, comandos de teste, regras de
-arquitetura).
+*Configuração dos agentes no repositório.* As instruções de projeto para os agentes estão versionadas no
+repositório:
+
+- `CLAUDE.md`: arquitetura e regras que o código tem de respeitar (processamento só nos _workers_, ferramentas
+  de vídeo exclusivas, quota por vídeo, acesso aos vídeos convertidos), comandos e regras de _git_.
+- `.claude/skills/nova-ferramenta-video`: passos para acrescentar uma ferramenta de vídeo (_worker_, fila,
+  regras no `projects`, _frontend_, testes e relatório).
+- `.claude/skills/testes`: como correr os testes unitários, dos _workers_ e ponta a ponta, e registá-los.
 
 == Tarefas apoiadas e validação
 
@@ -52,7 +56,7 @@ arquitetura).
     backend, _worker_, inferência real e Chromium.], [A nota de implementação regista que a revisão humana ainda
     não tinha ocorrido; revisão feita depois pelo Cláudio.], [_commits_ `0c0c9c0`, `8a9729d`],
     [Claude Code], [Todos], [Consolidação dos cinco casos de uso e das ERS neste relatório (requisitos
-    partilhados, decisões de qualidade globais, matriz, realização), diagramas em PlantUML e execução de todas
+    partilhados, decisões de qualidade globais, matriz, realização), diagramas e execução de todas
     as baterias de testes para registar os resultados.], [Revisão do relatório pela equipa.],
     [`relatorio/`],
   ),
