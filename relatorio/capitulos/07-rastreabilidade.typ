@@ -195,7 +195,7 @@ iniciais de cada caso de uso) foram consolidadas numa numeração global.
 
 == Realização e verificação dos requisitos
 
-Estado à data de 2026-10-23 (ramo `fix/final-audit-subtitles`; resultados históricos identificados no Capítulo 10). Os componentes estão descritos na tabela de componentes (8.1) e
+Estado à data de 2026-10-23 (versão entregue no `main`; resultados históricos identificados no Capítulo 10). Os componentes estão descritos na tabela de componentes (8.1) e
 os testes no Capítulo 10. "Inspeção" indica verificação por leitura de código ou de configuração.
 
 #tab([Realização e verificação dos requisitos],
@@ -214,10 +214,10 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [PIPE-004], [P-RULES, P-ROUTES], [Implementado], [TST-FRAME-10, 12, TST-TRIM-08, TST-BLUR-02, TST-CONV-09, TST-SUB-03, P3], [Passa],
     [PIPE-005], [P-RULES, P-ROUTES], [Implementado], [TST-FRAME-16, TST-TRIM-15, TST-BLUR-14], [Passa],
     [PIPE-006], [P-ROUTES], [Implementado], [TST-BLUR-03, TST-CONV-07], [Passa],
-    [PIPE-007], [P-ROUTES (permissões existentes)], [Implementado], [TST-PIPE-01], [Passa: a partilha de leitura vê os itens mas não adiciona ferramentas; a de edição adiciona e aplica],
+    [PIPE-007], [P-ROUTES (permissões existentes)], [Parcial], [TST-PIPE-01], [Passa: a partilha de leitura vê os itens mas não adiciona ferramentas; a de edição adiciona e aplica. Defeito herdado D-09 (`owner` sem `share`)],
     [QUOTA-001], [P-ROUTES, USERS, P-SUBS], [Implementado], [TST-FRAME-13, TST-BLUR-03, TST-CONV-18, TST-SUB-09], [Passa],
     [QUOTA-002], [P-ROUTES, USERS, P-SUBS], [Implementado], [TST-FRAME-17, TST-SUB-09], [Passa (falha); devolução no cancelamento verificada pelo TST-STATUS-01],
-    [QUOTA-003], [P-ROUTES, USERS], [Implementado], [TST-BLUR-13, TST-CONV-20], [Passa],
+    [QUOTA-003], [P-ROUTES, USERS], [Implementado], [TST-BLUR-13, TST-CONV-20, TST-SUB-13], [Passa (legendas corrigidas, D-07); concorrência: D-10],
     [QUOTA-004], [USERS], [Implementado (existente)], [TST-QUOTA-01], [Passa: 6 vídeos numa ferramenta avançada, sem limite diário],
     [QUOTA-005], [P-ROUTES, P-SUBS], [Implementado], [TST-FRAME-18, TST-BLUR-01, TST-CONV-22, TST-SUB-11], [Passa],
     [RESULT-001], [P-ROUTES, MSG], [Implementado], [TST-TRIM-09, TST-BLUR-03, TST-CONV-15], [Passa],
@@ -228,7 +228,7 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [STATUS-001], [P-ROUTES], [Implementado (existente)], [Baterias e2e], [Passa: os testes correm sem navegador],
     [STATUS-002], [W-\*, WS, FE-PAGE], [Parcial], [Inspeção, TST-STATUS-M1], [Estado só com a página aberta; ao regressar, vêem-se os resultados mas não o estado],
     [STATUS-003], [W-\*, WS, FE-PAGE], [Implementado], [TST-TRIM-16, TST-FRAME-20, TST-BLUR-08, TST-STATUS-M1], [Passa (nas legendas, sem percentagem intermédia)],
-    [STATUS-004], [P-ROUTES (existente)], [Implementado], [TST-STATUS-01], [Passa: cancelamento em curso, sem resultados e com a operação devolvida],
+    [STATUS-004], [P-ROUTES (existente)], [Implementado], [TST-STATUS-01], [Passa: cancelamento em curso, sem resultados e com a operação devolvida; nas legendas o lote para (D-08, inspeção)],
     [STATUS-005], [WS, FE-PAGE], [Parcial], [Inspeção], [Aviso de fim só com a página aberta],
     [STATUS-006], [MSG, W-\*, FE-PAGE], [Implementado], [TST-FRAME-17, 20, TST-SUB-07], [Passa],
     [STATUS-007], [W-\*, P-ROUTES], [Implementado], [TST-FRAME-17, TST-BLUR-W1], [Passa],
@@ -243,7 +243,7 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [SUB-019], [W-SUB, P-SUBS], [Implementado], [TST-SUB-U], [Evidência histórica de ambas as ordens; não reexecutado nesta revisão],
     [SUB-008, SUB-009], [W-SUB], [Implementado], [TST-SUB-PY, TST-SUB-07, TST-SUB-INF], [Passa],
     [SUB-010], [P-SUBS], [Implementado], [TST-SUB-U], [Passa (12 pedidos concorrentes)],
-    [SUB-011], [P-SUBS (rotas)], [Implementado], [TST-SUB-U], [Passa],
+    [SUB-011], [P-SUBS (rotas)], [Parcial], [TST-SUB-U], [Passa na API; a interface não deixa escolher a faixa (D-11)],
     [SUB-012], [P-SUBS, ST], [Implementado], [TST-SUB-U], [Passa],
     [TRIM-002, 003, 004], [FE-TOOLS], [Implementado], [TST-TRIM-M1, TST-TRIM-01], [Passa (manual); TRIM-004 não verificado no navegador],
     [TRIM-006, 051], [W-TRIM], [Implementado], [TST-TRIM-09, 14, PY], [Passa],
@@ -283,7 +283,7 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [PORT-001, SUB-017], [INFRA], [Implementado], [Toda a bateria], [`docker compose up --build` num ambiente com Docker; imagens base fixadas no `projects` e nos _workers_ de vídeo (T-20)],
     [REL-001], [W-\*, P-ROUTES], [Implementado], [TST-FRAME-17, TST-BLUR-W1], [Passa],
     [SEC-001], [W-\*], [Implementado], [TST-BLUR-07, TST-SUB-INF, inspeção], [Passa (hash igual)],
-    [SEC-002], [P-ROUTES, P-SUBS], [Implementado (existente)], [TST-SUB-U, inspeção], [Passa nas legendas],
+    [SEC-002], [P-ROUTES, P-SUBS], [Implementado (existente)], [TST-SUB-U, inspeção], [Passa nas legendas; defeito herdado D-09],
     [SEC-003], [ST (existente)], [Implementado], [TST-INSP-02], [Ligações assinadas com expiração de 1 h],
     [STATUS-008], [W-\*, WS], [Implementado], [TST-TRIM-16, TST-FRAME-20, TST-BLUR-08], [≈ 1 s (`ws_gateway` e página, TST-STATUS-M1)],
     [SUB-014], [W-SUB], [Implementado], [TST-SUB-TR], [Passa (mesmo recibo sem nova inferência)],

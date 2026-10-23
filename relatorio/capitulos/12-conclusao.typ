@@ -12,6 +12,10 @@ reestruturar a arquitetura de base, e cada ferramenta nova entrou como um _worke
 capacidades. A rastreabilidade distingue validação realizada e parcial: TRIM-004, TRIM-009/010/013,
 H.265 (COMP-001) e RESULT-004 mantêm validação parcial. PERF-002 (carga) e BLUR-023 (taxa de deteção)
 não foram medidos. Os resultados históricos do Capítulo 10 não equivalem à reexecução de toda a bateria na versão final.
+A auditoria final encontrou dois defeitos nas legendas, corrigidos (D-07 e D-08), e três defeitos que ficam
+registados para a Fase 2 (D-09 a D-11): dois herdados do código de base (o parâmetro `owner` no `api_gateway`
+e a reserva de quota não atómica no `users`) e o seletor de faixas nas partilhas só de leitura; por isso
+PIPE-007 e SUB-011 ficam parciais.
 
 *O que ficou por fazer e porquê.* Ficaram parciais o acompanhamento do estado depois de sair da página e as
 notificações fora dela, porque exigem persistir o estado dos trabalhos, fora do âmbito do MVP. Ficou por

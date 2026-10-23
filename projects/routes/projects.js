@@ -283,12 +283,44 @@ function toolsEqual(a, b) {
 }
 
 
+// UC-VID-001/Exceção 2, REQ-VID-QUOTA-003: o lote só começa se a quota chegar para todos os
+// vídeos que ainda não têm a faixa pedida (os que a têm reutilizam-na e não gastam).
+async function subtitleOpsNeeded(project, videos, language) {
+  const SubtitleTrack = require("../models/subtitles");
+  const docs = await SubtitleTrack.find({
+    project_id: project._id,
+    video_id: { $in: videos.map((v) => v._id) },
+  }).lean();
+  const ready = new Set(
+    docs.filter((d) => !d.deleted && d[language]?.key).map((d) => String(d.video_id))
+  );
+  return videos.filter((v) => !ready.has(String(v._id))).length;
+}
+
+// Verifica a quota do lote sem a gastar: reserva as operações e devolve-as logo; o serviço
+// de legendas volta a reservar uma por vídeo quando o envia ao worker.
+async function subtitleQuotaAvailable(runnerId, ops) {
+  if (ops === 0) return true;
+  try {
+    await axios.get(users_ms + `${runnerId}/process/${ops}`, { httpsAgent });
+  } catch (err) {
+    if (err.response?.data === "No more daily_operations available") return false;
+    throw err;
+  }
+  await axios.post(users_ms + `${runnerId}/process/refund/${ops}`, {}, { httpsAgent });
+  return true;
+}
+
 // UC-VID-001: pede ao serviço de legendas uma faixa por vídeo. O serviço reserva e devolve
 // a quota e guarda a faixa; o fim de cada vídeo é avisado pelo consumidor dos resultados
 // (services/subtitleRuntime.js). Vídeos que já têm a faixa terminam logo.
 async function startSubtitleRun(project, videos, runnerId, params) {
   const { service } = require("../services/subtitleRuntime");
+  const runToken = project.activeToken || 0;
   for (const video of videos) {
+    // REQ-VID-STATUS-004: depois de cancelar, os vídeos ainda não enviados ao worker não seguem
+    const fresh = await Project.getOne(project.user_id, project._id);
+    if (!fresh || (fresh.activeToken || 0) !== runToken) break;
     try {
       const result = await service.generate(project, video, runnerId, { language: params.language });
       if (result.status === 200)
@@ -2066,6 +2098,11 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
       // UC-VID-001: as legendas só são geradas no Apply, pelo serviço de legendas
       const subtitleTool = project.tools.find((t) => t.procedure === SUBTITLES_TOOL);
       if (subtitleTool) {
+        const ops = await subtitleOpsNeeded(project, processable, subtitleTool.params.language);
+        if (!(await subtitleQuotaAvailable(runnerUserId, ops))) {
+          res.status(429).jsonp("No more daily_operations available");
+          return;
+        }
         res.status(201).jsonp({ skipped });
         startSubtitleRun(project, processable, runnerUserId, subtitleTool.params);
         return;

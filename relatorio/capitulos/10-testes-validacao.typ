@@ -58,6 +58,9 @@ conversão, repetidas na versão entregue. As restantes estão registadas nos do
     e a recusa do anónimo ocorrem.], [SUB-001, 009, PIPE-002 a 004, QUOTA-002, 005], [10/10 (2026-10-20)],
     [TST-SUB-08, 10], [Ponta a ponta], [Dado um vídeo com fala, quando aplica duas vezes, então fica com a faixa
     e a segunda vez não gasta quota.], [SUB-002, SUB-006], [Ignorado sem vídeo com fala],
+    [TST-SUB-13], [Ponta a ponta], [Dado 6 vídeos sem faixa e um registado com menos de 6 operações, quando
+    aplica, então é recusado antes de começar (429), a quota não muda e nenhum vídeo é enviado para geração.],
+    [QUOTA-003, SUB-002], [Passa (2026-10-23)],
     [TST-SUB-INF], [Integração], [Dado fala portuguesa e inglesa, quando se gera Original e English, então a
     transcrição e a tradução são produzidas, `pt` é detetado, o _hash_ do vídeo mantém-se; sem áudio dá 2303
     e um tom sem fala dá 2304.], [SUB-002, 003, 007 a 009, SEC-001], [Histórico: passa segundo o autor; data de execução não registada; não reexecutado em 2026-10-23],
@@ -159,6 +162,11 @@ e 106 verificações ponta a ponta sem falhas (UC-VID-001: 13; UC-VID-002: 23; U
 UC-VID-005: 23, repetida a 2026-10-23 depois da alteração da CONV-039), mais as inspeções com `ffprobe`, o _hash_ do original e a faixa WebVTT. Sem esse vídeo, os
 testes de deteção de caras e de fala são ignorados.
 
+*Execução de 2026-10-23, depois das correções D-07 e D-08* (sem vídeo com pessoas a falar): 59/59 unitários no
+`projects`, 64/64 nos _workers_ (conversão 18, incluindo o módulo partilhado) e 104 verificações ponta a ponta
+sem falhas (UC-VID-001: 14, com o novo TST-SUB-13; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 21;
+UC-VID-005: 23), com 4 ignoradas por falta desse vídeo.
+
 == Limitações e defeitos conhecidos
 
 *Defeitos encontrados durante o desenvolvimento (corrigidos):*
@@ -173,6 +181,19 @@ testes de deteção de caras e de fala são ignorados.
   [D-04], [O _script_ ponta a ponta abortava antes das legendas quando não havia vídeo com caras.], [Execução para este relatório], [Corrigido],
   [D-05], [O texto de estado ficava em "Em fila" e a barra só avançava quando cada vídeo terminava (versão de 2026-10-19).], [Teste no navegador automático], [Não se reproduz na versão final (TST-STATUS-M1)],
   [D-06], [Nas legendas, a página mostrava "Em fila" durante toda a geração, porque o _worker_ não envia percentagem.], [Teste no navegador automático], [Corrigido: o `projects` envia 0 % quando o pedido segue para o _worker_],
+  [D-07], [Nas legendas, com quota insuficiente para o lote, o "Aplicar" começava os primeiros vídeos e só falhava nos seguintes (contra QUOTA-003).], [Auditoria final], [Corrigido: o lote só começa se a quota chegar para os vídeos sem faixa (TST-SUB-13)],
+  [D-08], [Nas legendas, cancelar não impedia o envio ao _worker_ dos vídeos do lote ainda por enviar.], [Auditoria final], [Corrigido: o ciclo do lote para quando a execução é cancelada (STATUS-004)],
+)
+
+*Defeitos conhecidos, não corrigidos nesta fase:*
+
+#tabela(
+  colunas: (1.2cm, 1fr, 2.6cm, 2.4cm),
+  tamanho: 8.5pt,
+  [ID], [Defeito], [Origem], [Estado],
+  [D-09], [Sem `share`, o `api_gateway` aceita o parâmetro `owner` e encaminha o pedido para o projeto desse dono; o `projects` só verifica partilhas quando há `share`. Um utilizador autenticado que conheça os identificadores pode aplicar ferramentas no projeto de outro (contra PIPE-007 e SEC-002).], [Código de base (`api_gateway`, todas as rotas com `owner`)], [Por corrigir na Fase 2],
+  [D-10], [A reserva de quota no `users` lê, verifica e grava o utilizador em passos separados; dois pedidos concorrentes podem ambos passar com a última operação.], [Código de base (`users`)], [Por corrigir na Fase 2],
+  [D-11], [Numa partilha só de leitura, o botão das ferramentas fica bloqueado e o seletor "Show subtitles" está dentro desse menu: a API permite escolher a faixa (SUB-011), mas a interface não.], [Componente de base `ToolbarButton`], [Por corrigir na Fase 2],
 )
 
 *Limitações e requisitos parciais no MVP:*

@@ -72,6 +72,17 @@ else
   check TST-SUB-09 "operação devolvida quando não há fala" "$OPS0" "$(ops)"
 fi
 
+echo "== Exceção 2: quota insuficiente para o lote =="
+PID=$(newproj subs-e2e-quota)
+for f in q1.mp4 q2.mp4 q3.mp4 q4.mp4 q5.mp4 q6.mp4; do upload "$f" >/dev/null; done
+req POST "$P/$U/$PID/tool" -d '{"procedure":"video_subtitles","params":{"language":"original"}}' >/dev/null
+OPS2=$(ops)
+check TST-SUB-13 "6 vídeos sem faixa com quota < 6: recusado antes de começar (QUOTA-003)" 429 "$(req POST "$P/$U/$PID/process" -d '{}')"
+check TST-SUB-13 "mensagem indica que acabaram as operações" 1 "$(grep -c 'daily_operations' /tmp/body)"
+sleep 3
+check TST-SUB-13 "quota inalterada (QUOTA-003)" "$OPS2" "$(ops)"
+check TST-SUB-13 "nenhum vídeo enviado para geração" 0 "$(subs "$(vid q1.mp4)" | grep -c '"job":{')"
+
 echo "== Perfil anónimo =="
 CALLER=$ANON; PID=$(newproj subs-anon)
 upload curto.mp4 >/dev/null
