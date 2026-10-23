@@ -1,16 +1,16 @@
 #import "../template.typ": *
 
-== UC-VID-004 — Desfocar caras de um vídeo
+== UC-VID-004: Desfocar caras de um vídeo
 
 === Cabeçalho
 
-#tab([Caso de uso UC-VID-004 — Desfocar caras de um vídeo],
+#tab([Caso de uso UC-VID-004: Desfocar caras de um vídeo],
   tabela-campos(
     [ID do Caso de Uso], [UC-VID-004],
     [Nome], [Desfocar caras de um vídeo],
-    [Versão], [v1.3],
+    [Versão], [v1.4],
     [Autor], [Diogo Campos, Marco Abreu, Cláudio Ferreira, Nelson Sousa],
-    [Data], [2026-10-19],
+    [Data], [2026-10-23],
     [Objetivo], [Obter, a partir dos vídeos de um projeto, novos vídeos em que as caras detetadas aparecem
     desfocadas ou pixelizadas.],
     [Âmbito], [Serviço `projects` (_pipeline_ e processamento), novo _worker_ `blur_faces` e _frontend_
@@ -25,10 +25,8 @@
         a cada 3 frames e desfocagem de todos os frames).
     ],
     [Pré-condições], [
-      - O utilizador tem sessão iniciada com perfil registado ou premium.
       - O utilizador é dono do projeto ou tem permissão de edição sobre ele.
       - O projeto contém pelo menos um vídeo, carregado e validado.
-      - O utilizador registado tem operações disponíveis.
     ],
     [_Trigger_], [O utilizador pretende anonimizar as caras presentes nos vídeos de um projeto.],
   ),
@@ -36,7 +34,7 @@
 
 === Fluxo Principal
 
-#tab([UC-VID-004 — Fluxo principal],
+#tab([UC-VID-004: Fluxo principal],
   tabela(
     colunas: (1.2cm, 1fr, 1fr),
     [Passo], [Ação do Ator], [Resposta do Sistema],
@@ -49,7 +47,7 @@
     [4], [O utilizador carrega em "Aplicar".], [O sistema valida a _pipeline_, o perfil e a quota, debita as
     operações do registado, cria um trabalho por vídeo e confirma o pedido.],
     [5], [—], [O sistema analisa os frames de cada vídeo, deteta as caras (a cada 3 frames, reutilizando as
-    caixas nos intermédios — A9) e aplica a desfocagem nas regiões detetadas em todos os frames, atualizando o
+    caixas nos intermédios, A9) e aplica a desfocagem nas regiões detetadas em todos os frames, atualizando o
     progresso. As imagens do projeto não são processadas.],
     [6], [—], [O sistema gera, para cada vídeo, um novo vídeo com a mesma duração e o áudio do original.],
     [7], [—], [O sistema guarda os novos vídeos como resultados, com o nome do vídeo de origem, e notifica o
@@ -61,7 +59,7 @@
 
 === Fluxos Alternativos
 
-#tab([UC-VID-004 — Fluxos alternativos],
+#tab([UC-VID-004: Fluxos alternativos],
   tabela(
     colunas: (4cm, 1fr),
     [Fluxo], [Descrição (passo de origem: condição → comportamento → retorno)],
@@ -70,38 +68,52 @@
     [FA2 – Pré-visualização de um frame], [Passo 3: o utilizador pede a pré-visualização → o sistema processa
     apenas um frame do vídeo aberto e mostra-o anonimizado, sem consumir operações → passo 3.],
     [FA3 – Processamento em segundo plano], [Após o passo 4: o utilizador abandona a página → o processamento
-    continua; ao regressar, vê o resultado.],
+    continua; ao regressar, vê o resultado → continua no passo 8.],
     [FA4 – Nenhuma cara detetada], [Passo 7: num vídeo não foi detetada nenhuma cara → o resultado é guardado
-    com um aviso e o utilizador pode mantê-lo ou descartá-lo.],
+    com um aviso e o utilizador pode mantê-lo ou descartá-lo → continua no passo 8.],
     [FA5 – Continuar a editar os vídeos anonimizados], [Passo 8: "Copiar para novo projeto" → os vídeos
-    anonimizados passam a vídeos normais de um novo projeto.],
+    anonimizados passam a vídeos normais de um novo projeto → fim.],
     [FA6 – Cancelar processamento], [Após o passo 4: o utilizador cancela → o sistema termina, remove os
-    resultados dessa execução e devolve as operações.],
+    resultados dessa execução e devolve as operações → fim.],
     [FA7 – Projeto com imagens e vídeos], [Passo 4: o projeto contém imagens → são processados e debitados
-    apenas os vídeos e o utilizador é informado dos itens ignorados.],
+    apenas os vídeos e o utilizador é informado dos itens ignorados → continua no passo 5.],
   ),
 )
 
 === Exceções
 
-#tab([UC-VID-004 — Exceções],
+#tab([UC-VID-004: Exceções],
   tabela(
-    colunas: (1fr, 1fr),
+    colunas: (5.2cm, 1fr),
     [Condição], [Comportamento do Sistema],
-    [*Exceção 1* — O utilizador é anónimo (passo 2).], [O sistema não permite adicionar a ferramenta e pede
-    que inicie sessão.],
-    [*Exceção 2* — A quota do registado não chega para os vídeos (passo 4).], [O sistema não inicia e informa
-    o utilizador.],
-    [*Exceção 3* — A ferramenta é combinada com outras (passo 3).], [O sistema recusa e explica que as
-    ferramentas de vídeo têm de ser a única ferramenta do projeto.],
-    [*Exceção 4* — O projeto não contém vídeos (passo 4).], [O sistema não inicia e informa que nenhum item é
-    compatível.],
-    [*Exceção 5* — As opções estão fora dos valores permitidos (passo 3).], [O sistema impede guardar e indica
-    os valores permitidos.],
-    [*Exceção 6* — Um vídeo está corrompido (passo 5).], [O sistema marca esse vídeo como falhado, devolve a
-    operação e continua com os restantes.],
-    [*Exceção 7* — O processamento de um vídeo falha (passos 5–6).], [O sistema remove o resultado parcial,
-    informa a causa, devolve a operação e mantém os resultados concluídos.],
+    [*Exceção 1*: o utilizador é anónimo (passo 2).],
+    [2.1 O sistema não deixa adicionar a ferramenta. \
+    2.2 O sistema informa que a desfocagem exige uma conta registada e propõe iniciar sessão. \
+    2.3 O caso de uso termina sem alterações ao projeto.],
+    [*Exceção 2*: a quota do registado não chega para os vídeos (passo 4).],
+    [4.1 O sistema não inicia o processamento e não debita operações. \
+    4.2 O sistema indica as operações necessárias e as disponíveis. \
+    4.3 O caso de uso termina; a ferramenta fica na _pipeline_ para um novo "Aplicar".],
+    [*Exceção 3*: a ferramenta é combinada com outras (passo 3).],
+    [3.1 O sistema recusa adicionar a ferramenta. \
+    3.2 O sistema explica que as ferramentas de vídeo têm de ser a única ferramenta do projeto. \
+    3.3 Volta ao passo 2, com a _pipeline_ inalterada.],
+    [*Exceção 4*: o projeto não contém vídeos (passo 4).],
+    [4.1 O sistema não inicia nem debita operações. \
+    4.2 O sistema informa que nenhum item é compatível com a ferramenta. \
+    4.3 O caso de uso termina.],
+    [*Exceção 5*: as opções estão fora dos valores permitidos (passo 3).],
+    [3.1 O sistema impede guardar a ferramenta. \
+    3.2 O sistema indica os valores permitidos (intensidade de 1 a 10). \
+    3.3 Volta ao passo 3, com as opções por corrigir.],
+    [*Exceção 6*: um vídeo está corrompido (passo 5).],
+    [5.1 O sistema marca esse vídeo como falhado. \
+    5.2 O sistema devolve a operação desse vídeo e informa a causa. \
+    5.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 7*: o processamento de um vídeo falha (passos 5–6).],
+    [5.1 O sistema remove o resultado parcial e devolve a operação. \
+    5.2 O sistema informa a causa. \
+    5.3 Mantém os resultados dos vídeos concluídos e os restantes continuam no passo 5.],
   ),
 )
 
@@ -141,7 +153,8 @@
 #tabela(
   colunas: (1.4cm, 1fr),
   [ID], [Assunção],
-  [A1], [O carregamento e a validação dos vídeos estão fora deste caso de uso (SUBMIT).],
+  [A1], [Os vídeos chegam ao projeto pelo caso de uso de base "Carregar imagens", alterado para vídeo, onde o
+  formato, o tamanho e a duração já são validados (requisitos SUBMIT); este caso de uso não os volta a validar.],
   [A2], [A deteção usa um modelo executado localmente pelo _worker_ (OpenCV, detetor YuNet), sem serviços
   externos.],
   [A3], [O processamento pode demorar em vídeos longos e necessita de estados intermédios.],

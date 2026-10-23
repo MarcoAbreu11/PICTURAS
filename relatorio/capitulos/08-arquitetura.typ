@@ -36,20 +36,20 @@ vídeo.
     metadados de resultado e correção do envio de erros; novo `video.py` com o ffprobe, o FFmpeg com progresso e
     a limitação da frequência do progresso, partilhados pelos _workers_ de vídeo.],
     [STATUS-003, 006, 008, MAINT-001],
-    [`projects` — regras (P-RULES)], [Alterado], [Tabela de capacidades por tipo de média e de ferramentas
+    [`projects`: regras (P-RULES)], [Alterado], [Tabela de capacidades por tipo de média e de ferramentas
     exclusivas (`toolCapabilities.js`); validação de parâmetros de cada ferramenta de vídeo
     (`trim.js`, `frames.js`, `blurFaces.js`, `videoConvert.js`, `subtitlesTool.js`).],
     [PIPE-003 a 006, TRIM-014, 015, FRAME-013 a 015, BLUR-050, CONV-015, 026, 037],
-    [`projects` — rotas (P-ROUTES)], [Alterado], [`/tool`, `/process` (só itens compatíveis, débito por vídeo,
+    [`projects`: rotas (P-ROUTES)], [Alterado], [`/tool`, `/process` (só itens compatíveis, débito por vídeo,
     resposta antes da cópia dos vídeos), `/preview`, resultados (vídeo, frames, tamanhos, descarte),
     `results/project`, estimativa da conversão (pedido-resposta pela fila), vídeo convertido na biblioteca,
     tratamento de progresso e falhas por vídeo.], [PIPE-001, 002, 007, QUOTA-001 a 005, RESULT-001 a 003, STATUS-001, 004, 006, 007, PERF-001, CONV-006, 039],
-    [`projects` — carregamento (P-UPLOAD)], [Alterado], [Tipo de média pela extensão, ffprobe e limites por
+    [`projects`: carregamento (P-UPLOAD)], [Alterado], [Tipo de média pela extensão, ffprobe e limites por
     perfil; guarda duração, resolução, tamanho e codecs.], [SUBMIT-001 a 004],
-    [`projects` — legendas (P-SUBS)], [Novo], [Serviço, rotas e coleção próprios para as faixas: autorização,
+    [`projects`: legendas (P-SUBS)], [Novo], [Serviço, rotas e coleção próprios para as faixas: autorização,
     reserva atómica por vídeo, reutilização por _hash_, filas duráveis com confirmação, recuperação e
     eliminação.], [SUB-001, 003, 006, 010 a 012, QUOTA-001, 002],
-    [`projects` — temporários (P-TEMP)], [Novo], [Elimina a cópia local depois de cada trabalho e varre a cada
+    [`projects`: temporários (P-TEMP)], [Novo], [Elimina a cópia local depois de cada trabalho e varre a cada
     10 min os ficheiros de vídeo com mais de 50 min sem trabalho ativo.], [RESULT-005],
     [`users` (USERS)], [Mantido], [Reserva e devolução de operações (`/process/:n`, `/process/refund/:n`)
     reutilizadas.], [QUOTA-001 a 004],
@@ -84,7 +84,7 @@ vídeo.
     [DA-03], [Capacidades por tipo de média no `projects` e ferramentas de vídeo exclusivas], [Alternativas:
     deixar cada _worker_ recusar o que não sabe processar; ou capacidades `{ accepts, produces }` com
     encadeamento. A tabela simples evita trabalho inútil e quota mal gasta; o encadeamento seria demasiado para
-    o MVP.], [Projetos mistos funcionam; não há encadeamento até à Fase 2.], [PIPE-003, PIPE-004; DQ-002, DQ-003],
+    o MVP.], [Projetos mistos funcionam; o encadeamento fica fora do âmbito do MVP.], [PIPE-003, PIPE-004; DQ-002, DQ-003],
     [DA-04], [Ficheiros de trabalho no volume partilhado `image_data`; resultados no SeaweedFS], [Alternativa:
     os _workers_ lerem e escreverem diretamente no armazenamento S3. O volume é o mecanismo existente das
     ferramentas; só o `projects` fala com o armazenamento.], [Os temporários têm de ser limpos (P-TEMP); os
@@ -93,8 +93,9 @@ vídeo.
     _polling_ do _frontend_. Os eventos já existiam para o fim do processamento; o _worker_ envia 0 % ao sair
     da fila e no máximo uma atualização por segundo. As legendas usam _polling_ da faixa, por terem um ciclo
     de vida próprio.], [Atualização ≈ 1 s; o estado só é visível com a página aberta.], [STATUS-002, 003, 008; DQ-010],
-    [DA-06], [Confirmar o pedido antes de copiar os vídeos para os _workers_], [Antes, o `/process`
-    descarregava e validava cada vídeo antes de responder, o que passava os 2 s com vídeos grandes. Agora valida
+    [DA-06], [Confirmar o pedido antes de copiar os vídeos para os _workers_], [Na base, o `/process`
+    descarregava todos os ficheiros antes de responder (T-19), e a primeira versão das ferramentas de vídeo
+    validava também cada vídeo nesse momento, o que passava os 2 s com vídeos grandes. Agora valida
     com os metadados guardados no carregamento, responde e copia depois; uma cópia falhada é tratada como falha
     desse vídeo.], [Resposta rápida; erros de cópia chegam como falha por vídeo.], [PERF-001; DQ-011],
     [DA-07], [Estimativa de tamanho calculada no _worker_ por pedido-resposta sobre o RabbitMQ], [Alternativa
@@ -114,9 +115,11 @@ vídeo.
     [DA-10], [Vídeo convertido acrescentado à biblioteca do projeto], [Alternativa: deixá-lo só nos resultados,
     que são substituídos na execução seguinte. A conversão produz uma versão que o utilizador quer manter.],
     [O item fica marcado como derivado e só o dono lhe acede.], [CONV-006, 033, 039; DQ-018],
-    [DA-11], [Versões das imagens base fixadas (Node 22.11, Python 3.11.10, Debian 12)], [Alternativa: imagens
-    `latest`, que mudam sem aviso. Fixar a versão do Debian fixa também a série do FFmpeg (5.1).],
-    [Instalação reprodutível; atualizações passam a ser explícitas.], [PORT-001; DQ-012],
+    [DA-11], [Versões das imagens base fixadas no `projects` e nos _workers_ de vídeo (Node 22.11, Python
+    3.11.10, Debian 12)], [Alternativa: imagens `latest`, que mudam sem aviso. Fixar a versão do Debian fixa
+    também a série do FFmpeg (5.1).],
+    [Instalação reprodutível dos componentes de vídeo; os restantes serviços mantêm as imagens da base (T-20).],
+    [PORT-001; DQ-012],
   ),
 ) <tab-da>
 

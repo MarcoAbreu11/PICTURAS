@@ -1,16 +1,16 @@
 #import "../template.typ": *
 
-== UC-VID-003 — Extrair frames de vídeos
+== UC-VID-003: Extrair frames de vídeos
 
 === Cabeçalho
 
-#tab([Caso de uso UC-VID-003 — Extrair frames de vídeos],
+#tab([Caso de uso UC-VID-003: Extrair frames de vídeos],
   tabela-campos(
     [ID do Caso de Uso], [UC-VID-003],
     [Nome], [Extrair frames de vídeos],
-    [Versão], [v1.4],
+    [Versão], [v1.5],
     [Autor], [Diogo Campos, Marco Abreu, Cláudio Ferreira, Nelson Sousa],
-    [Data], [2026-10-18],
+    [Data], [2026-10-23],
     [Objetivo], [Obter imagens a partir de frames dos vídeos de um projeto, para as consultar, descarregar ou
     editar com as ferramentas de imagem existentes.],
     [Âmbito], [Serviço `projects` (_pipeline_ e processamento), novo _worker_ `extract_frames`, `users`
@@ -24,7 +24,6 @@
         restantes ferramentas de vídeo reutilizam.
     ],
     [Pré-condições], [
-      - O utilizador tem sessão iniciada com perfil registado ou premium.
       - O utilizador é dono do projeto ou tem permissão de edição sobre ele.
       - O projeto contém pelo menos um vídeo, carregado e validado.
     ],
@@ -34,7 +33,7 @@
 
 === Fluxo Principal
 
-#tab([UC-VID-003 — Fluxo principal],
+#tab([UC-VID-003: Fluxo principal],
   tabela(
     colunas: (1.2cm, 1fr, 1fr),
     [Passo], [Ação do Ator], [Resposta do Sistema],
@@ -59,45 +58,63 @@
 
 === Fluxos Alternativos
 
-#tab([UC-VID-003 — Fluxos alternativos],
+#tab([UC-VID-003: Fluxos alternativos],
   tabela(
     colunas: (4cm, 1fr),
     [Fluxo], [Descrição (passo de origem: condição → comportamento → retorno)],
     [FA1 – Frame único], [Passo 3: o utilizador escolhe "frame único" e um instante → o sistema mostra a
     pré-visualização desse instante → passo 4; no passo 6 é guardada uma imagem por vídeo.],
-    [FA2 – Formato por omissão], [Passo 3: o utilizador não escolhe o formato → o sistema usa PNG.],
+    [FA2 – Formato por omissão], [Passo 3: o utilizador não escolhe o formato → o sistema usa PNG → continua no passo 3.],
     [FA3 – Editar as imagens extraídas], [Passo 8: o utilizador escolhe "Copiar para novo projeto" → o sistema
     cria um projeto "(frames)" com as imagens como imagens normais, às quais se aplicam as ferramentas de
-    imagem.],
+    imagem → fim.],
     [FA4 – Processamento em segundo plano], [Após o passo 4: o utilizador abandona a página → o processamento
-    continua; ao regressar, vê o resultado.],
+    continua; ao regressar, vê o resultado → continua no passo 8.],
     [FA5 – Cancelar processamento], [Após o passo 4: o utilizador cancela → o sistema termina, remove os
-    resultados dessa execução e devolve as operações.],
+    resultados dessa execução e devolve as operações → fim.],
     [FA6 – Projeto com imagens e vídeos], [Passo 4: o projeto contém imagens → são processados apenas os
-    vídeos, sem custo pelas imagens, e o utilizador é informado dos itens ignorados.],
+    vídeos, sem custo pelas imagens, e o utilizador é informado dos itens ignorados → continua no passo 5.],
   ),
 )
 
 === Exceções
 
-#tab([UC-VID-003 — Exceções],
+#tab([UC-VID-003: Exceções],
   tabela(
-    colunas: (1fr, 1fr),
+    colunas: (5.2cm, 1fr),
     [Condição], [Comportamento do Sistema],
-    [*Exceção 1* — O instante é superior à duração de algum vídeo (FA1, passo 4).], [O sistema não inicia e
-    indica os vídeos afetados e a sua duração.],
-    [*Exceção 2* — O intervalo gera, em algum vídeo, mais imagens do que o máximo (passos 3–4).], [O sistema
-    indica o limite e os vídeos afetados e não inicia.],
-    [*Exceção 3* — A ferramenta é combinada com outras na mesma _pipeline_ (passo 3).], [O sistema recusa e
-    explica que a extração tem de ser a única ferramenta do projeto.],
-    [*Exceção 4* — O projeto não contém vídeos (passo 4).], [O sistema não inicia e informa que nenhum item é
-    compatível.],
-    [*Exceção 5* — A quota do registado é insuficiente para os vídeos (passo 4).], [O sistema não inicia e
-    indica as operações necessárias e as disponíveis.],
-    [*Exceção 6* — Um vídeo está corrompido (passo 5).], [O sistema marca esse vídeo como falhado, remove as
-    imagens parciais, devolve a operação e continua com os restantes.],
-    [*Exceção 7* — O processamento de um vídeo falha (passos 5–6).], [O sistema remove as imagens parciais,
-    devolve a operação, informa a causa e mantém os resultados dos vídeos concluídos.],
+    [*Exceção 1*: o instante é superior à duração de algum vídeo (FA1, passo 4).],
+    [4.1 O sistema não inicia nem debita operações. \
+    4.2 O sistema indica os vídeos afetados e a sua duração. \
+    4.3 Volta ao passo 3, para escolher outro instante.],
+    [*Exceção 2*: o intervalo gera, em algum vídeo, mais imagens do que o máximo (passos 3–4).],
+    [4.1 O sistema não inicia nem debita operações. \
+    4.2 O sistema indica o limite de 100 imagens por vídeo e os vídeos afetados. \
+    4.3 Volta ao passo 3, para escolher um intervalo maior.],
+    [*Exceção 3*: a ferramenta é combinada com outras na mesma _pipeline_ (passo 3).],
+    [3.1 O sistema recusa adicionar a ferramenta. \
+    3.2 O sistema explica que a extração tem de ser a única ferramenta do projeto. \
+    3.3 Volta ao passo 2, com a _pipeline_ inalterada.],
+    [*Exceção 4*: o projeto não contém vídeos (passo 4).],
+    [4.1 O sistema não inicia nem debita operações. \
+    4.2 O sistema informa que nenhum item é compatível com a ferramenta. \
+    4.3 O caso de uso termina.],
+    [*Exceção 5*: a quota do registado é insuficiente para os vídeos (passo 4).],
+    [4.1 O sistema não inicia o processamento e não debita operações. \
+    4.2 O sistema indica as operações necessárias e as disponíveis. \
+    4.3 O caso de uso termina; a ferramenta fica na _pipeline_ para um novo "Aplicar".],
+    [*Exceção 6*: um vídeo está corrompido (passo 5).],
+    [5.1 O sistema marca esse vídeo como falhado e remove as imagens parciais. \
+    5.2 O sistema devolve a operação desse vídeo. \
+    5.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 7*: o processamento de um vídeo falha (passos 5–6).],
+    [5.1 O sistema remove as imagens parciais e devolve a operação. \
+    5.2 O sistema informa a causa. \
+    5.3 Mantém os resultados dos vídeos concluídos e os restantes continuam no passo 5.],
+    [*Exceção 8*: o utilizador é anónimo (passo 2).],
+    [2.1 O sistema não deixa adicionar a ferramenta. \
+    2.2 O sistema informa que a extração exige uma conta registada e propõe iniciar sessão. \
+    2.3 O caso de uso termina sem alterações ao projeto.],
   ),
 )
 
@@ -133,7 +150,8 @@
 #tabela(
   colunas: (1.4cm, 1fr),
   [ID], [Assunção],
-  [A1], [O carregamento e a validação dos vídeos estão fora deste caso de uso (SUBMIT).],
+  [A1], [Os vídeos chegam ao projeto pelo caso de uso de base "Carregar imagens", alterado para vídeo, onde o
+  formato, o tamanho e a duração já são validados (requisitos SUBMIT); este caso de uso não os volta a validar.],
   [A2], [As imagens extraídas têm a resolução original do vídeo.],
   [A3], [As ferramentas de imagem existentes funcionam sobre as imagens extraídas sem alterações.],
   [A4], [A duração e a resolução de cada vídeo ficam guardadas no carregamento.],
@@ -158,7 +176,7 @@
   [Q7], [Os pedidos pendentes contam para a quota?], [Sim: débito no pedido, devolução em falha ou
   cancelamento (QUOTA-001, QUOTA-002).],
   [Q8], [Limites diferentes entre registado e premium?], [Sim, no carregamento (RNG-02).],
-  [Q9], [Encadear a extração com ferramentas de imagem?], [Não no MVP (RNG-06); na Fase 2, capacidades
-  `{ accepts, produces }`.],
-  [Q10], [Escolher apenas alguns vídeos do projeto?], [Não no MVP (PIPE-006); adiada para a Fase 2.],
+  [Q9], [Encadear a extração com ferramentas de imagem?], [Fora do MVP (RNG-06); trabalho futuro, com
+  capacidades `{ accepts, produces }`.],
+  [Q10], [Escolher apenas alguns vídeos do projeto?], [Fora do MVP (PIPE-006); trabalho futuro.],
 )

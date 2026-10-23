@@ -1,53 +1,40 @@
-# PictuRAS · RAS 2026/2027 — Template do Relatório da Fase 1 (Typst)
+# PictuRAS · RAS 2026/2027 · Relatório da Fase 1 (suporte a vídeo), grupo 5
 
-Proposta de *template* para o relatório da Fase 1 (suporte a vídeo). A sua utilização é **opcional**:
-serve apenas para facilitar o trabalho. O que se espera do relatório está descrito no documento de
-diretrizes (`*__pictoRAS__fase_1__guidelines_*.pdf`); a estrutura e o aspeto podem ser adaptados livremente.
+Fontes Typst do documento de extensão de requisitos (`doc-ext-requisitos.pdf`).
 
 ## Compilar
 
-Requer [Typst](https://typst.app) ≥ 0.13 (CLI) ou o editor web typst.app (carregar todo o conteúdo do zip).
+Requer o [Typst](https://typst.app) 0.14 (CLI). A fonte usada é a Carlito (licença OFL), incluída em `fonts/`.
 
 ```bash
-typst compile --font-path fonts main.typ doc-ext-requisitos.pdf   # gera o PDF a entregar
-typst watch   --font-path fonts main.typ doc-ext-requisitos.pdf   # recompila a cada gravação
+typst compile --font-path fonts main.typ doc-ext-requisitos.pdf
 ```
-
-A fonte usada é a **Carlito** (equivalente livre da Calibri, licença OFL), incluída em `fonts/`.
 
 ## Estrutura
 
 ```
-main.typ                       capa, índices e ordem dos capítulos (editar autores/grupo aqui)
-template.typ                   estilos e componentes (tabela, tabela-campos, orientacao, preencher, …)
-cover.typ                      capa
-capitulos/                     todos os capítulos (Partes I, II e III) e anexos
-casos-uso/UC-VID-001.typ       UM caso de uso de vídeo (incluído no capítulo 4)
-images/baseline/               diagramas da solução de base (a substituir pelos atualizados)
+main.typ             capa, índices e ordem dos capítulos
+template.typ         estilos e componentes (tabelas, caixas, prioridades)
+cover.typ            capa
+capitulos/           capítulos (Partes I, II e III) e anexos
+casos-uso/           UC-VID-001 a UC-VID-005 (incluídos no capítulo 4)
+images/              figuras do relatório
+images/baseline/     diagramas da solução de base (casos de uso e modelo de domínio)
+images/src/          fontes dos diagramas
 ```
 
-## Como usar
+## Diagramas
 
-1. **Organização por artefacto.** Cada capítulo da Parte II (casos de uso, ERS, impacto, rastreabilidade)
-   reúne todas as funcionalidades de vídeo; nas tabelas, a coluna *Origem* indica o caso de uso de cada linha.
-   Para cada caso de uso, copiar `casos-uso/UC-VID-001.typ` para `UC-VID-002.typ`, … e acrescentar o `#include`
-   em `capitulos/04-casos-de-uso.typ`.
-2. Substituir todos os marcadores a vermelho `{…}` (macro `#preencher[...]`).
-3. As caixas laranja **Orientação** explicam cada secção. Antes de entregar, em `main.typ`:
-   `#mostrar-orientacoes.update(false)`.
-4. Substituir as figuras de baseline e as caixas tracejadas ("Figura a produzir") por imagens em `images/`
-   (e.g., `#figure(image("../images/modelo_dominio.png", width: 100%), caption: [...])`).
-5. Prioridades MoSCoW (com cor): `#must`, `#should`, `#could`, `#wont`.
+| Figura | Ficheiro | Fonte | Gerar (na pasta `relatorio`) |
+|---|---|---|---|
+| Casos de uso | `images/diagrama_casos_uso.svg` | `images/src/diagrama_casos_uso.py` | `python3 images/src/diagrama_casos_uso.py images/diagrama_casos_uso.svg` |
+| Modelo de domínio | `images/modelo_dominio.svg` | `images/src/modelo_dominio.py` | `python3 images/src/modelo_dominio.py images/modelo_dominio.svg` |
+| Componentes | `images/arquitetura_componentes.png` | `images/src/arquitetura_componentes.puml` | ver abaixo |
+| Sequência | `images/sequencia_processamento.png` | `images/src/sequencia_processamento.puml` | ver abaixo |
 
-## Componentes úteis
+Os diagramas PlantUML partilham o estilo `images/src/estilo-vp.iuml` e geram-se com:
 
-```typst
-#tabela(colunas: (2cm, 1fr), [Cab. 1], [Cab. 2], [célula], [célula])   // 1.ª linha = cabeçalho
-#tabela-campos([Campo], [Valor], [Campo], [Valor])                     // tabela chave/valor
-#tab([Legenda], tabela(...))                                           // tabela numerada (Lista de Tabelas)
-#paisagem[ ... ]                                                       // páginas na horizontal (usado em 5.1 e 5.2)
+```bash
+docker run --rm -v "$PWD":/w -v "$PWD/fonts":/usr/share/fonts/carlito:ro -w /w plantuml/plantuml:1.2024.7 \
+  -tpng -Sdpi=200 images/src/arquitetura_componentes.puml images/src/sequencia_processamento.puml -o ..
 ```
-
-Verificação final: `grep -rn "preencher\[" capitulos casos-uso` não deve devolver nada.
-
-Na entrega: o PDF chama-se `doc-ext-requisitos.pdf` e o código-fonte (esta pasta, preenchida) vai em `src-doc-ext-requisitos.zip`.

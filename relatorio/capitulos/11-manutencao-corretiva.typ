@@ -27,7 +27,8 @@ documento de solução arquitetural de base (T-01 a T-11).
     incrementado a versão, mesmo sem alterações às ferramentas.], [Funcional], [Média], [PIPE-002], [Corrigido],
     [T-19], [O `/process` descarrega todos os ficheiros antes de responder; com ficheiros grandes, a resposta
     passa dos 2 s.], [Desempenho], [Média], [PERF-001], [Corrigido para vídeo; pendente para imagens],
-    [T-20], [O `projects` usava a imagem `node` sem versão (`latest`).], [Portabilidade], [Média], [PORT-001], [Corrigido],
+    [T-20], [O `projects`, o `api_gateway`, o `users` e o `subscriptions` usam a imagem `node` sem versão
+    (`latest`).], [Portabilidade], [Média], [PORT-001], [Corrigido no `projects`; pendente nos restantes],
     [T-21], [O `ws_gateway` não volta a ligar-se ao RabbitMQ se este reiniciar; o ecrã fica em "Processing".],
     [Fiabilidade], [Média], [STATUS-002], [Pendente],
     [T-22], [O nginx guarda o IP do contentor do _frontend_; depois de o reconstruir, devolve 502 até ser

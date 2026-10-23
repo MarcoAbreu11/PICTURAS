@@ -1,16 +1,16 @@
 #import "../template.typ": *
 
-== UC-VID-002 — Cortar vídeo
+== UC-VID-002: Cortar vídeo
 
 === Cabeçalho
 
-#tab([Caso de uso UC-VID-002 — Cortar vídeo],
+#tab([Caso de uso UC-VID-002: Cortar vídeo],
   tabela-campos(
     [ID do Caso de Uso], [UC-VID-002],
     [Nome], [Cortar vídeo],
-    [Versão], [v1.3],
+    [Versão], [v1.4],
     [Autor], [Diogo Campos, Marco Abreu, Cláudio Ferreira, Nelson Sousa],
-    [Data], [2026-10-18],
+    [Data], [2026-10-23],
     [Objetivo], [Obter novos vídeos com apenas o excerto entre um instante inicial e um instante final
     escolhidos, a partir dos vídeos de um projeto.],
     [Âmbito], [Serviço `projects` (_pipeline_ e processamento), novo _worker_ `trim` e _frontend_ (barra de
@@ -33,7 +33,7 @@
 
 === Fluxo Principal
 
-#tab([UC-VID-002 — Fluxo principal],
+#tab([UC-VID-002: Fluxo principal],
   tabela(
     colunas: (1.2cm, 1fr, 1fr),
     [Passo], [Ação do Ator], [Resposta do Sistema],
@@ -58,7 +58,7 @@
 
 === Fluxos Alternativos
 
-#tab([UC-VID-002 — Fluxos alternativos],
+#tab([UC-VID-002: Fluxos alternativos],
   tabela(
     colunas: (4cm, 1fr),
     [Fluxo], [Descrição (passo de origem: condição → comportamento → retorno)],
@@ -68,38 +68,52 @@
     sistema atualiza os marcadores → passo 3.],
     [FA3 – Continuar a editar os vídeos cortados], [Passo 8: o utilizador escolhe "Copiar para novo projeto" →
     o sistema cria um projeto com os vídeos cortados como vídeos normais, aos quais se podem aplicar outras
-    ferramentas de vídeo.],
+    ferramentas de vídeo → fim.],
     [FA4 – Processamento em segundo plano], [Após o passo 4: o utilizador abandona a página → o processamento
-    continua e, ao regressar, o utilizador vê o resultado.],
+    continua e, ao regressar, o utilizador vê o resultado → continua no passo 8.],
     [FA5 – Desistir antes de aplicar], [Passos 2–3: o utilizador fecha a ferramenta sem guardar ou repõe os
-    valores por omissão → a _pipeline_ não muda e não é criado nenhum ficheiro.],
+    valores por omissão → a _pipeline_ não muda e não é criado nenhum ficheiro → fim.],
     [FA6 – Cancelar processamento], [Após o passo 4: o utilizador cancela → o sistema termina o
-    processamento e remove os resultados dessa execução.],
+    processamento e remove os resultados dessa execução → fim.],
     [FA7 – Projeto com imagens e vídeos], [Passo 4: o projeto contém imagens → são processados apenas os
-    vídeos e o utilizador é informado do número de itens ignorados.],
+    vídeos e o utilizador é informado do número de itens ignorados → continua no passo 5.],
   ),
 )
 
 === Exceções
 
-#tab([UC-VID-002 — Exceções],
+#tab([UC-VID-002: Exceções],
   tabela(
-    colunas: (1fr, 1fr),
+    colunas: (5.2cm, 1fr),
     [Condição], [Comportamento do Sistema],
-    [*Exceção 1* — O instante inicial é maior ou igual ao final (passo 3).], [O sistema impede guardar a
-    ferramenta e informa o utilizador.],
-    [*Exceção 2* — O excerto tem menos de 1 s (passo 3).], [O sistema impede guardar a ferramenta e indica a
-    duração mínima.],
-    [*Exceção 3* — O instante final ultrapassa a duração de algum vídeo (passos 3–4).], [O sistema não inicia
-    o processamento e indica os vídeos afetados e a sua duração.],
-    [*Exceção 4* — A ferramenta é combinada com outras na mesma _pipeline_ (passo 3).], [O sistema recusa
-    adicionar a ferramenta e explica que o corte tem de ser a única ferramenta do projeto.],
-    [*Exceção 5* — O projeto não contém vídeos (passo 4).], [O sistema não inicia o processamento e informa
-    que nenhum item é compatível.],
-    [*Exceção 6* — Um vídeo está corrompido ou não pode ser descodificado (passo 5).], [O sistema marca esse
-    vídeo como falhado, remove o resultado parcial e continua com os restantes.],
-    [*Exceção 7* — O processamento de um vídeo falha (passos 5–6).], [O sistema remove o resultado parcial,
-    informa a causa e mantém os resultados dos vídeos concluídos; o original fica inalterado.],
+    [*Exceção 1*: o instante inicial é maior ou igual ao final (passo 3).],
+    [3.1 O sistema impede guardar a ferramenta. \
+    3.2 O sistema indica que o início tem de ser anterior ao fim. \
+    3.3 Volta ao passo 3, com os instantes por corrigir.],
+    [*Exceção 2*: o excerto tem menos de 1 s (passo 3).],
+    [3.1 O sistema impede guardar a ferramenta. \
+    3.2 O sistema indica a duração mínima de 1 s. \
+    3.3 Volta ao passo 3.],
+    [*Exceção 3*: o instante final ultrapassa a duração de algum vídeo (passos 3–4).],
+    [4.1 O sistema não inicia o processamento. \
+    4.2 O sistema indica os vídeos afetados e a sua duração. \
+    4.3 Volta ao passo 3, para escolher outro intervalo.],
+    [*Exceção 4*: a ferramenta é combinada com outras na mesma _pipeline_ (passo 3).],
+    [3.1 O sistema recusa adicionar a ferramenta. \
+    3.2 O sistema explica que o corte tem de ser a única ferramenta do projeto. \
+    3.3 Volta ao passo 2, com a _pipeline_ inalterada.],
+    [*Exceção 5*: o projeto não contém vídeos (passo 4).],
+    [4.1 O sistema não inicia o processamento. \
+    4.2 O sistema informa que nenhum item é compatível com a ferramenta. \
+    4.3 O caso de uso termina.],
+    [*Exceção 6*: um vídeo está corrompido ou não pode ser descodificado (passo 5).],
+    [5.1 O sistema marca esse vídeo como falhado e remove o resultado parcial. \
+    5.2 O sistema informa a causa. \
+    5.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 7*: o processamento de um vídeo falha (passos 5–6).],
+    [5.1 O sistema remove o resultado parcial; o original fica inalterado. \
+    5.2 O sistema informa a causa. \
+    5.3 Mantém os resultados dos vídeos concluídos e os restantes continuam no passo 5.],
   ),
 )
 
@@ -138,7 +152,8 @@
 #tabela(
   colunas: (1.4cm, 1fr),
   [ID], [Assunção],
-  [A1], [O carregamento e a validação dos vídeos estão fora deste caso de uso (SUBMIT).],
+  [A1], [Os vídeos chegam ao projeto pelo caso de uso de base "Carregar imagens", alterado para vídeo, onde o
+  formato, o tamanho e a duração já são validados (requisitos SUBMIT); este caso de uso não os volta a validar.],
   [A2], [A duração de cada vídeo fica guardada no carregamento e permite validar os instantes antes de
   processar.],
   [A3], [O corte pode demorar em vídeos longos e necessita de estados intermédios.],
@@ -168,5 +183,5 @@
   [Q7], [Os pedidos pendentes contam para a quota?], [Não se aplica: o corte não consome operações (RN2).],
   [Q8], [O corte pode ser seguido de outras ferramentas na mesma _pipeline_?], [Não no MVP (RNG-06); copiar
   para um novo projeto (FA3).],
-  [Q9], [Intervalos diferentes por vídeo?], [Não no MVP (RN9); adiada para a Fase 2.],
+  [Q9], [Intervalos diferentes por vídeo?], [Fora do MVP (RN9); trabalho futuro.],
 )

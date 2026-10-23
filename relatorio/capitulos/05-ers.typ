@@ -14,8 +14,8 @@ várias funcionalidades têm um prefixo de área (SUBMIT, PIPE, STATUS, QUOTA, R
 SEC, PERF, PORT, MAINT, COMP e OUTPUT) e aparecem uma só vez, com todas as origens; a secção 5.4 indica os
 requisitos individuais que cada um substitui. Valores marcados com (†) são propostas da equipa. *Novo/Alt*:
 NOVO = não existia no PictuRAS; ALT = altera um comportamento existente, com o elemento de base afetado
-(UC04 — aplicar ferramentas ao projeto; RF45/UC07 — partilha; RF64 — sugestão de _upgrade_; RNF48 —
-limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens de erro e limite de operações).
+(UC04: aplicar ferramentas ao projeto; "Carregar imagens" e visualização dos itens: casos de uso de base sem
+número nos documentos de base; RF45/UC07: partilha; RF64: sugestão de _upgrade_; RNF48: limite diário; T-01/T-02/T-07: tarefas de base sobre cancelamento, mensagens de erro e limite de operações).
 
 == Requisitos Funcionais
 
@@ -53,7 +53,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Evita pedidos que o _worker_ não consegue processar.],
       [Dado a intensidade 15, então guardar está bloqueado com a indicação "1 a 10"; com 10 é aceite.]),
     ..rf([CONV-002], [O sistema deve apresentar apenas as resoluções de saída permitidas pelo perfil do
-      utilizador.], must, [ALT (RF64)], [UC-VID-005, passo 2; UC-VID-005/RN5],
+      utilizador.], must, [NOVO], [UC-VID-005, passo 2; UC-VID-005/RN5],
       [Diferencia os perfis pela qualidade de saída.],
       [Dado um registado, então 1080p não surge; dado um premium, então surge.]),
     ..rf([CONV-003], [O sistema deve mostrar uma estimativa do tamanho do vídeo final depois de escolhidas as
@@ -93,10 +93,12 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [UC-VID-005/Exceção 4], [Evita que a compressão aumente o ficheiro sem o utilizador saber.],
       [Dado um resultado maior sem confirmação, então não é guardado e surge a causa; com confirmação, é guardado.]),
     ..rf([CONV-022], [O sistema deve limitar a 720p (†) a resolução de saída dos utilizadores registados.],
-      must, [ALT (RF64)], [UC-VID-005/RN5; UC-VID-005/Q2; DQ-018], [Restrição de perfil.],
+      must, [NOVO], [UC-VID-005/RN5; UC-VID-005/Q2; DQ-018], [Restrição de perfil.],
       [Dado um registado, então nenhum vídeo gerado excede 720p.]),
-    ..rf([CONV-026], [O sistema deve recusar, antes de processar, vídeos com mais de 500 MB (†).], must,
-      [NOVO], [UC-VID-005/Exceção 2; UC-VID-005/RN4; DQ-018], [Protege capacidade e armazenamento.],
+    ..rf([CONV-026], [O sistema deve voltar a verificar, antes de converter, que o vídeo não excede 500 MB (†),
+      recusando-o caso contrário.], must,
+      [NOVO], [UC-VID-005/RN4; DQ-018; DA-09], [Defesa no servidor para vídeos que não passaram pela validação
+      do carregamento (e.g., itens antigos sem metadados).],
       [Dado 501 MB, então é recusado com o limite; com 500 MB é aceite.]),
     ..rf([CONV-033], [O sistema deve manter o vídeo convertido na biblioteca até o utilizador o eliminar,
       mesmo depois de nova execução ou de remover a ferramenta.], must, [NOVO],
@@ -104,13 +106,15 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Não perder trabalho do utilizador.],
       [Dado um vídeo convertido, quando a ferramenta é removida, então continua na biblioteca.]),
     ..rf([CONV-035], [O sistema deve permitir aos utilizadores premium resoluções de saída até 1080p (†).],
-      must, [ALT (RF64)], [UC-VID-005, passo 2; UC-VID-005/RN5; DQ-018], [Valor verificável da diferenciação.],
+      must, [NOVO], [UC-VID-005, passo 2; UC-VID-005/RN5; DQ-018], [Valor verificável da diferenciação.],
       [Dado um premium, quando escolhe 1080p, então é aceite.]),
     ..rf([CONV-036], [O sistema deve manter o vídeo original na biblioteca depois da conversão.], must,
       [NOVO], [UC-VID-005/RN1; UC-VID-005/Q3], [Evita perda irreversível do original.],
       [Dado uma conversão concluída, então a biblioteca tem o original e o novo vídeo.]),
-    ..rf([CONV-037], [O sistema deve recusar, antes de processar, vídeos com mais de 10 min (†).], must,
-      [NOVO], [UC-VID-005/Exceção 2; UC-VID-005/RN4; DQ-018], [Protege a capacidade de processamento.],
+    ..rf([CONV-037], [O sistema deve voltar a verificar, antes de converter, que o vídeo não excede 10 min (†),
+      recusando-o caso contrário.], must,
+      [NOVO], [UC-VID-005/RN4; DQ-018; DA-09], [Defesa no servidor para vídeos que não passaram pela validação
+      do carregamento.],
       [Dado 11 min, então é recusado com o limite; com 10 min é aceite.]),
     ..rf([CONV-047], [O sistema deve permitir escolher o vídeo do projeto a converter e aplicar a conversão
       apenas a esse vídeo.], must, [NOVO], [UC-VID-005, passo 2; UC-VID-005/FA5; UC-VID-005/RN9],
@@ -124,7 +128,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Dado o modo frame único, quando indica 00:12, então o parâmetro fica guardado.]),
     ..rf([FRAME-004], [O sistema deve mostrar a pré-visualização do frame do instante escolhido ou, no modo
       intervalo, do primeiro frame a extrair.], must, [ALT (UC04)], [UC-VID-003, passo 3; UC-VID-003/FA1],
-      [A pré-visualização existente recusava vídeos.],
+      [A pré-visualização existente só tratava imagens.],
       [Dado o instante 00:12, quando pede a pré-visualização, então vê esse frame.]),
     ..rf([FRAME-006], [O sistema deve extrair como imagem o frame de cada instante calculado.], must, [NOVO],
       [UC-VID-003, passo 5; UC-VID-003/FA1], [Núcleo funcional do caso de uso.],
@@ -179,7 +183,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
     ..rf([PIPE-004], [O sistema deve recusar combinar uma ferramenta de vídeo com outras ferramentas na mesma
       _pipeline_.], must, [ALT (UC04)],
       [UC-VID-001/Exc. 5; UC-VID-002/Exc. 4; UC-VID-003/Exc. 3; UC-VID-004/Exc. 3; UC-VID-005/Exc. 8; RNG-06; DQ-003],
-      [A _pipeline_ é linear; o encadeamento fica para a Fase 2.],
+      [A _pipeline_ é linear; no MVP cada ferramenta é validada isoladamente e o encadeamento fica fora do âmbito.],
       [Dado o brilho na _pipeline_, quando adiciona uma ferramenta de vídeo, então é recusado; e vice-versa.]),
     ..rf([PIPE-005], [O sistema deve recusar iniciar quando o projeto não contém vídeos compatíveis com a
       ferramenta, informando o utilizador.], must, [ALT (UC04)],
@@ -203,7 +207,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Dado um registado com 5 operações e 2 vídeos, quando aplica a extração, então ficam 3.]),
     ..rf([QUOTA-002], [O sistema deve devolver as operações dos vídeos cujo processamento falha e de todos os
       vídeos quando o processamento é cancelado.], must, [ALT (T-07)],
-      [UC-VID-001/Exc. 3, 4, 7; UC-VID-003/Exc. 6–7; UC-VID-004/RN3; UC-VID-005/RN2; RNG-03; DQ-005],
+      [UC-VID-001/Exc. 3, 4, 7; UC-VID-003/Exc. 6–7; UC-VID-004/RN3; UC-VID-005/RN2, FA6; RNG-03; DQ-005],
       [Só os sucessos contam; falhas não penalizam o utilizador.],
       [Dado 2 vídeos e uma falha num deles, quando termina, então só 1 operação fica consumida.]),
     ..rf([QUOTA-003], [O sistema deve recusar iniciar quando a quota do registado não chega para os vídeos a
@@ -213,12 +217,12 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Dado 6 vídeos e quota inferior a 6, quando aplica, então é recusado e a quota não muda.]),
     ..rf([QUOTA-004], [O sistema não deve aplicar limite diário de operações aos utilizadores premium nas
       ferramentas de vídeo.], must, [ALT (RNF48)],
-      [UC-VID-001/RN2; UC-VID-003/RN3; UC-VID-004/RN2; UC-VID-005/RN3; RNG-04],
+      [UC-VID-001/RN2; UC-VID-003/RN3; UC-VID-004/RN2; UC-VID-005/RN3; RNG-11],
       [Mantém a vantagem do perfil premium.],
       [Dado um premium com 20 operações no dia, quando aplica, então inicia.]),
     ..rf([QUOTA-005], [O sistema deve impedir utilizadores anónimos de usar ferramentas de vídeo avançadas,
       pedindo que iniciem sessão.], must, [ALT (UC04)],
-      [UC-VID-001/Exc. 1; UC-VID-003/RN4; UC-VID-004/Exc. 1; UC-VID-005/Exc. 7; RNG-04],
+      [UC-VID-001/Exc. 1; UC-VID-003/RN4, Exc. 8; UC-VID-004/Exc. 1; UC-VID-005/Exc. 7; RNG-04],
       [Regra existente das ferramentas avançadas.],
       [Dado uma sessão anónima, quando adiciona uma ferramenta avançada, então recebe 403 e a _pipeline_ não muda.]),
     ..rf([RESULT-001], [O sistema deve guardar o vídeo produzido por uma ferramenta de vídeo como resultado do
@@ -258,7 +262,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Dado um processamento em curso, então surge uma percentagem entre 0 % e 100 % que não diminui.]),
     ..rf([STATUS-004], [O sistema deve permitir cancelar o processamento em fila ou em curso, removendo os
       resultados dessa execução.], must, [ALT (T-01)],
-      [UC-VID-002/FA6; UC-VID-003/FA5; UC-VID-004/FA6; UC-VID-005 (cancelar); DQ-010],
+      [UC-VID-002/FA6; UC-VID-003/FA5; UC-VID-004/FA6; UC-VID-005/FA6; DQ-010],
       [Evita ocupar capacidade e quota sem necessidade.],
       [Dado um processamento em curso, quando cancela, então fica "cancelado" e sem resultados dessa execução.]),
     ..rf([STATUS-005], [O sistema deve notificar o utilizador quando o processamento termina, com sucesso ou
@@ -275,8 +279,8 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [UC-VID-002/Exc. 6; UC-VID-003/Exc. 6; UC-VID-004/Exc. 6; UC-VID-005/Exc. 3; DQ-006],
       [Um vídeo problemático não impede os restantes.],
       [Dado um vídeo inválido e um válido, então o inválido falha com mensagem e o válido gera resultado.]),
-    ..rf([SUB-001], [O sistema deve permitir escolher o idioma das legendas — Original (transcrição) ou
-      English (tradução) — e guardar a ferramenta na _pipeline_.], must, [NOVO],
+    ..rf([SUB-001], [O sistema deve permitir escolher o idioma das legendas, Original (transcrição) ou
+      English (tradução), e guardar a ferramenta na _pipeline_.], must, [NOVO],
       [UC-VID-001, passos 2–3; UC-VID-001/RN4; UC-VID-001/Q2], [Define o resultado pretendido.],
       [Dado um idioma diferente destes, então é recusado; dado "en", então a ferramenta é guardada.]),
     ..rf([SUB-002], [O sistema deve gerar, ao aplicar, legendas a partir da fala de cada vídeo do projeto, no
@@ -318,11 +322,11 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Aplica as permissões de partilha às legendas.],
       [Dado uma partilha de leitura, quando pede uma geração, então recebe 403; consulta as faixas.]),
     ..rf([SUB-012], [O sistema deve eliminar as faixas de legendas quando o vídeo, o projeto ou a conta são
-      eliminados.], must, [NOVO], [UC-VID-001, pós-condições; UC-VID-001/RN7; RNG-10],
+      eliminados.], must, [NOVO], [UC-VID-001/RN9; RNG-08; DQ-020],
       [Os textos transcritos são dados pessoais (RGPD).],
       [Dado a eliminação do vídeo, então as chaves das faixas são apagadas do armazenamento.]),
     ..rf([SUBMIT-001], [O sistema deve permitir carregar vídeos MP4, WebM e MOV num projeto, isoladamente ou
-      num `.zip`, ao lado das imagens.], must, [ALT (UC04)],
+      num `.zip`, ao lado das imagens.], must, [ALT ("Carregar imagens")],
       [Pré-condições de UC-VID-001 a 005; RNG-01; DQ-004], [Base de todas as funcionalidades de vídeo.],
       [Dado aula.mp4, clip.webm e clip.mov, então ficam no projeto como vídeos; um ficheiro .avi é recusado.]),
     ..rf([SUBMIT-002], [O sistema deve recusar um vídeo que exceda o tamanho ou a duração máximos do perfil
@@ -334,12 +338,12 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [Evita itens que nenhuma ferramenta consegue processar.],
       [Dado um .mp4 com conteúdo inválido, então é recusado com "Invalid or unreadable video file".]),
     ..rf([SUBMIT-004], [O sistema deve guardar, no carregamento, a duração, a resolução, o tamanho e os codecs
-      de cada vídeo.], must, [ALT (UC04)],
+      de cada vídeo.], must, [ALT ("Carregar imagens")],
       [UC-VID-002/A2; UC-VID-003/A4; UC-VID-005, passo 4; DQ-004],
       [Validar instantes, limites e codecs sem reler o vídeo.],
       [Dado um vídeo de 14 s em 1280×720, então o item fica com duração 14 s e 1280×720.]),
     ..rf([SUBMIT-005], [O sistema deve reproduzir os vídeos do projeto no editor e mostrar o primeiro frame na
-      grelha.], must, [ALT (UC04)], [UC-VID-001 a 005, passo 1], [O utilizador tem de ver o vídeo para o editar.],
+      grelha.], must, [ALT (visualização dos itens)], [UC-VID-001 a 005, passo 1], [O utilizador tem de ver o vídeo para o editar.],
       [Dado um vídeo no projeto, então a grelha mostra o primeiro frame e o carrossel reproduz com controlos.]),
     ..rf([TRIM-002], [O sistema deve apresentar a linha temporal do vídeo aberto com a duração total.], must,
       [NOVO], [UC-VID-002, passo 2; UC-VID-002/A2], [Escolher os instantes.],
@@ -374,7 +378,7 @@ limite diário; T-01/T-02/T-07 — tarefas de base sobre cancelamento, mensagens
       [NOVO], [UC-VID-002/Exc. 2; UC-VID-002/RN5; DQ-016], [Evita ficheiros sem utilidade.],
       [Dado 0,5 s, então é bloqueado; com 1 s, aceite.]),
     ..rf([TRIM-049], [O sistema deve disponibilizar o corte aos perfis anónimo, registado e premium sem
-      consumir operações.], must, [ALT (UC04)], [UC-VID-002/RN2; UC-VID-002/Q7; RNG-03, RNG-04; DQ-005],
+      consumir operações.], must, [ALT (UC04)], [UC-VID-002/RN2; UC-VID-002/Q7; RNG-03, RNG-04, RNG-11; DQ-005],
       [Ferramenta básica, como o recorte de imagem.],
       [Dado um anónimo, então aplica o corte; dado um registado, então a quota não muda.]),
     ..rf([TRIM-051], [O sistema deve identificar cada vídeo cortado com o nome do vídeo de origem e o
@@ -415,8 +419,8 @@ a Fase 2).
       tamanho real.], [Adequação Funcional (Correção)], [≤ 20 % (†) → ≤ 10 % (†)], should,
       [UC-VID-005, passo 3; UC-VID-005/A4; DQ-018], [Dado conversões de teste, então a estimativa difere do real no máximo o alvo.]),
     ..rnf([CONV-039], [O sistema deve restringir ao dono do projeto o acesso aos vídeos convertidos e aos
-      projetos que os contêm.], [Segurança (Confidencialidade)], [Obrigatório], must,
-      [UC-VID-005/RN7; RNG-09; DQ-008], [Dado outro utilizador, quando pede os itens do projeto, então recebe 403.]),
+      resultados de uma conversão, mantendo o resto do projeto acessível às partilhas.], [Segurança (Confidencialidade)], [Obrigatório], must,
+      [UC-VID-005/RN7; RNG-09; DQ-008], [Dado outro utilizador, quando pede os itens do projeto, então vê o original mas não o vídeo convertido, e pedir o vídeo convertido dá 403.]),
     ..rnf([CONV-042], [O sistema deve aceitar na conversão vídeos MP4 e MOV com vídeo H.264 e áudio AAC.],
       [Compatibilidade (Interoperabilidade)], [MP4, MOV (H.264/AAC) → mais WebM e MKV (†)], must,
       [UC-VID-005/RN4; DQ-018], [Dado um MP4 e um MOV H.264/AAC, então são aceites; um vídeo sem AAC é recusado.]),
@@ -510,8 +514,8 @@ a Fase 2).
     pedidos sem reler o vídeo.], [SUBMIT-001 a 004, COMP-001],
     [], [UC-VID-002, 003], [Sim], [Instantes e número de imagens validados contra a duração guardada.],
     [TRIM-014, 015, 034; FRAME-013 a 015],
-    [], [UC-VID-005], [Sim], [Restrições próprias de entrada (H.264/AAC, 500 MB, 10 min) e resolução de saída
-    por perfil.], [CONV-015, 022, 026, 035, 037, 042],
+    [], [UC-VID-005], [Sim], [Entrada H.264/AAC; tamanho e duração do carregamento, verificados de novo como
+    defesa (500 MB, 10 min); resolução de saída por perfil.], [CONV-015, 022, 026, 035, 037, 042],
     [], [UC-VID-001], [Sim], [Vídeo sem áudio ou sem fala termina com mensagem própria.], [SUB-008, SUB-009],
     [Estado, progresso, cancelamento e resultado], [Todos], [Sim],
     [Mecanismos existentes estendidos com "em fila", percentagem por vídeo e falha por vídeo.],
@@ -545,8 +549,8 @@ a Fase 2).
 
 == Requisitos consolidados e eliminados
 
-Os requisitos partilhados substituem requisitos equivalentes que cada caso de uso tinha especificado nos
-Exercícios 1 e 2. Os IDs substituídos não são reutilizados.
+Os requisitos partilhados substituem requisitos equivalentes que cada caso de uso tinha especificado na
+sua primeira versão. Os IDs substituídos não são reutilizados.
 
 #tab([Requisitos partilhados e requisitos individuais que substituem],
   tabela(
@@ -592,7 +596,7 @@ Exercícios 1 e 2. Os IDs substituídos não são reutilizados.
   ),
 )
 
-Foram eliminados nos Exercícios 1 e 2, sem substituição por um requisito novo: TRIM-016 e FRAME-016
+Foram eliminados na revisão dos casos de uso, sem substituição por um requisito novo: TRIM-016 e FRAME-016
 (formato validado no carregamento), TRIM-018, TRIM-019, TRIM-030 e TRIM-031 (o corte não consome quota e
 passou a estar disponível ao anónimo), TRIM-025, TRIM-035, FRAME-026, FRAME-037, BLUR-017 e BLUR-025
 (limites validados no carregamento, SUBMIT-002), TRIM-040, BLUR-015 e BLUR-038 (formatos aceites no

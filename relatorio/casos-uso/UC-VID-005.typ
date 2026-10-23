@@ -1,16 +1,16 @@
 #import "../template.typ": *
 
-== UC-VID-005 — Converter ou comprimir vídeo
+== UC-VID-005: Converter ou comprimir vídeo
 
 === Cabeçalho
 
-#tab([Caso de uso UC-VID-005 — Converter ou comprimir vídeo],
+#tab([Caso de uso UC-VID-005: Converter ou comprimir vídeo],
   tabela-campos(
     [ID do Caso de Uso], [UC-VID-005],
     [Nome], [Converter ou comprimir vídeo],
-    [Versão], [v1.3],
+    [Versão], [v1.4],
     [Autor], [Diogo Campos, Marco Abreu, Cláudio Ferreira, Nelson Sousa],
-    [Data], [2026-10-19],
+    [Data], [2026-10-23],
     [Objetivo], [Obter uma nova versão de um vídeo noutro formato e/ou com menor tamanho, mantendo o original.],
     [Âmbito], [Serviço `projects` (_pipeline_, validação, biblioteca), novo _worker_ `video_convert`
     (conversão e estimativa de tamanho) e _frontend_ (ferramenta e resultados).],
@@ -22,9 +22,8 @@
       - *Equipa de desenvolvimento*: validar a recodificação de vídeo.
     ],
     [Pré-condições], [
-      - O utilizador tem sessão iniciada com perfil registado ou premium e é dono do projeto.
-      - O projeto contém pelo menos um vídeo carregado.
-      - O utilizador registado tem operações disponíveis.
+      - O utilizador tem acesso ao projeto (é o dono ou o projeto foi partilhado com ele).
+      - O projeto contém pelo menos um vídeo, carregado e validado.
     ],
     [_Trigger_], [O utilizador abre um vídeo e escolhe "Converter / comprimir".],
   ),
@@ -32,7 +31,7 @@
 
 === Fluxo Principal
 
-#tab([UC-VID-005 — Fluxo principal],
+#tab([UC-VID-005: Fluxo principal],
   tabela(
     colunas: (1.2cm, 1fr, 1fr),
     [Passo], [Ação do Ator], [Resposta do Sistema],
@@ -55,43 +54,62 @@
 
 === Fluxos Alternativos
 
-#tab([UC-VID-005 — Fluxos alternativos],
+#tab([UC-VID-005: Fluxos alternativos],
   tabela(
     colunas: (4cm, 1fr),
     [Fluxo], [Descrição (passo de origem: condição → comportamento → retorno)],
     [FA1 – Apenas conversão], [Passo 3: o utilizador muda só o formato (ex.: MOV para MP4), mantendo
-    "Original" na resolução → o sistema mantém a resolução de origem (até ao limite do perfil).],
-    [FA2 – Apenas compressão], [Passo 3: o utilizador mantém o formato e reduz a resolução ou a qualidade.],
+    "Original" na resolução → o sistema mantém a resolução de origem (até ao limite do perfil) → continua no passo 3.],
+    [FA2 – Apenas compressão], [Passo 3: o utilizador mantém o formato e reduz a resolução ou a qualidade → continua no passo 3.],
     [FA3 – Perfis predefinidos], [Passo 2: o utilizador escolhe "Web sharing" (MP4, 720p) ou "Messaging" (MP4,
     480p, qualidade baixa) → as opções são preenchidas → passo 3.],
     [FA4 – Processamento em segundo plano], [Após o passo 4: o utilizador abandona a página → a conversão
-    continua; ao regressar, o novo vídeo está na biblioteca.],
+    continua; ao regressar, o novo vídeo está na biblioteca → continua no passo 7.],
     [FA5 – Escolher outro vídeo], [Passo 2: o utilizador escolhe outro vídeo do projeto → a estimativa e a
-    validação passam a ser feitas para esse vídeo.],
+    validação passam a ser feitas para esse vídeo → continua no passo 3.],
+    [FA6 – Cancelar processamento], [Após o passo 4: o utilizador cancela → o sistema termina a conversão, não
+    acrescenta nenhum vídeo à biblioteca e devolve a operação → fim.],
   ),
 )
 
 === Exceções
 
-#tab([UC-VID-005 — Exceções],
+#tab([UC-VID-005: Exceções],
   tabela(
-    colunas: (1fr, 1fr),
+    colunas: (5.2cm, 1fr),
     [Condição], [Comportamento do Sistema],
-    [*Exceção 1* — Resolução superior à permitida pelo perfil (passo 2).], [A opção não é apresentada;
-    o sistema indica o limite e sugere o _upgrade_ para premium; um pedido direto é recusado.],
-    [*Exceção 2* — Formato ou _codec_ não suportado, ou vídeo com mais de 500 MB ou 10 min (passos 3–4).], [O
-    sistema recusa o vídeo antes de processar e indica o motivo.],
-    [*Exceção 3* — O vídeo está corrompido (passo 5).], [O sistema termina a operação com uma mensagem e
-    devolve a operação.],
-    [*Exceção 4* — O ficheiro final seria maior do que o original (passos 3 e 5).], [O sistema avisa com base
-    na estimativa e pede confirmação; sem confirmação, um resultado real maior é descartado e o utilizador é
-    informado.],
-    [*Exceção 5* — Quota do registado esgotada (passo 4).], [A operação não é iniciada.],
-    [*Exceção 6* — O processamento falha (passo 5).], [O sistema remove o resultado parcial, mantém o original
-    inalterado, informa a causa e devolve a operação.],
-    [*Exceção 7* — Utilizador anónimo ou que não é o dono (passo 2).], [O sistema não permite a conversão.],
-    [*Exceção 8* — A ferramenta é combinada com outras (passo 4).], [O sistema recusa e explica que as
-    ferramentas de vídeo têm de ser a única ferramenta do projeto.],
+    [*Exceção 1*: resolução superior à permitida pelo perfil (passo 2).],
+    [2.1 O sistema não apresenta essa resolução. \
+    2.2 O sistema indica o limite do perfil e sugere o _upgrade_ para premium; um pedido direto é recusado. \
+    2.3 Continua no passo 3, com as resoluções permitidas.],
+    [*Exceção 2*: formato ou _codec_ não suportado (passos 3–4).],
+    [4.1 O sistema recusa o vídeo antes de processar e não debita operações. \
+    4.2 O sistema indica o motivo e o vídeo. \
+    4.3 Volta ao passo 2, para escolher outro vídeo.],
+    [*Exceção 3*: o vídeo está corrompido (passo 5).],
+    [5.1 O sistema termina a conversão com uma mensagem. \
+    5.2 O sistema devolve a operação; nenhum vídeo é acrescentado à biblioteca. \
+    5.3 O caso de uso termina.],
+    [*Exceção 4*: o ficheiro final seria maior do que o original (passos 3 e 5).],
+    [3.1 Com base na estimativa, o sistema avisa e pede confirmação; com confirmação, continua no passo 4. \
+    5.1 Sem confirmação, um resultado real maior é descartado e o utilizador é informado. \
+    5.2 O caso de uso termina.],
+    [*Exceção 5*: quota do registado esgotada (passo 4).],
+    [4.1 O sistema não inicia a conversão nem debita operações. \
+    4.2 O sistema informa que a quota diária está esgotada. \
+    4.3 O caso de uso termina.],
+    [*Exceção 6*: o processamento falha (passo 5).],
+    [5.1 O sistema remove o resultado parcial; o original fica inalterado. \
+    5.2 O sistema informa a causa e devolve a operação. \
+    5.3 O caso de uso termina.],
+    [*Exceção 7*: utilizador anónimo ou que não é o dono (passo 2).],
+    [2.1 O sistema não permite a conversão. \
+    2.2 Ao anónimo, propõe iniciar sessão; a um convidado, indica que só o dono converte vídeos (RNG-09). \
+    2.3 O caso de uso termina sem alterações ao projeto.],
+    [*Exceção 8*: a ferramenta é combinada com outras (passo 4).],
+    [4.1 O sistema recusa a ferramenta. \
+    4.2 O sistema explica que as ferramentas de vídeo têm de ser a única ferramenta do projeto. \
+    4.3 Volta ao passo 2, com a _pipeline_ inalterada.],
   ),
 )
 
@@ -115,8 +133,9 @@
   [RN2], [Para o registado, cada conversão concluída consome uma operação (debitada no pedido e devolvida em
   falha ou cancelamento).],
   [RN3], [O premium não tem limite diário de operações.],
-  [RN4], [A entrada é MP4 ou MOV com vídeo H.264 e áudio AAC, até 500 MB e 10 min (além dos limites de
-  carregamento do perfil).],
+  [RN4], [A entrada é MP4 ou MOV com vídeo H.264 e áudio AAC. O tamanho e a duração são os limites do
+  carregamento por perfil (RNG-02); antes de converter, o servidor volta a verificar 500 MB e 10 min como
+  defesa, para vídeos que não tenham passado pela validação do carregamento.],
   [RN5], [Resolução máxima de saída: 720p para o registado e 1080p para o premium; o vídeo nunca é aumentado.],
   [RN6], [O vídeo gerado mantém a duração (±1 s) e o áudio do original.],
   [RN7], [Só o dono do projeto pode converter e aceder aos vídeos convertidos.],
@@ -134,7 +153,8 @@
   [A3], [A recodificação pode demorar e necessita de estados intermédios.],
   [A4], [A estimativa do tamanho é aproximada, calculada a partir de amostras do vídeo.],
   [A5], [A biblioteca já permite eliminar ficheiros; os vídeos convertidos são eliminados por esse mecanismo.],
-  [A6], [Para o registado, o limite efetivo de entrada é o do carregamento (100 MB / 60 s).],
+  [A6], [Os vídeos do projeto já respeitam os limites do carregamento do perfil; o máximo (premium, 500 MB /
+  10 min) coincide com a verificação de defesa da conversão.],
   [A7], [A infraestrutura do MVP suporta 5 conversões em simultâneo; as restantes ficam em fila.],
   [A8], [No MVP, uma falha não é retomada automaticamente.],
 )
@@ -148,7 +168,8 @@
   [Q2], [Qual a resolução máxima por perfil?], [720p registado, 1080p premium (†) (CONV-022, CONV-035).],
   [Q3], [Substituir o original pelo convertido?], [Não; o original é sempre preservado (CONV-036).],
   [Q4], [Devem existir perfis predefinidos?], [Sim, como "Poderia ter" (CONV-011).],
-  [Q5], [Qual a duração máxima de vídeo?], [10 min (†) (CONV-037); para o registado, 60 s no carregamento.],
+  [Q5], [Qual a duração máxima de vídeo?], [A do perfil no carregamento (RNG-02); a conversão volta a verificar
+  10 min como defesa (CONV-037).],
   [Q6], [Os vídeos convertidos devem expirar?], [Não no MVP; mantêm-se na biblioteca até serem eliminados
   (CONV-033).],
   [Q7], [Os pedidos em curso contam para a quota?], [Sim, por débito no pedido; a devolução em falha garante

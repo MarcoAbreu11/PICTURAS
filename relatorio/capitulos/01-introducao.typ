@@ -43,18 +43,18 @@ Foram especificadas e implementadas cinco funcionalidades de vídeo (@tab-funcio
 ou compressão (UC-VID-005). Os requisitos comuns às cinco (carregar vídeo, aplicar uma ferramenta de vídeo na
 _pipeline_, acompanhar o estado, quota, resultados, segurança e desempenho) foram especificados uma só vez,
 com prefixos de área (`SUBMIT`, `PIPE`, `STATUS`, `QUOTA`, `RESULT`, …). Cada requisito está ligado aos
-componentes que o realizam e aos testes que o verificam (Capítulo 7). Os testes automáticos — 59 testes
-unitários no serviço `projects`, 64 nos _workers_ Python e cinco baterias ponta a ponta — passam na versão
+componentes que o realizam e aos testes que o verificam (Capítulo 7). Os testes automáticos (59 testes
+unitários no serviço `projects`, 64 nos _workers_ Python e cinco baterias ponta a ponta, ou _end-to-end_ (e2e)) passam na versão
 entregue (Capítulo 10).
 
 == Organização do documento
 
-- *Parte I — Enquadramento e visão transversal*: introdução, perfis e _stakeholders_ revistos (Capítulo 2) e
+- *Parte I: Enquadramento e visão transversal*: introdução, perfis e _stakeholders_ revistos (Capítulo 2) e
   visão geral da extensão de vídeo, com o diagrama de casos de uso, o modelo de domínio e as regras de negócio
   transversais (Capítulo 3).
-- *Parte II — Especificação, organizada por artefacto*: os cinco casos de uso (Capítulo 4), a especificação de
+- *Parte II: Especificação, organizada por artefacto*: os cinco casos de uso (Capítulo 4), a especificação de
   requisitos do sistema (Capítulo 5), o impacto no sistema existente (Capítulo 6) e a rastreabilidade
   (Capítulo 7).
-- *Parte III — Arquitetura, IA e validação*: alterações arquiteturais (Capítulo 8), implementação assistida por
+- *Parte III: Arquitetura, IA e validação*: alterações arquiteturais (Capítulo 8), implementação assistida por
   agentes de IA (Capítulo 9), testes (Capítulo 10), manutenção corretiva da solução de base (Capítulo 11) e
   conclusão (Capítulo 12). Os anexos têm as instruções de execução e o glossário.

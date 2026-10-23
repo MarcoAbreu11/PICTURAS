@@ -44,8 +44,10 @@ qualidade (7.2).
     [UC-VID-001/RN4], [Idiomas original e inglês], [SUB-001],
     [UC-VID-001/RN6], [Permissões], [PIPE-007, SUB-011, CONV-039],
     [UC-VID-001/RN8], [Sem combinação], [PIPE-004],
+    [UC-VID-001/RN9], [Faixas eliminadas com o vídeo, o projeto ou a conta], [SUB-012],
     [UC-VID-001/A1 a A3], [Modelo local; qualidade; uma réplica], [SUB-013, SUB-017, PERF-002],
     [UC-VID-001/A4, A5], [Idioma predominante; cancelamento], [SUB-007; limitação registada em 10.3],
+    [UC-VID-001/A6], [Vídeos validados no carregamento], [SUBMIT-001 a 004],
     [UC-VID-001/Q1 a Q5], [Questões resolvidas], [SUB-001, SUB-003, QUOTA-001],
     // ---------------- UC-VID-002
     [UC-VID-002, passo 2], [Linha temporal], [TRIM-002],
@@ -75,7 +77,7 @@ qualidade (7.2).
     [UC-VID-003/FA3], [Editar as imagens], [FRAME-008, FRAME-022, RESULT-003, RESULT-004],
     [UC-VID-003/FA5, FA6], [Cancelar; imagens], [STATUS-004, QUOTA-002, PIPE-003],
     [UC-VID-003/Exc. 1, 2], [Instante fora; demasiadas imagens], [FRAME-013, FRAME-014, FRAME-015],
-    [UC-VID-003/Exc. 3, 4, 5], [Combinação; sem vídeos; quota], [PIPE-004, PIPE-005, QUOTA-003],
+    [UC-VID-003/Exc. 3, 4, 5, 8], [Combinação; sem vídeos; quota; anónimo], [PIPE-004, PIPE-005, QUOTA-003, QUOTA-005],
     [UC-VID-003/Exc. 6, 7], [Corrompido; falha], [STATUS-007, STATUS-006, QUOTA-002, REL-001],
     [UC-VID-003, pós-cond. sucesso], [Imagens identificadas, débito, originais], [FRAME-007, FRAME-036, QUOTA-001, SEC-001],
     [UC-VID-003/RN1 a RN4], [Originais; avançada; premium; anónimo], [SEC-001, QUOTA-001, 004, 005],
@@ -106,8 +108,8 @@ qualidade (7.2).
     [UC-VID-005, passo 6], [Novo vídeo na biblioteca], [CONV-006, CONV-036],
     [UC-VID-005, passo 7], [Reproduzir, descarregar, tamanhos], [RESULT-002, CONV-008, SEC-003],
     [UC-VID-005/FA1 a FA3], [Só formato; só compressão; perfis], [CONV-009, CONV-010, CONV-011],
-    [UC-VID-005/FA4, FA5], [Segundo plano; outro vídeo], [STATUS-001, CONV-047],
-    [UC-VID-005/Exc. 1, 2], [Resolução acima do perfil; entrada não suportada], [CONV-014, CONV-015, 026, 037],
+    [UC-VID-005/FA4 a FA6], [Segundo plano; outro vídeo; cancelar], [STATUS-001, CONV-047, STATUS-004, QUOTA-002],
+    [UC-VID-005/Exc. 1, 2], [Resolução acima do perfil; formato ou _codec_ não suportado], [CONV-014, CONV-015, 042],
     [UC-VID-005/Exc. 3, 6], [Corrompido; falha], [STATUS-007, STATUS-006, REL-001, QUOTA-002],
     [UC-VID-005/Exc. 4], [Resultado maior], [CONV-017],
     [UC-VID-005/Exc. 5, 7, 8], [Quota; anónimo ou não dono; combinação], [QUOTA-003, QUOTA-005, CONV-039, PIPE-004],
@@ -118,14 +120,14 @@ qualidade (7.2).
     [UC-VID-005/A1 a A8], [Assunções], [SUBMIT-001, CONV-024, PERF-002, REL-001],
     [UC-VID-005/Q1 a Q7], [Questões resolvidas], [CONV-046, 022, 035, 036, 011, 037, 033, QUOTA-001],
     // ---------------- transversais
-    [RNG-01 a RNG-10], [Regras transversais], [Ver a coluna "Requisitos" da tabela de regras (3.4)],
+    [RNG-01 a RNG-11], [Regras transversais], [Ver a coluna "Requisitos" da tabela de regras (3.4)],
   ),
 ) <tab-matriz>
 
 == Decisões de qualidade
 
-As decisões de qualidade de cada caso de uso (gamas DQ-001 a 020, 101 a 115 e 401 a 420 nos documentos dos
-exercícios) foram consolidadas numa numeração global.
+As decisões de qualidade de cada caso de uso (gamas DQ-001 a 020, 101 a 115 e 401 a 420 nos documentos
+iniciais de cada caso de uso) foram consolidadas numa numeração global.
 
 #tab([Decisões de qualidade],
   tabela(
@@ -137,11 +139,13 @@ exercícios) foram consolidadas numa numeração global.
     descarga.], [PIPE-001, PIPE-002, MAINT-001],
     [DQ-002], [Cada ferramenta declara o tipo de média que aceita; as ferramentas de vídeo aceitam só vídeo e
     as imagens são ignoradas sem custo.], [Projetos podem misturar imagens e vídeos.], [PIPE-003, PIPE-005],
-    [DQ-003], [No MVP, as ferramentas de vídeo são exclusivas na _pipeline_; o encadeamento, com capacidades
-    `{ accepts, produces }`, fica para a Fase 2.], [A _pipeline_ é linear e as saídas são de tipos diferentes.],
+    [DQ-003], [No MVP, as ferramentas de vídeo são exclusivas na _pipeline_; cada uma é validada isoladamente e o
+    encadeamento (com capacidades `{ accepts, produces }`) fica fora do âmbito (trabalho futuro).], [A _pipeline_ é linear e as saídas são de tipos diferentes.],
     [PIPE-004, MAINT-001],
-    [DQ-004], [Formato, tamanho e duração são validados no carregamento, por perfil, e os metadados ficam
-    guardados.], [Uma só validação e uma só lista de formatos.], [SUBMIT-001 a 004, COMP-001],
+    [DQ-004], [Formato, tamanho e duração são validados no carregamento, por perfil (anónimo 20 MB / 15 s,
+    registado 100 MB / 60 s, premium 500 MB / 10 min (†)), e os metadados ficam guardados.], [Uma só validação e
+    uma só lista de formatos; os limites crescem com o perfil, como o custo que cada um pode gerar.],
+    [SUBMIT-001 a 004, COMP-001],
     [DQ-005], [Ferramentas avançadas: uma operação por vídeo, debitada no pedido e devolvida em falha ou
     cancelamento; o corte é básico.], [Simples e previsível; não ultrapassa a quota com pedidos simultâneos.],
     [QUOTA-001 a 005, TRIM-049],
@@ -173,7 +177,7 @@ exercícios) foram consolidadas numa numeração global.
     [DQ-017], [Desfocagem: detetor YuNet local, objetivo de 90 % (†), todas as caras, aviso e descarte quando
     não há caras, pré-visualização de um frame.], [Modelo leve em CPU; âmbito do MVP.],
     [BLUR-004, 005, 010, 013, 014, 023],
-    [DQ-018], [Conversão: entrada MP4/MOV H.264/AAC até 500 MB e 10 min, saída MP4 ou WebM, 720p/1080p por
+    [DQ-018], [Conversão: entrada MP4/MOV H.264/AAC (500 MB e 10 min verificados de novo como defesa), saída MP4 ou WebM, 720p/1080p por
     perfil, estimativa por amostras com erro ≤ 20 % (†), resultado na biblioteca.], [Formatos reproduzíveis nos
     navegadores; diferenciação de perfis.], [CONV-006, 015, 022, 024, 026, 033, 035, 037, 042, 046],
     [DQ-019], [Legendas: faster-whisper "small" local em CPU, faixa WebVTT por vídeo e idioma, reutilizada
@@ -273,7 +277,7 @@ os testes no Capítulo 10. "Inspeção" indica verificação por leitura de cód
     [OUTPUT-001], [W-BLUR, W-CONV], [Implementado], [TST-CONV-21, TST-BLUR-06, W1, PY], [Passa (10,015 s para 10 s); verificado também pelos próprios _workers_],
     [PERF-001], [P-ROUTES], [Implementado], [TST-CONV-14], [Passa com vídeo pequeno; com vídeos grandes a cópia já não bloqueia a resposta],
     [PERF-002], [INFRA], [Implementado], [Inspeção], [5 consumidores por fila (1 nas legendas); sem teste de carga],
-    [PORT-001, SUB-017], [INFRA], [Implementado], [Toda a bateria], [`docker compose up --build` num ambiente com Docker; imagens base fixadas],
+    [PORT-001, SUB-017], [INFRA], [Implementado], [Toda a bateria], [`docker compose up --build` num ambiente com Docker; imagens base fixadas no `projects` e nos _workers_ de vídeo (T-20)],
     [REL-001], [W-\*, P-ROUTES], [Implementado], [TST-FRAME-17, TST-BLUR-W1], [Passa],
     [SEC-001], [W-\*], [Implementado], [TST-BLUR-07, TST-SUB-INF, inspeção], [Passa (hash igual)],
     [SEC-002], [P-ROUTES, P-SUBS], [Implementado (existente)], [TST-SUB-U, inspeção], [Passa nas legendas],

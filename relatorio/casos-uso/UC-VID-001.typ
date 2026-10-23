@@ -1,18 +1,18 @@
 #import "../template.typ": *
 
-== UC-VID-001 — Gerar legendas automáticas
+== UC-VID-001: Gerar legendas automáticas
 
 === Cabeçalho
 
-#tab([Caso de uso UC-VID-001 — Gerar legendas automáticas],
+#tab([Caso de uso UC-VID-001: Gerar legendas automáticas],
   tabela-campos(
     [ID do Caso de Uso], [UC-VID-001],
     [Nome], [Gerar legendas automáticas],
-    [Versão], [v1.2],
-    [Autor], [Cláudio Ferreira, Marco Abreu, Nelson Sousa],
-    [Data], [2026-10-20],
-    [Objetivo], [Obter, para os vídeos de um projeto, legendas geradas a partir da fala — no idioma original
-    (transcrição) ou em inglês (tradução) — e vê-las no leitor de vídeo.],
+    [Versão], [v1.3],
+    [Autor], [Cláudio Ferreira, Marco Abreu, Nelson Sousa, Diogo Campos],
+    [Data], [2026-10-23],
+    [Objetivo], [Obter, para os vídeos de um projeto, legendas geradas a partir da fala, no idioma original
+    (transcrição) ou em inglês (tradução), e vê-las no leitor de vídeo.],
     [Âmbito], [Serviço `projects` (_pipeline_ e serviço de legendas), novo _worker_ `video_subtitles`,
     serviço de armazenamento (faixas WebVTT) e _frontend_ (ferramenta e leitor).],
     [Ator Principal], [Utilizador registado ou premium, dono do projeto ou com permissão de edição],
@@ -25,7 +25,6 @@
         ao vídeo, em vez de gerar um novo ficheiro.
     ],
     [Pré-condições], [
-      - O utilizador tem sessão iniciada com perfil registado ou premium.
       - O utilizador é dono do projeto ou tem permissão de edição sobre ele.
       - O projeto contém pelo menos um vídeo, carregado e validado.
     ],
@@ -35,7 +34,7 @@
 
 === Fluxo Principal
 
-#tab([UC-VID-001 — Fluxo principal],
+#tab([UC-VID-001: Fluxo principal],
   tabela(
     colunas: (1.2cm, 1fr, 1fr),
     [Passo], [Ação do Ator], [Resposta do Sistema],
@@ -59,7 +58,7 @@
 
 === Fluxos Alternativos
 
-#tab([UC-VID-001 — Fluxos alternativos],
+#tab([UC-VID-001: Fluxos alternativos],
   tabela(
     colunas: (4cm, 1fr),
     [Fluxo], [Descrição (passo de origem: condição → comportamento → retorno)],
@@ -70,34 +69,48 @@
     [FA3 – Vídeo falado em inglês], [Passo 6: o idioma detetado é inglês → a faixa Original e a faixa English
     são a mesma; a interface mostra apenas "Original (Inglês)" → continua no passo 7.],
     [FA4 – Partilha só de leitura], [Passo 2: o utilizador acede por uma partilha de leitura → pode selecionar
-    as faixas existentes (FA2), mas não adicionar a ferramenta nem gerar legendas.],
+    as faixas existentes (FA2), mas não adicionar a ferramenta nem gerar legendas → fim.],
     [FA5 – Projeto com imagens e vídeos], [Passo 4: o projeto contém imagens → o sistema processa apenas os
     vídeos e informa o número de itens ignorados → continua no passo 5.],
     [FA6 – Processamento em segundo plano], [Após o passo 4: o utilizador abandona a página → a geração
-    continua; ao regressar, as faixas geradas estão disponíveis no leitor.],
+    continua; ao regressar, as faixas geradas estão disponíveis no leitor → continua no passo 8.],
   ),
 )
 
 === Exceções
 
-#tab([UC-VID-001 — Exceções],
+#tab([UC-VID-001: Exceções],
   tabela(
-    colunas: (1fr, 1fr),
+    colunas: (5.2cm, 1fr),
     [Condição], [Comportamento do Sistema],
-    [*Exceção 1* — O utilizador é anónimo (passo 2).], [O sistema não permite usar a ferramenta e pede que
-    inicie sessão com uma conta registada.],
-    [*Exceção 2* — A quota do utilizador registado não chega para os vídeos (passo 4).], [O sistema não inicia
-    o processamento e informa o utilizador.],
-    [*Exceção 3* — O vídeo não tem faixa de áudio (passo 5).], [O sistema termina esse vídeo com a mensagem
-    "O vídeo não tem faixa de áudio", não guarda faixa nem idioma e devolve a operação.],
-    [*Exceção 4* — Não é detetada fala no áudio (passo 5).], [O sistema termina esse vídeo com a mensagem "Não
-    foi possível detetar fala para gerar legendas" e devolve a operação.],
-    [*Exceção 5* — A ferramenta é combinada com outras na mesma _pipeline_ (passo 3).], [O sistema recusa
-    adicionar a ferramenta e explica que as ferramentas de vídeo têm de ser a única ferramenta do projeto.],
-    [*Exceção 6* — Já está a decorrer uma geração para o mesmo vídeo (passo 4).], [O sistema não inicia uma
-    segunda geração para esse vídeo; as faixas existentes continuam disponíveis.],
-    [*Exceção 7* — A inferência falha (passos 5–6).], [O sistema termina esse vídeo com uma mensagem para
-    tentar novamente, não deixa faixa incompleta e devolve a operação.],
+    [*Exceção 1*: o utilizador é anónimo (passo 2).],
+    [2.1 O sistema não deixa adicionar a ferramenta. \
+    2.2 O sistema informa que as legendas exigem uma conta registada e propõe iniciar sessão. \
+    2.3 O caso de uso termina sem alterações ao projeto.],
+    [*Exceção 2*: a quota do utilizador registado não chega para os vídeos (passo 4).],
+    [4.1 O sistema não inicia o processamento e não debita operações. \
+    4.2 O sistema indica as operações necessárias e as disponíveis. \
+    4.3 O caso de uso termina; a ferramenta fica na _pipeline_ para um novo "Aplicar".],
+    [*Exceção 3*: o vídeo não tem faixa de áudio (passo 5).],
+    [5.1 O sistema termina esse vídeo com a mensagem "O vídeo não tem faixa de áudio". \
+    5.2 O sistema não guarda faixa nem idioma e devolve a operação. \
+    5.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 4*: não é detetada fala no áudio (passo 5).],
+    [5.1 O sistema termina esse vídeo com a mensagem "Não foi possível detetar fala para gerar legendas". \
+    5.2 O sistema devolve a operação. \
+    5.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 5*: a ferramenta é combinada com outras na mesma _pipeline_ (passo 3).],
+    [3.1 O sistema recusa adicionar a ferramenta. \
+    3.2 O sistema explica que as ferramentas de vídeo têm de ser a única ferramenta do projeto. \
+    3.3 Volta ao passo 2, com a _pipeline_ inalterada.],
+    [*Exceção 6*: já está a decorrer uma geração para o mesmo vídeo (passo 4).],
+    [4.1 O sistema não inicia uma segunda geração para esse vídeo nem debita outra operação. \
+    4.2 As faixas existentes continuam disponíveis no leitor. \
+    4.3 Os restantes vídeos continuam no passo 5.],
+    [*Exceção 7*: a inferência falha (passos 5–6).],
+    [5.1 O sistema termina esse vídeo com uma mensagem para tentar novamente. \
+    5.2 O sistema não deixa faixa incompleta e devolve a operação. \
+    5.3 Os restantes vídeos continuam no passo 5; o utilizador pode voltar a aplicar (passo 4).],
   ),
 )
 
@@ -128,6 +141,8 @@
   existentes. Nos vídeos convertidos, só o dono acede.],
   [RN7], [Os vídeos cortados, convertidos ou copiados não herdam as faixas do vídeo de origem.],
   [RN8], [No MVP, a ferramenta não se combina com outras na mesma _pipeline_.],
+  [RN9], [As faixas de legendas são eliminadas com o vídeo, o projeto ou a conta a que pertencem (a voz é um
+  dado pessoal).],
 )
 
 === Assunções
@@ -137,11 +152,14 @@
   [ID], [Assunção],
   [A1], [A transcrição usa um modelo de reconhecimento de fala executado localmente (faster-whisper "small",
   multilingue, CPU com int8), descarregado uma vez para um volume persistente.],
-  [A2], [A qualidade da transcrição depende do modelo e da gravação; não se força o idioma.],
+  [A2], [A qualidade da transcrição depende do modelo e da gravação. Na opção Original o idioma não é escolhido
+  pelo utilizador: é o idioma predominante detetado pelo modelo (passo 5, FA3).],
   [A3], [O _worker_ corre numa réplica, por causa da memória ocupada pelo modelo.],
   [A4], [O MVP guarda apenas o idioma predominante devolvido pelo modelo.],
   [A5], [Cancelar o "Aplicar" não interrompe uma inferência já enviada ao _worker_; a faixa fica guardada
   quando terminar.],
+  [A6], [Os vídeos chegam ao projeto pelo caso de uso de base "Carregar imagens", alterado para vídeo, onde o
+  formato, o tamanho e a duração já são validados (requisitos SUBMIT); este caso de uso não os volta a validar.],
 )
 
 === Questões em Aberto
@@ -149,8 +167,8 @@
 #tabela(
   colunas: (1.4cm, 1fr, 5cm),
   [ID], [Questão], [Resolução],
-  [Q1], [As legendas devem poder ser gravadas na imagem do vídeo (_burn-in_)?], [Fora do MVP (RN1); adiada
-  para a Fase 3.],
+  [Q1], [As legendas devem poder ser gravadas na imagem do vídeo (_burn-in_)?], [Fora do MVP (RN1); trabalho
+  futuro.],
   [Q2], [Que idiomas de destino suportar?], [Original e inglês (RN4, SUB-001); outros idiomas adiados.],
   [Q3], [O utilizador deve poder editar as legendas?], [Fora do MVP; adiada.],
   [Q4], [A quota conta por vídeo ou por minuto de áudio?], [Por vídeo (RNG-03, QUOTA-001).],

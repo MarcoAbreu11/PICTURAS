@@ -56,7 +56,16 @@ echo "== Persistência: remover a tool não apaga o vídeo convertido =="
 TOOL=$(curl -sk "$P/$U/$PID" -H "X-Caller-Id: $U" | sed -n 's/.*"tools":\[{[^]]*"_id":"\([^"]*\)".*/\1/p')
 req DELETE "$P/$U/$PID/tool/$TOOL" >/dev/null
 check TST-CONV-19 "vídeo convertido continua na biblioteca (CONV-033)" 1 "$(curl -sk "$P/$U/$PID/imgs" -H "X-Caller-Id: $U" | grep -c 'aula_converted.webm')"
-check TST-CONV-19 "outro utilizador não lhe acede (CONV-039)" 403 "$(curl -sk -o /dev/null -w '%{http_code}' "$P/$U/$PID/imgs" -H "X-Caller-Id: $ANON")"
+# CONV-039 (RNG-09): quem não é o dono continua a ver o projeto, mas não o vídeo convertido nem os
+# resultados da conversão
+CONV_ID=$(curl -sk "$P/$U/$PID/imgs" -H "X-Caller-Id: $U" | tr '{' '\n' | grep '"name":"aula_converted.webm"' | sed -n 's/.*"_id":"\([^"]*\)".*/\1/p')
+check TST-CONV-19 "outro utilizador vê o projeto sem o vídeo convertido (CONV-039)" 0 "$(curl -sk "$P/$U/$PID/imgs" -H "X-Caller-Id: $ANON" | grep -c 'aula_converted.webm')"
+check TST-CONV-19 "outro utilizador continua a ver o original (RNG-09)" 1 "$(curl -sk "$P/$U/$PID/imgs" -H "X-Caller-Id: $ANON" | grep -o '"name":"aula.mp4"' | wc -l | tr -d ' ')"
+check TST-CONV-19 "outro utilizador não abre o vídeo convertido (CONV-039)" 403 "$(curl -sk -o /dev/null -w '%{http_code}' "$P/$U/$PID/img/$CONV_ID" -H "X-Caller-Id: $ANON")"
+check TST-CONV-19 "outro utilizador não vê os resultados da conversão (CONV-039)" 0 "$(curl -sk "$P/$U/$PID/process/url" -H "X-Caller-Id: $ANON" | grep -c 'aula_converted')"
+VER=$(curl -sk "$P/$U/$PID" -H "X-Caller-Id: $U" | sed -n 's/.*"version":\([0-9]*\).*/\1/p')
+check TST-CONV-19 "outro utilizador não pré-visualiza o vídeo convertido (CONV-039)" 403 "$(curl -sk -o /dev/null -w '%{http_code}' -X POST "$P/$U/$PID/preview/$CONV_ID" -H "X-Caller-Id: $ANON" -H "X-Project-Version: $VER")"
+check TST-CONV-19 "outro utilizador não apaga o vídeo convertido (CONV-039)" 403 "$(curl -sk -o /dev/null -w '%{http_code}' -X DELETE "$P/$U/$PID/img/$CONV_ID" -H "X-Caller-Id: $ANON" -H "X-Project-Version: $VER")"
 # ligação do vídeo convertido na biblioteca, para o run.sh verificar duração, áudio e codecs (TST-CONV-21)
 curl -sk "$P/$U/$PID/imgs" -H "X-Caller-Id: $U" | tr '{' '\n' | grep '"name":"aula_converted.webm"' \
   | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' > /media/convert_url.txt

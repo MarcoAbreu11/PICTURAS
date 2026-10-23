@@ -10,7 +10,7 @@
 // As caixas de "Orientação" explicam o que escrever em cada secção.
 // Antes de entregar, coloquem `mostrar-orientacoes` a `false` em `main.typ`
 // (ou apaguem as caixas). Os marcadores #preencher[...] ficam a vermelho até
-// serem substituídos — o relatório entregue não deve ter nenhum.
+// serem substituídos; o relatório entregue não deve ter nenhum.
 #let mostrar-orientacoes = state("mostrar-orientacoes", true)
 
 #let orientacao(corpo) = context {
@@ -105,7 +105,7 @@
 // Página e tipografia
 // -----------------------------------------------------------------------------
 #let project(body) = {
-  set document(title: "PictuRAS — Fase 1: Suporte a Vídeo")
+  set document(title: "PictuRAS, Fase 1: Suporte a Vídeo")
   set page(paper: "a4", margin: (top: 2.5cm, bottom: 2.5cm, left: 2.5cm, right: 2.5cm))
   // Carlito: equivalente métrico livre (OFL) da Calibri, incluída em fonts/.
   set text(font: "Carlito", lang: "pt", region: "PT", size: 10.5pt)

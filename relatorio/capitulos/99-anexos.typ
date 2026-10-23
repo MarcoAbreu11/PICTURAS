@@ -27,8 +27,9 @@ aparecem em "Results"; o vídeo convertido aparece também na lista de itens do 
 *Testes automáticos*:
 
 ```bash
-# unitários do projects (o teste das legendas precisa de um MongoDB descartável)
-cd projects && SUBTITLES_TEST_MONGO=mongodb://127.0.0.1:27028 node --test test/*.test.js
+# unitários do projects; o teste das legendas usa o projects_mongoDB (base temporária, apagada no fim)
+docker compose up -d projects_mongoDB
+cd projects && SUBTITLES_TEST_MONGO=mongodb://127.0.0.1:27018 node --test test/*.test.js
 
 # unitários dos workers (dentro das imagens, que já têm FFmpeg e OpenCV)
 docker run --rm --entrypoint sh picturas-video_convert_tool -c "python -m unittest test_convert_rules utils.test_video"

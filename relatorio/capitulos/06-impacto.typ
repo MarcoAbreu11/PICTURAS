@@ -7,7 +7,7 @@
     colunas: (3.6cm, 1.6cm, 1fr, 2.2cm, 3cm),
     tamanho: 8.5pt,
     [Elemento existente afetado], [Impacto], [Descrição do impacto], [Caso(s) de uso], [Requisitos],
-    [Carregamento de ficheiros para o projeto (pré-condição de UC04)], [Alterar],
+    [Carregamento de ficheiros para o projeto ("Carregar imagens")], [Alterar],
     [Passa a aceitar vídeos MP4, WebM e MOV (também em `.zip`), recusa extensões desconhecidas (antes o filtro
     estava só no _frontend_), aplica limites por perfil e guarda duração, resolução e codecs.],
     [Todos], [SUBMIT-001 a 004],
@@ -18,7 +18,7 @@
     informa quantos; as ferramentas de vídeo são exclusivas na _pipeline_; a confirmação do pedido deixou de
     esperar pela cópia dos ficheiros.], [Todos], [PIPE-001 a 006, PERF-001],
     [Pré-visualização de ferramentas (UC04)], [Alterar],
-    [Recusava vídeos; passa a pré-visualizar um frame na extração e na desfocagem. O corte pré-visualiza no
+    [Só tratava imagens (a base não suportava vídeo); passa a pré-visualizar um frame na extração e na desfocagem. O corte pré-visualiza no
     leitor; a conversão e as legendas não têm pré-visualização no servidor.], [UC-VID-002 a 004],
     [FRAME-004, BLUR-010, TRIM-009],
     [Limite diário de operações (RNF48; T-07)], [Alterar],
@@ -28,8 +28,10 @@
     [Perfil premium (sem limite)], [Manter], [A regra aplica-se às novas ferramentas.], [UC-VID-001, 003 a 005],
     [QUOTA-004],
     [Diferenciação de funcionalidades por perfil (RF64)], [Estender],
-    [A resolução de saída da conversão depende do perfil, com sugestão de _upgrade_; os limites de
-    carregamento também.], [UC-VID-005], [CONV-002, 014, 022, 035, SUBMIT-002],
+    [A sugestão de _upgrade_ passa a aparecer também quando o registado pede uma resolução de conversão
+    acima do seu limite (CONV-014). Relacionados (novos): resolução de saída por perfil (CONV-002, 022, 035)
+    e limites de carregamento por perfil (SUBMIT-002).], [UC-VID-005], [CONV-014; CONV-002, 022, 035,
+    SUBMIT-002],
     [Perfil anónimo], [Manter], [A regra das ferramentas avançadas (sem acesso) aplica-se às novas; o corte,
     básico, fica disponível.], [Todos], [QUOTA-005, TRIM-049],
     [Resultados do projeto], [Estender],
@@ -38,11 +40,12 @@
     [Biblioteca do projeto (itens)], [Estender],
     [Recebe os vídeos convertidos como novos itens, ao lado do original; os vídeos derivados ficam só
     acessíveis ao dono.], [UC-VID-005], [CONV-006, 033, 036, 039],
-    [Cópia de resultados para um novo projeto], [Alterar], [Copiava só imagens; passa a copiar vídeos, com a
-    duração e os codecs.], [UC-VID-002 a 004], [RESULT-003, RESULT-004],
-    [Cancelamento do processamento (T-01, T-10)], [Manter], [Reutilizado: _token_ de execução, remoção dos
-    resultados e devolução das operações; passa também a remover os vídeos convertidos dessa execução.],
-    [Todos], [STATUS-004, REL-001],
+    [Resultados do projeto: cópia para um novo projeto], [Estender], [Não existia na base: os resultados
+    (imagens e vídeos) passam a poder ser copiados para um novo projeto como itens normais, com a duração e os
+    codecs dos vídeos.], [UC-VID-002 a 004], [RESULT-003, RESULT-004],
+    [Cancelamento do processamento (T-01, T-10)], [Estender], [Mantém o _token_ de execução, a remoção dos
+    resultados e a devolução das operações. Passa também a retirar da biblioteca os vídeos convertidos nessa
+    execução.], [Todos; UC-VID-005/FA6], [STATUS-004, REL-001, QUOTA-002],
     [Mensagens de erro das ferramentas (T-02)], [Alterar], [Os erros dos _workers_ chegavam ao `projects` com
     os argumentos desalinhados e eram descartados; passam a chegar com a causa e são mostrados por vídeo.],
     [Todos], [STATUS-006, STATUS-007],
@@ -76,8 +79,8 @@ divergiam em cinco pontos, resolvidos assim:
   Mantiveram-se os dois conceitos, com significados distintos (glossário): a conversão acrescenta um item à
   biblioteca (CONV-006) e as outras ferramentas produzem resultados (RESULT-001). As legendas ficam associadas
   ao vídeo.
-+ *Limites de entrada.* A conversão propunha 500 MB e 10 min para todos; o carregamento limita o registado a
-  100 MB e 60 s. Os dois limites coexistem e aplica-se o mais restritivo (A6 do UC-VID-005).
++ *Limites de entrada.* A conversão propunha 500 MB e 10 min para todos; o carregamento limita cada perfil.
+  Ficaram os limites do carregamento; a conversão só os volta a verificar como defesa (UC-VID-005/RN4).
 + *Acesso partilhado.* As ferramentas seguem as permissões de partilha (SEC-002); a conversão restringe ao
   dono (CONV-039). A restrição é coerente porque o resultado da conversão entra na biblioteca do dono.
 + *Mecanismo de cobrança das legendas.* As legendas reservam e devolvem a operação no seu próprio serviço,

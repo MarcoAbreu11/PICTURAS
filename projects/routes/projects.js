@@ -106,10 +106,11 @@ const advanced_tools = [
 
 // Itens do projeto que a pipeline atual consegue processar (as outras são ignoradas).
 // A conversão (UC-VID-005) aplica-se só ao vídeo escolhido em params.video_id.
-function processableImgs(project) {
+function processableImgs(project, owner = true) {
   const convertTool = (project.tools || []).find((t) => t.procedure === "video_convert");
   const targets = convertTool ? new Set(conversionTargets(project.imgs, convertTool.params).map((v) => String(v._id))) : null;
-  return (project.imgs || []).filter((i) =>
+  // REQ-VID-CONV-039: um convidado não processa os vídeos convertidos do dono
+  return visibleItems(project, owner).filter((i) =>
     pipelineAccepts(project.tools, i.media_type ?? "image") &&
     (!targets || targets.has(String(i._id)))
   );
@@ -188,11 +189,22 @@ async function removeConvertedOfRun(ownerId, projectId, token) {
   return converted.length;
 }
 
-// Projeto com conversão configurada ou com vídeos convertidos na biblioteca:
-// só o proprietário lhe acede (REQ-VID-CONV-039)
-function hasConvertedContent(project) {
-  return [...(project.tools || []), ...(project.committedTools || [])].some((t) => t.procedure === "video_convert") ||
-    (project.imgs || []).some((i) => i.converted_from);
+// REQ-VID-CONV-039 (RNG-09): os vídeos convertidos e os resultados de uma conversão só são visíveis ao
+// dono; o resto de um projeto partilhado continua acessível aos convidados
+function isOwner(req, ownerId) {
+  return String(getCallerId(req)) === String(ownerId);
+}
+
+function visibleItems(project, owner) {
+  return owner ? project.imgs || [] : (project.imgs || []).filter((i) => !i.converted_from);
+}
+
+function visibleResults(project, results, owner) {
+  if (owner) return results;
+  const conversionRun = (project.committedTools || []).some((t) => t.procedure === "video_convert");
+  if (conversionRun) return [];
+  const converted = new Set((project.imgs || []).filter((i) => i.converted_from).map((i) => String(i._id)));
+  return results.filter((r) => !converted.has(String(r.img_id)));
 }
 
 // Conta quantas ferramentas avançadas existem neste projeto (independente de imagens)
@@ -227,7 +239,7 @@ function requireAuth(req, res, next) {
  * - adv_ops: nº de operações a debitar no users-ms (= newTools * nº de itens processáveis;
  *   itens que a pipeline ignora, ex. vídeos com tools de imagem, não gastam operações)
  */
-function advanced_tool_num(project) {
+function advanced_tool_num(project, owner = true) {
   const totalAdv = count_advanced_tools(project);
   let charged = project.chargedAdvancedTools || 0;
 
@@ -236,7 +248,7 @@ function advanced_tool_num(project) {
   if (charged > totalAdv) charged = totalAdv;
 
   const newTools = totalAdv - charged;
-  const processable = processableImgs(project);
+  const processable = processableImgs(project, owner);
   const convertOps = (project.tools || []).filter((t) => t.procedure === "video_convert").length * processable.length;
   const adv_ops = (newTools > 0 ? newTools * processable.length : 0) + convertOps;
 
@@ -953,14 +965,15 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
 
     };
 
-    if (hasConvertedContent(project) &&
-        String(getCallerId(req)) !== String(project.user_id)) {
-      return res.status(403).jsonp("Converted videos are only available to their owner");
-    }
+    const owner = isOwner(req, project.user_id);
 
     // tentar usar resultados mais recentes
     const committed = project.committedToken || 0;
-    const results = await Result.getAllByToken(project.user_id, project._id, committed);
+    const results = visibleResults(
+      project,
+      await Result.getAllByToken(project.user_id, project._id, committed),
+      owner
+    );
     const imageResults = results.filter((r) => r.type !== "text");
 
     if (imageResults.length > 0) {
@@ -990,7 +1003,7 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
       }
     } else {
       // fallback: imagens originais
-      for (const img of project.imgs) {
+      for (const img of visibleItems(project, owner)) {
         try {
           const resp = await get_image_public_url(
             project.user_id,
@@ -1124,10 +1137,7 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
 }, (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
-      if (hasConvertedContent(project) &&
-          String(getCallerId(req)) !== String(req.params.user)) {
-        return res.status(403).jsonp("Converted videos are only available to their owner");
-      }
+      const owner = isOwner(req, req.params.user);
       const response = {
         _id: project._id,
         name: project.name,
@@ -1136,7 +1146,7 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
         version: project.version,
       };
 
-      for (let img of project.imgs) {
+      for (let img of visibleItems(project, owner)) {
         try {
           const resp = await get_image_public_url(
             req.params.user,
@@ -1174,12 +1184,11 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
 router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
-      if (hasConvertedContent(project) &&
-          String(getCallerId(req)) !== String(req.params.user)) {
-        return res.status(403).jsonp("Converted videos are only available to their owner");
-      }
       try {
         const img = project.imgs.filter((i) => i._id == req.params.img)[0];
+        if (img?.converted_from && !isOwner(req, req.params.user)) {
+          return res.status(403).jsonp("Converted videos are only available to their owner");
+        }
         const resp = await get_image_public_url(
           req.params.user,
           req.params.project,
@@ -1210,14 +1219,10 @@ router.get("/:user/:project/img/:img", checkSharePermission, async (req, res, ne
 router.get("/:user/:project/imgs", checkSharePermission, async (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then(async (project) => {
-      if (hasConvertedContent(project) &&
-          String(getCallerId(req)) !== String(req.params.user)) {
-        return res.status(403).jsonp("Converted videos are only available to their owner");
-      }
       try {
         const ans = [];
 
-        for (let img of project.imgs) {
+        for (let img of visibleItems(project, isOwner(req, req.params.user))) {
           try {
             const resp = await get_image_public_url(
               req.params.user,
@@ -1338,12 +1343,12 @@ router.get("/:user/:project/process", checkSharePermission, (req, res, next) => 
     .then(async (_) => {
       const zip = new JSZip();
       const project = await Project.getOne(req.params.user, req.params.project);
-      if (hasConvertedContent(project) &&
-          String(getCallerId(req)) !== String(req.params.user)) {
-        return res.status(403).jsonp("Converted videos are only available to their owner");
-      }
       const committed = project.committedToken || 0;
-      const results = await Result.getAllByToken(req.params.user, req.params.project, committed);
+      const results = visibleResults(
+        project,
+        await Result.getAllByToken(req.params.user, req.params.project, committed),
+        isOwner(req, req.params.user)
+      );
 
       const result_path = `/../images/users/${req.params.user}/projects/${req.params.project}/tmp`;
 
@@ -1399,13 +1404,13 @@ router.get("/:user/:project/process", checkSharePermission, (req, res, next) => 
 router.get("/:user/:project/process/url", checkSharePermission, async (req, res) => {
   try {
     const project = await Project.getOne(req.params.user, req.params.project);
-    if (hasConvertedContent(project) &&
-        String(getCallerId(req)) !== String(req.params.user)) {
-      return res.status(403).jsonp("Converted videos are only available to their owner");
-    }
     const committed = project.committedToken || 0;
 
-    const results = await Result.getAllByToken(req.params.user, req.params.project, committed);
+    const results = visibleResults(
+      project,
+      await Result.getAllByToken(req.params.user, req.params.project, committed),
+      isOwner(req, req.params.user)
+    );
 
     const ans = { imgs: [], texts: [] };
     for (const r of results) {
@@ -1465,13 +1470,13 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
 
   try {
     const source = await Project.getOne(ownerId, req.params.project);
-    if (hasConvertedContent(source) &&
-        String(callerId) !== String(ownerId)) {
-      return res.status(403).jsonp("Converted videos are only available to their owner");
-    }
-    const results = (
+    const allResults = (
       await Result.getAllByToken(ownerId, req.params.project, source.committedToken || 0)
     ).filter((r) => r.type !== "text");
+    const results = visibleResults(source, allResults, isOwner(req, ownerId));
+    if (allResults.length > 0 && results.length === 0) {
+      return res.status(403).jsonp("Converted videos are only available to their owner");
+    }
 
     if (results.length === 0) {
       return res.status(400).jsonp("There are no results to copy");
@@ -1546,7 +1551,7 @@ router.post("/:user/:project/results/project", checkSharePermission, requireAuth
 router.get("/:user/:project/advanced_tools", checkSharePermission, (req, res, next) => {
   Project.getOne(req.params.user, req.params.project)
     .then((project) => {
-      const { adv_ops } = advanced_tool_num(project);
+      const { adv_ops } = advanced_tool_num(project, isOwner(req, req.params.user));
       // nº de operações avançadas que ESTA execução iria gastar
       res.status(200).jsonp(adv_ops);
     })
@@ -1574,6 +1579,12 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
 
   Project.getOne(ownerId, req.params.project)
     .then(async (project) => {
+      // REQ-VID-CONV-039: verificar o acesso antes de qualquer outra validação
+      const requested = project.imgs.find((i) => String(i._id) === String(req.params.img));
+      if (requested?.converted_from && !isOwner(req, ownerId)) {
+        return res.status(403).jsonp("Converted videos are only available to their owner");
+      }
+
       if (project.tools.length === 0) {
         return res.status(400).jsonp("No tools selected");
       }
@@ -2037,8 +2048,9 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
       }
 
       // só os itens cujo tipo é aceite por todas as tools (ex.: extract_frames só aceita vídeos)
-      const processable = processableImgs(project);
-      const skipped = project.imgs.length - processable.length;
+      const runnerIsOwner = String(runnerUserId) === String(ownerId);
+      const processable = processableImgs(project, runnerIsOwner);
+      const skipped = visibleItems(project, runnerIsOwner).length - processable.length;
 
       const convertParams = project.tools.find((t) => t.procedure === "video_convert")?.params;
       if (convertParams?.video_id && processable.length === 0) {
@@ -2106,7 +2118,7 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
       // tools de vídeo: o frontend conta um aviso de fim por vídeo
       const videoTool = project.tools.some((t) => EXCLUSIVE_TOOLS.includes(t.procedure));
 
-      const { adv_ops, totalAdv, charged, newTools } = advanced_tool_num(project);
+      const { adv_ops, totalAdv, charged, newTools } = advanced_tool_num(project, String(runnerUserId) === String(ownerId));
 
       console.log(
         "[ADV DEBUG] project:",
@@ -2568,6 +2580,9 @@ router.delete("/:user/:project/img/:img", checkSharePermission, requireEditPermi
     .then(async (project) => {
       try {
         const img = project["imgs"].filter((i) => i._id == req.params.img)[0];
+        if (img?.converted_from && !isOwner(req, req.params.user)) {
+          return res.status(403).jsonp("Converted videos are only available to their owner");
+        }
 
         await delete_image(
           req.params.user,

@@ -18,24 +18,24 @@ ferramenta básica, como o recorte de imagem, e não consome operações.
     colunas: (2.2cm, 3.4cm, 1fr, 3cm),
     [Perfil], [Situação na _baseline_], [Alteração introduzida para vídeo], [Regras / requisitos],
     [Anónimo], [Operações limitadas, imagens pequenas],
-    [Carrega vídeos até *20 MB e 15 s*. Usa apenas a ferramenta de vídeo básica (corte); não acede às
+    [Carrega vídeos até *20 MB e 15 s* (†). Usa apenas a ferramenta de vídeo básica (corte); não acede às
     ferramentas de vídeo avançadas (frames, desfocar caras, converter, legendas).],
     [RNG-02, RNG-04; SUBMIT-002, QUOTA-005, TRIM-049],
     [Registado], [Gratuito, até 5 operações/dia],
-    [Carrega vídeos até *100 MB e 60 s*. Cada vídeo processado por uma ferramenta avançada consome uma
+    [Carrega vídeos até *100 MB e 60 s* (†). Cada vídeo processado por uma ferramenta avançada consome uma
     operação, debitada no pedido e devolvida em falha ou cancelamento. Resolução máxima de saída da conversão:
     *720p*.],
-    [RNG-02, RNG-03; SUBMIT-002, QUOTA-001 a 003, CONV-022],
+    [RNG-02, RNG-03, RNG-11; SUBMIT-002, QUOTA-001 a 003, CONV-022],
     [Premium], [Pago, uso ilimitado],
-    [Carrega vídeos até *500 MB e 10 min*. Sem limite diário nas ferramentas de vídeo. Resolução máxima de
+    [Carrega vídeos até *500 MB e 10 min* (†). Sem limite diário nas ferramentas de vídeo. Resolução máxima de
     saída da conversão: *1080p*.],
-    [RNG-02; SUBMIT-002, QUOTA-004, CONV-035],
+    [RNG-02, RNG-11; SUBMIT-002, QUOTA-004, CONV-035],
   ),
 ) <tab-perfis>
 
 Os limites são verificados no carregamento, uma só vez, e aplicam-se a todas as ferramentas. A conversão
-acrescenta restrições próprias à entrada (H.264/AAC, até 500 MB e 10 min); para um utilizador registado, o
-limite efetivo é o do carregamento (100 MB e 60 s), que é mais restritivo.
+só acrescenta a restrição de _codec_ (H.264/AAC); os 500 MB e 10 min que volta a verificar coincidem com o
+máximo do carregamento e servem apenas de defesa no servidor.
 
 == _Stakeholders_ e interesses
 
@@ -54,7 +54,7 @@ Os nomes coincidem com os usados na secção "_Stakeholders_ e Interesses" de ca
     [Com permissão de edição, aplicar ferramentas de vídeo num projeto partilhado; com permissão de leitura,
     consultar resultados e legendas.],
     [Média], [PIPE-007, SUB-011, SEC-002],
-    [Proprietário do sistema], [Revisto],
+    [Proprietário do sistema], [Novo],
     [Diferenciar os perfis (limites de carregamento, ferramentas avançadas, resolução de saída) e controlar o
     *custo de processamento e armazenamento* do vídeo, muito superior ao de uma imagem.],
     [Alta], [RNG-02, RNG-03; PERF-002, RESULT-005],
@@ -69,7 +69,8 @@ Os nomes coincidem com os usados na secção "_Stakeholders_ e Interesses" de ca
   ),
 ) <tab-stakeholders>
 
-Não surgiram novos tipos de _stakeholder_. O "Serviço IA Externo" do documento de base não é usado pelas
+O único _stakeholder_ novo é o Proprietário do sistema, cujo interesse passa a pesar com o vídeo: o custo
+de processamento e armazenamento e a diferenciação dos perfis. O "Serviço IA Externo" do documento de base não é usado pelas
 ferramentas de vídeo: a deteção de caras e a transcrição correm em _workers_ do próprio PictuRAS
 (DQ-020).
 
@@ -77,12 +78,12 @@ ferramentas de vídeo: a deteção de caras e a transcrição correm em _workers
 
 As funcionalidades foram escolhidas pela equipa a partir do enunciado e da análise da solução existente, com
 o critério de cobrirem tipos de processamento de vídeo diferentes e de complexidade adequada (Capítulo 3). Os
-casos de uso foram escritos nos Exercícios 1 e 2 e revistos depois da implementação, para os alinhar com o
+casos de uso foram escritos antes da implementação e revistos depois dela, para os alinhar com o
 sistema real (por exemplo, "biblioteca" passou a "resultados do projeto" onde a ferramenta gera resultados).
-Os valores numéricos têm três origens identificáveis: (i) *limites já implementados* na solução de base ou no
-suporte base a vídeo (quota de 5 operações/dia; limites de carregamento por perfil em
-`projects/utils/media.js`; ligações assinadas com expiração de 1 h); (ii) *medições* feitas pela equipa
-durante a implementação (por exemplo, desfocagem a ≈ 0,5× a duração do vídeo; estimativa de tamanho com erro
-de 8 %); e (iii) *propostas da equipa*, marcadas com (†) e registadas como decisões de qualidade (por exemplo,
-100 imagens por vídeo, 5 trabalhos em simultâneo por ferramenta, 720p/1080p). Na conversão, os formatos de
+Os valores numéricos têm três origens identificáveis: (i) *limites já existentes* na solução de base, que
+não tinha suporte a vídeo (quota de 5 operações/dia do registado; ligações assinadas com expiração de 1 h);
+(ii) *medições* feitas pela equipa durante a implementação (por exemplo, desfocagem a ≈ 0,5× a duração do
+vídeo; estimativa de tamanho com erro de 8 %); e (iii) *propostas da equipa*, marcadas com (†) e registadas
+como decisões de qualidade (por exemplo, os limites de carregamento por perfil, 100 imagens por vídeo, 5
+trabalhos em simultâneo por ferramenta, 720p/1080p). Na conversão, os formatos de
 saída MP4 e WebM resultam da compatibilidade nativa dos navegadores atuais (restrição R4).

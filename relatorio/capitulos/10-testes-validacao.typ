@@ -7,12 +7,13 @@
 Os critérios de aceitação da ERS são a base dos testes, organizados em quatro níveis:
 
 - *Unitários do `projects`* (`node --test`, em `projects/test/`): regras de cada ferramenta, capacidades e
-  exclusividade, limpeza de temporários e o serviço de legendas, este último contra um MongoDB real
-  (variável `SUBTITLES_TEST_MONGO`).
+  exclusividade, limpeza de temporários e o serviço de legendas, este último contra a MongoDB do próprio
+  `projects` (o `projects_mongoDB` do `docker compose`, indicado em `SUBTITLES_TEST_MONGO`), numa base de dados
+  temporária criada e apagada pelo teste, sem tocar nos dados da aplicação.
 - *Unitários dos _workers_* (`python -m unittest`, em cada pasta de `Tools/`): validação, nomes, argumentos do
   FFmpeg, codecs por contentor, regras da estimativa e o módulo partilhado `Tools/utils/video.py`, este com
   FFmpeg real.
-- *Ponta a ponta* (`bash projects/test/e2e/run.sh`): com a stack a correr em `docker compose`, cria
+- *Ponta a ponta*, ou _end-to-end_ (e2e) (`bash projects/test/e2e/run.sh`): com a stack a correr em `docker compose`, cria
   utilizadores de teste, carrega vídeos, aplica cada ferramenta pela API e verifica resultados, quota e
   mensagens; os ficheiros gerados são inspecionados com `ffprobe`.
 - *Manuais e inspeção*: utilização no navegador, logs do `ws_gateway` e medições de tempo.
@@ -115,8 +116,8 @@ estão registadas nos documentos de cada caso de uso.
     [TST-CONV-11 a 20, 22], [Ponta a ponta], [Dado aula.mp4, quando se converte para WebM 360p, então 1080p é
     recusado com sugestão de _upgrade_, estimativa com erro de 8 %, confirmação em ≤ 2 s, só o vídeo
     escolhido, tamanhos no resultado, novo vídeo na biblioteca que fica após remover a ferramenta, 1 operação
-    consumida, acesso negado a outro utilizador, vídeo sem AAC recusado e anónimo recusado.],
-    [CONV-003, 006, 008, 014, 015, 024, 033, 036, 039, 047, PERF-001, QUOTA-001, 003, 005], [18/18 (2026-10-20)],
+    consumida, vídeo convertido e resultados da conversão escondidos a outro utilizador (que continua a ver o original), vídeo sem AAC recusado e anónimo recusado.],
+    [CONV-003, 006, 008, 014, 015, 024, 033, 036, 039, 047, PERF-001, QUOTA-001, 003, 005], [23/23 (2026-10-23)],
     [TST-CONV-21], [Inspeção (`ffprobe`)], [O vídeo convertido é WebM VP9/Opus, 240 px (sem aumentar) e
     10,015 s para 10 s.], [CONV-005, 046, OUTPUT-001], [Passa (2026-10-20)],
     [TST-CONV-M1], [Manual; reteste em navegador automático], [Conversão no navegador.], [CONV-002, 003, 011, 017],
@@ -124,11 +125,11 @@ estão registadas nos documentos de cada caso de uso.
   ),
 ) <tab-testes>
 
-*Totais da execução de 2026-10-21* (com um vídeo com pessoas a falar em `BLUR_FACE_VIDEO`): 36 de 37 testes
-unitários no `projects` sem falhas (1 ignorado: o ciclo de vida das legendas precisa de uma MongoDB de teste),
+*Totais da execução de 2026-10-21* (com um vídeo com pessoas a falar em `BLUR_FACE_VIDEO`): 59/59 testes
+unitários no `projects` (repetidos a 2026-10-23 contra o `projects_mongoDB`, sem nenhum ignorado),
 64/64 nos _workers_ Python (desfocagem 15, legendas 15, corte 8, extração 8, conversão 13, módulo partilhado 5)
-e 101 verificações ponta a ponta sem falhas (UC-VID-001: 13; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 24;
-UC-VID-005: 18), mais as inspeções com `ffprobe`, o _hash_ do original e a faixa WebVTT. Sem esse vídeo, os
+e 106 verificações ponta a ponta sem falhas (UC-VID-001: 13; UC-VID-002: 23; UC-VID-003: 23; UC-VID-004: 24;
+UC-VID-005: 23, repetida a 2026-10-23 depois da alteração da CONV-039), mais as inspeções com `ffprobe`, o _hash_ do original e a faixa WebVTT. Sem esse vídeo, os
 testes de deteção de caras e de fala são ignorados.
 
 == Limitações e defeitos conhecidos

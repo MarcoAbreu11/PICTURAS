@@ -7,7 +7,7 @@
 #tabela(
   colunas: (3.5cm, 1fr),
   [Ferramenta / modelo], [Configuração e utilização],
-  [Claude (assistente de conversação)], [Usado nos Exercícios 1 e 2 para a primeira versão dos casos de uso
+  [Claude (assistente de conversação)], [Usado na primeira versão dos casos de uso
   UC-VID-002 a 005 e das respetivas ERS. Sem configuração própria: _prompts_ com o enunciado, o _template_ e os
   exemplos dos docentes.],
   [Claude Code], [Agente de programação no terminal e na aplicação de _desktop_ (modelo Claude Opus), a
