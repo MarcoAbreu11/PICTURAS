@@ -61,11 +61,17 @@ const {
   validateVideo,
   imageTools,
   videoPipeline,
-  unsupportedVideoTools,
   videoOps,
-  validateFrameExtraction,
   insertPipelineTool,
 } = require("../utils/video");
+const {
+  pipelineIssues,
+  frameExtractionIssue,
+  blockingIssue,
+  describeIssue,
+  toolErrors,
+  unavailableTools,
+} = require("../utils/pipelineRules");
 const { persistFrameResults } = require("../utils/frameResults");
 const { dispatchProcessBatch } = require("../utils/processBatch");
 const { receiveUpload } = require("../utils/uploadStorage");
@@ -704,7 +710,9 @@ router.get("/share/:shareId/project", requireAuth,async (req, res) => {
       imgs: [],
       permission: link.permission,
       version: project.version, 
-
+      // shown by the editor before any preview or run
+      pipelineIssues: pipelineIssues(project),
+      unavailableTools: unavailableTools(project),
     };
 
     // tentar usar resultados mais recentes
@@ -873,6 +881,9 @@ router.get("/:user/:project", checkSharePermission, async (req, res, next) => {
         tools: project.tools,
         imgs: [],
         version: project.version,
+        // shown by the editor before any preview or run
+        pipelineIssues: pipelineIssues(project),
+        unavailableTools: unavailableTools(project),
       };
 
       for (let img of project.imgs) {
@@ -1087,8 +1098,9 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
         return res.status(400).jsonp("No tools selected");
       }
 
-      const pipelineError = validateFrameExtraction(project.tools);
-      if (pipelineError) return res.status(400).jsonp(pipelineError);
+      // the same rules the editor shows as pipeline issues (pipelineRules.js)
+      const blocking = blockingIssue(pipelineIssues(project));
+      if (blocking) return res.status(400).jsonp(describeIssue(blocking));
 
       const previewImg = project.imgs.filter((i) => i._id == req.params.img)[0];
       if (!previewImg) {
@@ -1096,20 +1108,12 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
       }
       const previewIsVideo = isVideoMedia(previewImg);
 
-      if (previewIsVideo) {
-        const bad = unsupportedVideoTools(project);
-        if (bad.length > 0) {
-          return res
-            .status(400)
-            .jsonp(`Effects not available for video: ${[...new Set(bad)].join(", ")}`);
-        }
-      }
-
       // video: the whole pipeline goes in one message to the video worker,
       // which only processes the initial excerpt
       const tool = previewIsVideo ? { procedure: "video" } : imageTools(project)[0];
       if (!tool) {
-        return res.status(400).jsonp("No tools selected");
+        // only video effects: images are not changed by this pipeline
+        return res.status(400).jsonp("The pipeline only has video effects, so this image is not changed. Select a video to preview it.");
       }
 
       const tool_name = tool.procedure;
@@ -1432,9 +1436,13 @@ router.post("/:user/:project/tool", checkSharePermission, requireEditPermission,
       Project.getOne(req.params.user, req.params.project)
         .then(async (project) => {
           const tool = { procedure: req.body.procedure, params: req.body.params };
+          // refuse a tool that does not fit the project's media or has invalid
+          // settings; issues of other tools never block adding this one
+          const errors = toolErrors(project, tool);
+          if (errors.length > 0) return res.status(400).jsonp(describeIssue(errors[0]));
           const tools = insertPipelineTool(project.tools, tool);
-          const pipelineError = validateFrameExtraction(tools);
-          if (pipelineError) return res.status(400).jsonp(pipelineError);
+          const frameIssue = frameExtractionIssue(tools);
+          if (frameIssue) return res.status(400).jsonp(describeIssue(frameIssue));
           project.tools = tools;
 
           const updated = await Project.updateIfVersion(
@@ -1487,8 +1495,8 @@ router.post(
       .then(async (project) => {
         if (!Array.isArray(req.body)) return res.status(400).jsonp("Tools must be an array");
         const tools = req.body.map((tool, position) => ({ ...tool, position }));
-        const pipelineError = validateFrameExtraction(tools);
-        if (pipelineError) return res.status(400).jsonp(pipelineError);
+        const frameIssue = frameExtractionIssue(tools);
+        if (frameIssue) return res.status(400).jsonp(describeIssue(frameIssue));
         project.tools = tools;
 
         const updated = await Project.updateIfVersion(
@@ -1553,23 +1561,9 @@ router.post("/:user/:project/process", checkSharePermission, requireEditPermissi
         return;
       }
 
-      const pipelineError = validateFrameExtraction(project.tools);
-      if (pipelineError) return res.status(400).jsonp(pipelineError);
-
-      // Video
-      const hasVideos = project.imgs.some(isVideoMedia);
-      if (hasVideos) {
-        const bad = unsupportedVideoTools(project);
-        if (bad.length > 0) {
-          res
-            .status(400)
-            .jsonp(`Effects not available for video: ${[...new Set(bad)].join(", ")}`);
-          return;
-        }
-      } else if (imageTools(project).length === 0) {
-        res.status(400).jsonp("The pipeline only has video effects and the project has no videos");
-        return;
-      }
+      // the same rules the editor shows as pipeline issues (pipelineRules.js)
+      const blocking = blockingIssue(pipelineIssues(project));
+      if (blocking) return res.status(400).jsonp(describeIssue(blocking));
       // Each effect applied to a video counts as one operation
       const vid_ops = videoOps(project);
 
@@ -1879,8 +1873,11 @@ router.put(
             _id: prev_tool._id,
           };
 
-          const pipelineError = validateFrameExtraction(project.tools);
-          if (pipelineError) return res.status(400).jsonp(pipelineError);
+          // only the edited tool is judged, so it can always be corrected
+          const errors = toolErrors(project, project.tools[tool_pos]);
+          if (errors.length > 0) return res.status(400).jsonp(describeIssue(errors[0]));
+          const frameIssue = frameExtractionIssue(project.tools);
+          if (frameIssue) return res.status(400).jsonp(describeIssue(frameIssue));
 
           const updated = await Project.updateIfVersion(
             req.params.user,
