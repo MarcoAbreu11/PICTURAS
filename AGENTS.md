@@ -71,6 +71,11 @@ Behind the gateway:
   orchestrator saves each frame as a separate image Result with the source `img_id`
   and unique result ID/name. Register all batch Process records before dispatch.
 - In projects with videos the frontend hides image-only tools (AI, watermark) and PDF export.
+- Tool/media compatibility lives in `projects/utils/pipelineRules.js`: it judges a tool when it is
+  added or edited (only that tool, so corrections are never blocked) and the whole pipeline
+  before a preview or a run. The project response carries `pipelineIssues` (errors block,
+  warnings do not) and `unavailableTools`; the editor hides those tools and shows both in
+  `PipelineNotices`. Do not repeat these rules in the frontend.
 
 ## Running and testing
 
