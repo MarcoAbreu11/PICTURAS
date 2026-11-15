@@ -1,0 +1,23 @@
+# Override for hosts with SELinux enforcing (e.g. Fedora with Podman): the
+# same bind mounts as docker-compose.yaml with the :z option, so containers
+# may read the mounted files. It changes nothing else.
+#   docker compose -f docker-compose.yaml -f bench/upload/compose.selinux.yaml up -d
+# Paths are relative to the main compose file's directory.
+services:
+  nginx:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
+      - ./certs/selfsigned.crt:/etc/nginx/certs/selfsigned.crt:ro,z
+      - ./certs/selfsigned.key:/etc/nginx/certs/selfsigned.key:ro,z
+  users:
+    volumes:
+      - ./users:/app:z
+  subscriptions:
+    volumes:
+      - ./subscriptions:/app:z
+  api_gateway:
+    volumes:
+      - ./apiGateway:/app:z
+  frontend:
+    volumes:
+      - ./frontend:/app:z
