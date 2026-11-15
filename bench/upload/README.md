@@ -70,10 +70,12 @@ which also counts page cache), the HTTP statuses and the upload time.
 Run the same commands with `--label final` after the refactoring, on the same
 machine and with the same stack configuration, and compare.
 
-### Optional: fixed memory limits
+### Fixed memory limits
 
 To measure capacity under a fixed memory budget, start the stack with the
-override file, which caps the three services at 512 MB each:
+override file. It caps the three services at 1 GB each, without swap: swapped
+pages would leave the resident memory and hide part of the growth. Use it for
+the baseline and the final measurement alike (see `RESULTS.md`):
 
 ```bash
 docker compose -f docker-compose.yaml -f bench/upload/compose.memlimit.yaml up -d
