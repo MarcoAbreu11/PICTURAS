@@ -32,7 +32,29 @@ export interface SingleProject {
   tools: ProjectToolResponse[];
   imgs: ProjectImage[];
   version: number;
+  // computed by the projects service from its pipeline rules
+  pipelineIssues?: PipelineIssue[];
+  unavailableTools?: UnavailableTool[];
+}
 
+// A problem of the pipeline for the media of the project. Errors block
+// preview and processing; warnings do not.
+export interface PipelineIssue {
+  toolId: string | null;
+  procedure: string | null;
+  label: string | null;
+  code: string;
+  severity: "error" | "warning";
+  message: string;
+  fix: string;
+}
+
+// A tool the editor does not offer for this project, and why
+export interface UnavailableTool {
+  procedure: string;
+  label: string;
+  reason: string;
+  fix: string;
 }
 export interface VideoInfo {
   duration: number;
@@ -230,6 +252,8 @@ export const fetchProject = async (
     imgs: response.data.imgs,
     tools: response.data.tools,
     version: response.data.version,
+    pipelineIssues: response.data.pipelineIssues,
+    unavailableTools: response.data.unavailableTools,
   } as SingleProject;
 };
 
