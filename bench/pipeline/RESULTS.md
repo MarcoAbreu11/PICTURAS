@@ -12,8 +12,8 @@ was checked in Chromium (Playwright 1.49.0), at 1440 × 900.
 
 | Item | Value |
 | --- | --- |
-| Baseline commit | `7590c4a` (the pipeline code is unchanged since the official base `0523102`) |
-| Final commit | _to be filled in after the refactoring_ |
+| Baseline commit | `7590c4a` (API run) and `6129bfd` (editor run): same `projects` and `frontend` code, unchanged since the official base `0523102` |
+| Final commit | `087cc9f` |
 | Date | 2026-11-15 |
 
 ## Baseline
@@ -62,4 +62,53 @@ backend accepts the same values and only the video worker rejects them.
 
 ## Final
 
-_To be filled in after the refactoring, with `--label final`._
+| Indicator | Baseline: API | Final: API | Baseline: editor | Final: editor |
+| --- | --- | --- | --- | --- |
+| Invalid scenarios with a useful early warning | 1/9 (11%) | **9/9 (100%)** | 2/10 (20%) | **10/10 (100%)** |
+| Valid scenarios accepted and working / without a warning | 11/11 | 11/11 | 11/11 | 11/11 |
+
+Upload regression checks (`bench/upload/regression.py`, which includes a
+pipeline over an image and a video): 19/19. Unit tests of `projects`: 21/21,
+8 of them new for the rules.
+
+Per invalid scenario, what the editor now shows before any preview or run
+(every pipeline issue is a `role="alert"` line above the editor; the
+explanation of hidden tools is a `role="note"` line):
+
+| Id | Warning in the editor |
+| --- | --- |
+| INV-01 to INV-04 | `<tool> only works on images, and this project has videos. Remove <tool> from the pipeline, or keep the videos in a separate project.` |
+| INV-05 | `Not offered in this project: Watermark, AI Background Removal, … These tools work on images only, and this project has videos. To use them on the images, remove the videos or keep them in a separate project.` |
+| INV-06 to INV-08 | `<tool> only applies to videos, and this project has none, so the pipeline has nothing to apply to the images. Remove <tool> and add an image effect, or add a video to the project.` |
+| INV-09 | toast: `Frame extraction must be the last tool in the pipeline. Move Extract frames to the end of the pipeline.`; the applied list returns to the accepted order |
+| INV-10 | the trim form (unchanged): `End exceeds the video duration (5.0 s).`; the API now also refuses the tool when it is added: `Trim ends at 8 s, but the video lasts 5 s. Open Trim and set an end time up to 5 s.` |
+
+The valid scenarios with a video show the `role="note"` line about hidden
+tools. It is information, not a warning about their pipeline, and the editor
+check does not count it as a false warning (see `README.md`).
+
+### What changed
+
+- `projects/utils/pipelineRules.js` holds the compatibility rules. It judges
+  one tool when it is added or edited, and the whole pipeline before a
+  preview or a run. Errors block those actions; warnings (a video-only tool
+  next to image effects in a project without videos, or a trim whose video
+  was deleted) do not.
+- Adding or editing a tool judges only that tool, so issues elsewhere in the
+  pipeline never block a correction. Uploading or deleting media is never
+  blocked; the issues appear in the editor instead (VAL-10 and VAL-11).
+- The project response carries `pipelineIssues` and `unavailableTools`. The
+  editor hides the unavailable tools, as before, and shows both lists in
+  `PipelineNotices`, so the rules are no longer repeated in the frontend.
+- Preview and processing give the same messages as the editor. They replace
+  `No tools selected` (when only video effects remain) and `Effects not
+  available for video: …`.
+
+### Measurement note
+
+After the first final run, the action-word list in `scenarios.py` was
+extended with `set`, `choose`, `open` and `select a`: the final INV-10 message
+("set an end time up to 5 s") is actionable, but no listed word matched it.
+The stored baseline messages were classified again with the extended list
+and none changed (API 1/9). The final CSVs above were produced with the
+extended list.
