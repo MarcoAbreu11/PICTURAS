@@ -30,8 +30,14 @@ async function post_image(user, project, type, file) {
   return await axios.post(
     `${img_storage_ms}/upload/${user}/${project}/${type}`,
     file /* , { httpsAgent: httpsAgent } */,
-    // Videos can be hundreds of MB
-    { maxBodyLength: Infinity, maxContentLength: Infinity, headers: file.getHeaders ? file.getHeaders() : undefined },
+    // Videos can be hundreds of MB. maxRedirects: 0 sends the body without the
+    // redirect helper, which would otherwise keep a copy of all of it in memory.
+    {
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      maxRedirects: 0,
+      headers: file.getHeaders ? file.getHeaders() : undefined,
+    },
   );
 }
 

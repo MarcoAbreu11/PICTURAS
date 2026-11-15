@@ -4,7 +4,6 @@ var router = express.Router();
 const axios = require("axios");
 const sharp = require("sharp");
 
-const multer = require("multer");
 const FormData = require("form-data");
 
 const fs = require("fs");
@@ -57,7 +56,8 @@ const {
   isVideoFile,
   isVideoMedia,
   videoOutputName,
-  probeVideoBuffer,
+  probeVideoFile,
+  videoSizeLimitBytes,
   validateVideo,
   imageTools,
   videoPipeline,
@@ -68,9 +68,7 @@ const {
 } = require("../utils/video");
 const { persistFrameResults } = require("../utils/frameResults");
 const { dispatchProcessBatch } = require("../utils/processBatch");
-
-const storage = multer.memoryStorage();
-var upload = multer({ storage: storage });
+const { receiveUpload } = require("../utils/uploadStorage");
 
 const key = fs.readFileSync(__dirname + "/../certs/selfsigned.key");
 const cert = fs.readFileSync(__dirname + "/../certs/selfsigned.crt");
@@ -1299,14 +1297,10 @@ function addProjectMedia(kind) {
         const isVideo = kind === "video";
         let videoMeta = null;
         if (isVideo) {
-          let userType = "anonymous";
-          try {
-            const r = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
-            userType = r.data.type;
-          } catch (_) {}
+          const userType = req.uploadUserType || "anonymous";
 
           try {
-            videoMeta = await probeVideoBuffer(req.file.buffer, req.file.originalname);
+            videoMeta = await probeVideoFile(req.file.path, req.file.size);
           } catch (e) {
             return res.status(400).jsonp(e.message);
           }
@@ -1318,10 +1312,12 @@ function addProjectMedia(kind) {
         }
 
         try {
+          // stream the received file from disk to the storage service
           const data = new FormData();
-          data.append("file", req.file.buffer, {
+          data.append("file", fs.createReadStream(req.file.path), {
             filename: req.file.originalname,
             contentType: req.file.mimetype,
+            knownLength: req.file.size,
           });
           const resp = await post_image(
             req.params.user,
@@ -1339,8 +1335,8 @@ function addProjectMedia(kind) {
             const out_name = isVideo ? videoOutputName(req.file.originalname) : req.file.originalname;
             const new_uri = `./images/users/${req.params.user}/projects/${req.params.project}/out/${out_name}`;
 
-            const crypto = require("crypto");
-            const sha = crypto.createHash("sha256").update(req.file.buffer).digest("hex");
+            // computed while the upload was written to disk
+            const sha = req.file.sha256;
 
             // Insert new image
             project["imgs"].push({
@@ -1381,15 +1377,29 @@ function addProjectMedia(kind) {
   };
 }
 
+// Looks up the caller's profile before a video is received, so its size
+// limit can be enforced while streaming (unknown callers are anonymous).
+async function resolveUploadUserType(req, res, next) {
+  req.uploadUserType = "anonymous";
+  try {
+    const r = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
+    req.uploadUserType = r.data.type;
+  } catch (_) {}
+  next();
+}
+
 // Add new image to a project
 router.post(
-  "/:user/:project/img", checkSharePermission, requireEditPermission, enforcePresenceLimit, requireProjectVersion, upload.single("image"),
+  "/:user/:project/img", checkSharePermission, requireEditPermission, enforcePresenceLimit, requireProjectVersion,
+  receiveUpload("image"),
   addProjectMedia("image")
 );
 
 // Add new video to a project
 router.post(
-  "/:user/:project/video", checkSharePermission, requireEditPermission, enforcePresenceLimit, requireProjectVersion, upload.single("video"),
+  "/:user/:project/video", checkSharePermission, requireEditPermission, enforcePresenceLimit, requireProjectVersion,
+  resolveUploadUserType,
+  receiveUpload("video", { getLimitBytes: (req) => videoSizeLimitBytes(req.uploadUserType) || null }),
   addProjectMedia("video")
 );
 
