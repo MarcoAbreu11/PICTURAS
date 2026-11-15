@@ -15,7 +15,9 @@ SIZES=("$@")
 # H.264 encoder: libx264 when available (most builds), otherwise OpenH264
 # (e.g. Fedora's ffmpeg-free). Sizes are approximate; the benchmark records
 # the real size of every file.
-if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q ' libx264 '; then
+# capture first: with pipefail, grep -q closing the pipe early makes ffmpeg fail
+ENCODERS="$(ffmpeg -hide_banner -encoders 2>/dev/null)"
+if grep -q ' libx264 ' <<<"$ENCODERS"; then
   ENC=(-c:v libx264 -preset ultrafast -x264-params nal-hrd=cbr)
 else
   ENC=(-c:v libopenh264 -rc_mode bitrate -allow_skip_frames 0)
