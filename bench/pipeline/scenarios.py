@@ -126,7 +126,8 @@ TOOL_NAMES = {
 # Words that tell the user what to do (English and Portuguese). "exceed" counts
 # because such a message states the limit to respect (e.g. the video duration).
 FIX_WORDS = ["remove", "delete", "move", "replace", "must", "add a video", "upload a video",
-             "exceed", "remov", "mov", "substitu", "adicion", "tem de", "deve", "exced"]
+             "exceed", "set ", "choose", "open ", "select a",
+             "remov", "mov", "substitu", "adicion", "tem de", "deve", "exced", "defin", "escolh"]
 
 # Scenarios checked in the editor perform their last step there, as a user
 # would: INV-09 drags the extractor up the applied tools list and INV-10 types
