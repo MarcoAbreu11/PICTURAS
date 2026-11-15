@@ -4,8 +4,11 @@
 #   docker compose -f docker-compose.yaml -f bench/upload/compose.memlimit.yaml up -d
 services:
   api_gateway:
-    mem_limit: 512m
+    mem_limit: 1g
+    memswap_limit: 1g   # no swap: swapped pages would hide RSS growth
   projects:
-    mem_limit: 512m
+    mem_limit: 1g
+    memswap_limit: 1g   # no swap: swapped pages would hide RSS growth
   img_storage:
-    mem_limit: 512m
+    mem_limit: 1g
+    memswap_limit: 1g   # no swap: swapped pages would hide RSS growth
