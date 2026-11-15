@@ -45,6 +45,7 @@ import { useUpdateSession } from "@/lib/mutations/session";
 import { getErrorMessage } from "@/lib/error-messages";
 import { PresetsDialog } from "@/components/presets/presets-dialog";
 import { AiAssistantDialog } from "@/components/assistant/ai-assistant-dialog";
+import { PipelineNotices } from "@/components/project-page/pipeline-notices";
 
 export default function Project({
   params,
@@ -881,6 +882,8 @@ const handleCancel = () => {
             </div>
           </div>
         </div>
+        {/* Pipeline problems, before any preview or processing */}
+        {mode === "edit" && <PipelineNotices />}
         {/* Main Content */}
 
         <div className="h-full overflow-x-hidden flex">

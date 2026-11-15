@@ -48,9 +48,12 @@ export function Toolbar() {
   const project = useProjectInfo();
   const session = useSession();
 
-  // Projects with videos only show the effects the video worker supports
-  // (AI tools and watermark are image-only) and only when a media item is selected
+  // Projects with videos only show the toolbar when a media item is selected
   const hasVideos = project.imgs.some((i) => isVideo(i));
+  // Which tools fit the project's media is decided by the projects service
+  // (pipelineRules.js); the editor explains it in PipelineNotices
+  const unavailable = new Set((project.unavailableTools ?? []).map((t) => t.procedure));
+  const offered = (procedure: string) => !unavailable.has(procedure);
 
   const [open, setOpen] = useState<boolean>(false);
   const ownerParam = searchParams.get("owner") ?? session.user._id;
@@ -78,23 +81,20 @@ export function Toolbar() {
         <CropTool disabled={disabled} />
         <ResizeTool disabled={disabled} />
         <BorderTool disabled={disabled} />
-        {/* Only shown when the project has videos */}
-        <TrimTool disabled={disabled} />
-        <SpeedTool disabled={disabled} />
-        {hasVideos && <SubtitlesTool disabled={disabled} />}
-        {hasVideos && <ExtractFramesTool disabled={disabled} />}
-        {!hasVideos && (
-          <>
-            <WatermarkTool disabled={disabled} />
-            <BgRemovalAITool disabled={disabled} />
-            <CropAITool disabled={disabled} />
-            <ObjectAITool disabled={disabled} />
-            <PeopleAITool disabled={disabled} />
-            <TextAITool disabled={disabled} />
-            <ExpandAITool disabled={disabled} />
-            <UpgradeAITool disabled={disabled} />
-          </>
-        )}
+        {/* Video tools: trim and speed also need a selected video */}
+        {offered("trim") && <TrimTool disabled={disabled} />}
+        {offered("speed") && <SpeedTool disabled={disabled} />}
+        {offered("subtitles") && <SubtitlesTool disabled={disabled} />}
+        {offered("extract_frames") && <ExtractFramesTool disabled={disabled} />}
+        {/* Image-only tools */}
+        {offered("watermark") && <WatermarkTool disabled={disabled} />}
+        {offered("bg_remove_ai") && <BgRemovalAITool disabled={disabled} />}
+        {offered("cut_ai") && <CropAITool disabled={disabled} />}
+        {offered("obj_ai") && <ObjectAITool disabled={disabled} />}
+        {offered("people_ai") && <PeopleAITool disabled={disabled} />}
+        {offered("text_ai") && <TextAITool disabled={disabled} />}
+        {offered("expand_ai") && <ExpandAITool disabled={disabled} />}
+        {offered("upgrade_ai") && <UpgradeAITool disabled={disabled} />}
         <AppliedToolsList />
       </div>
       <Dialog open={open} onOpenChange={setOpen}>

@@ -270,6 +270,8 @@ export function ProjectProvider({
 
         // opcional: atualizar resultados/previews se estiverem a ser mostrados
         qc.invalidateQueries({ queryKey: ["projectResults", ownerId ?? session.user._id, project._id, session.token, ownerId, shareId] });
+        // pipeline issues are computed by the server: fetch them for the new tools
+        qc.invalidateQueries({ queryKey: ["project", session.user._id, project._id] });
 
       } finally {
         applyingRemote.current = false;
