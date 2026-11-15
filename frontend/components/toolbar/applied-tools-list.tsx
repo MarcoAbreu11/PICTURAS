@@ -119,6 +119,8 @@ export function AppliedToolsList() {
         },
         onError: (error) => {
           console.error("Erro ao reordenar:", error);
+          // the server kept the previous order: show it again
+          setTools(tools);
           const { title, description } = getErrorMessage("project-update", error);
           toast({
             title,
