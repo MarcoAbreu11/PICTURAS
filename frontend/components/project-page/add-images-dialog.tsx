@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import ImageSubmissionArea from "../image-submission-area";
 import { LoaderCircle, Plus } from "lucide-react";
 import { useAddProjectImages } from "@/lib/mutations/projects";
@@ -25,6 +26,8 @@ export function AddImagesDialog() {
   const [open, setOpen] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  // share of the selected files already sent, in percent
+  const [uploadPercent, setUploadPercent] = useState(0);
   const { toast } = useToast();
 
   const { _id: pid, version} = useProjectInfo();
@@ -53,10 +56,12 @@ export function AddImagesDialog() {
   }
 
   function handleAdd() {
+    setUploadPercent(0);
     addImages.mutate(
       {
         images: imageFiles,
         projectVersion: version,
+        onProgress: (fraction) => setUploadPercent(Math.round(fraction * 100)),
       },
       {
         onSuccess: () => {
@@ -92,10 +97,18 @@ export function AddImagesDialog() {
           </DialogDescription>
         </DialogHeader>
         <ImageSubmissionArea onDrop={onDrop} />
+        {addImages.isPending && (
+          <div className="flex items-center gap-2" aria-live="polite">
+            <Progress value={uploadPercent} aria-label="Upload progress" />
+            <span className="w-12 text-right text-sm tabular-nums text-muted-foreground">
+              {uploadPercent}%
+            </span>
+          </div>
+        )}
         <DialogFooter>
           <Button
             onClick={handleAdd}
-            disabled={images.length === 0}
+            disabled={images.length === 0 || addImages.isPending}
             className="inline-flex items-center gap-1"
           >
             <span>Add</span>
