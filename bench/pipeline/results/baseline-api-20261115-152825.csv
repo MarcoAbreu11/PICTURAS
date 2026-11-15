@@ -1,0 +1,22 @@
+label,commit,id,valid,title,stage,early,specific,actionable,useful_early_warning,valid_ok,steps_refused,results,expected_results,message
+baseline,7590c4a,INV-01,False,"Image project with an AI tool, then a video is added",preview,0,1,0,0,,0,,,Effects not available for video: bg_remove_ai
+baseline,7590c4a,INV-02,False,"Image project with watermark, then a video is added",preview,0,1,0,0,,0,,,Effects not available for video: watermark
+baseline,7590c4a,INV-03,False,"Compatible and AI tools mixed, then a video is added",preview,0,1,0,0,,0,,,Effects not available for video: upgrade_ai
+baseline,7590c4a,INV-04,False,"Empty project with an AI tool, then only a video is added",preview,0,1,0,0,,0,,,Effects not available for video: text_ai
+baseline,7590c4a,INV-05,False,Mixed project: the user looks for an AI tool to use on the image,n/a (ui only),0,0,0,0,,0,,,
+baseline,7590c4a,INV-06,False,"Trim on the video, then the video is deleted (only video effects remain)",preview,0,0,0,0,,0,,,No tools selected
+baseline,7590c4a,INV-07,False,"Subtitles, then the video is deleted",preview,0,0,0,0,,0,,,No tools selected
+baseline,7590c4a,INV-08,False,"Frame extraction, then the video is deleted",preview,0,0,0,0,,0,,,No tools selected
+baseline,7590c4a,INV-09,False,An effect is moved after frame extraction,setup,1,1,1,1,,1,,,"reorder ['extract_frames', 'brightness']: Frame extraction must be the last tool in the pipeline"
+baseline,7590c4a,INV-10,False,Trim end beyond the video duration,preview-worker,0,1,0,0,,0,,,"Trim [1.0, 8.0] s is outside the video duration (5.00 s)"
+baseline,7590c4a,VAL-01,True,Image: brightness,none,,,,,1,0,1,1,
+baseline,7590c4a,VAL-02,True,Image: brightness and border,none,,,,,1,0,1,1,
+baseline,7590c4a,VAL-03,True,Video: brightness and trim,none,,,,,1,0,1,1,
+baseline,7590c4a,VAL-04,True,Video: contrast and speed,none,,,,,1,0,1,1,
+baseline,7590c4a,VAL-05,True,Video: brightness and frame extraction,none,,,,,1,0,3,3,
+baseline,7590c4a,VAL-06,True,Mixed: brightness and trim (the image skips trim),none,,,,,1,0,2,2,
+baseline,7590c4a,VAL-07,True,Mixed: border and frame extraction (the image skips extraction),none,,,,,1,0,4,4,
+baseline,7590c4a,VAL-08,True,"Image: AI background removal (accepted, not executed: AI services not started)",none,,,,,1,0,,,
+baseline,7590c4a,VAL-09,True,"Image: brightness, then a video is added (compatible pipeline)",none,,,,,1,0,2,2,
+baseline,7590c4a,VAL-10,True,Correction of INV-01: the AI tool is removed and brightness added,none,,,,,1,0,2,2,
+baseline,7590c4a,VAL-11,True,Correction of INV-06: trim is removed and brightness added,none,,,,,1,0,1,1,
