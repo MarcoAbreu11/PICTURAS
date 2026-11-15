@@ -225,6 +225,7 @@ module.exports = {
   VIDEO_LIMITS,
   VIDEO_TOOLS,
   VIDEO_ONLY_TOOLS,
+  PER_VIDEO_TOOLS,
   isVideoFile,
   isVideoMedia,
   videoOutputName,
