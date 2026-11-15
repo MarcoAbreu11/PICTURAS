@@ -6,10 +6,8 @@ const axios = require("axios");
 const https = require("https");
 const fs = require("fs");
 
-const multer = require("multer");
-const FormData = require("form-data");
-
 const auth = require("../auth/auth");
+const { forwardUpload } = require("../utils/forwardUpload");
 
 const key = fs.readFileSync(__dirname + "/../certs/selfsigned.key");
 const cert = fs.readFileSync(__dirname + "/../certs/selfsigned.crt");
@@ -19,9 +17,6 @@ const httpsAgent = new https.Agent({
   cert: cert,
   key: key,
 });
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
 const projectsURL = "https://projects:9001/";
 
@@ -408,36 +403,22 @@ router.post(
  */
 router.post(
   "/:user/:project/img",
-  upload.single("image"),
+  // the token is checked before any of the file is received
   auth.checkToken,
   function (req, res, next) {
     const ownerId = req.query.owner || req.params.user;
     const callerId = req.authUserId || req.params.user;
 
-    const data = new FormData();
-    data.append("image", req.file.buffer, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype,
-    });
-
-    axios
-      .post(
-        projectsURL + `${ownerId}/${req.params.project}/img`,
-        data,
-        {
-          headers: {
-            ...data.getHeaders(),                     
-            Authorization: req.headers["authorization"], 
-            "X-Project-Version": req.headers["x-project-version"],
-            "X-Caller-Id": callerId,
-          },
-          httpsAgent: httpsAgent,
-          params: req.query.share ? { share: req.query.share } : undefined, 
-          // Videos can be hundreds of MB
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-        }
-      )
+    // the multipart body (field "image") is streamed to projects unchanged
+    forwardUpload(req, projectsURL + `${ownerId}/${req.params.project}/img`, {
+      headers: {
+        Authorization: req.headers["authorization"],
+        "X-Project-Version": req.headers["x-project-version"],
+        "X-Caller-Id": callerId,
+      },
+      httpsAgent: httpsAgent,
+      params: req.query.share ? { share: req.query.share } : undefined,
+    })
       .then((resp) => {
         if (resp.headers?.["x-project-version"]) {
           res.set("X-Project-Version", resp.headers["x-project-version"]);
@@ -457,36 +438,22 @@ router.post(
  */
 router.post(
   "/:user/:project/video",
-  upload.single("video"),
+  // the token is checked before any of the file is received
   auth.checkToken,
   function (req, res, next) {
     const ownerId = req.query.owner || req.params.user;
     const callerId = req.authUserId || req.params.user;
 
-    const data = new FormData();
-    data.append("video", req.file.buffer, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype,
-    });
-
-    axios
-      .post(
-        projectsURL + `${ownerId}/${req.params.project}/video`,
-        data,
-        {
-          headers: {
-            ...data.getHeaders(),                     
-            Authorization: req.headers["authorization"], 
-            "X-Project-Version": req.headers["x-project-version"],
-            "X-Caller-Id": callerId,
-          },
-          httpsAgent: httpsAgent,
-          params: req.query.share ? { share: req.query.share } : undefined, 
-          // Videos can be hundreds of MB
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-        }
-      )
+    // the multipart body (field "video") is streamed to projects unchanged
+    forwardUpload(req, projectsURL + `${ownerId}/${req.params.project}/video`, {
+      headers: {
+        Authorization: req.headers["authorization"],
+        "X-Project-Version": req.headers["x-project-version"],
+        "X-Caller-Id": callerId,
+      },
+      httpsAgent: httpsAgent,
+      params: req.query.share ? { share: req.query.share } : undefined,
+    })
       .then((resp) => {
         if (resp.headers?.["x-project-version"]) {
           res.set("X-Project-Version", resp.headers["x-project-version"]);
