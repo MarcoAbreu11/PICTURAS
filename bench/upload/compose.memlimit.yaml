@@ -1,0 +1,11 @@
+# Override for the upload benchmark: fixed memory budget for the services on
+# the upload path, so the baseline and the final version are compared under
+# the same limits.
+#   docker compose -f docker-compose.yaml -f bench/upload/compose.memlimit.yaml up -d
+services:
+  api_gateway:
+    mem_limit: 512m
+  projects:
+    mem_limit: 512m
+  img_storage:
+    mem_limit: 512m
