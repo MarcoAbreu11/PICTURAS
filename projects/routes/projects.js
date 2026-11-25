@@ -31,6 +31,7 @@ const Result = require("../controllers/result");
 const Preview = require("../controllers/preview");
 const jwt = require("jsonwebtoken");
 const { getCallerId } = require("../utils/caller");
+const { requireVideoProfile } = require("../utils/uploadProfile");
 const { ensureEditorSlot, releaseEditorSlot } = require("../utils/presence");
 const { extractImageFeatures } = require("../utils/imageFeatures");
 const PreviewCache = require("../controllers/previewCache");
@@ -1381,16 +1382,13 @@ function addProjectMedia(kind) {
   };
 }
 
-// Looks up the caller's profile before a video is received, so its size
-// limit can be enforced while streaming (unknown callers are anonymous).
-async function resolveUploadUserType(req, res, next) {
-  req.uploadUserType = "anonymous";
-  try {
-    const r = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
-    req.uploadUserType = r.data.type;
-  } catch (_) {}
-  next();
-}
+// Looks up the caller's profile before a video is received (see
+// utils/uploadProfile.js): anonymous callers are rejected before the body is
+// read, and the profile's size limit is enforced while streaming.
+const resolveUploadUserType = requireVideoProfile(async (req) => {
+  const r = await axios.get(users_ms + `${getCallerId(req)}/type`, { httpsAgent });
+  return r.data.type;
+});
 
 // Add new image to a project
 router.post(
