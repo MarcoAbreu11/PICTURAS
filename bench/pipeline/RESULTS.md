@@ -67,6 +67,21 @@ backend accepts the same values and only the video worker rejects them.
 | Invalid scenarios with a useful early warning | 1/9 (11%) | **9/9 (100%)** | 2/10 (20%) | **10/10 (100%)** |
 | Valid scenarios accepted and working / without a warning | 11/11 | 11/11 | 11/11 | 11/11 |
 
+### Target
+
+The targets were proposed before the baseline and kept after it: the baseline
+warned early in 1/9 (API) and 2/10 (editor) invalid scenarios, so they are
+demanding but reachable without changing what users can do.
+
+| Criterion | Target | Minimum acceptable | Final API | Final editor | Met |
+| --- | --- | --- | --- | --- | --- |
+| Invalid scenarios with a useful early warning | ≥ 90% | ≥ 80% | 100% | 100% | yes |
+| Valid scenarios rejected or warned | 0 | 0 | 0/11 | 0/11 | yes |
+
+With the action-word list used before the extension described in the
+measurement note below, the final API result is 8/9 (89%; only INV-10 does
+not match): above the minimum and just under the target.
+
 Upload regression checks (`bench/upload/regression.py`, which includes a
 pipeline over an image and a video): 19/19. Unit tests of `projects`: 21/21,
 8 of them new for the rules.
