@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" font-family="Carlito, Calibri, sans-serif">
+<defs>
+<marker id="ah" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#444"/></marker>
+<marker id="ahc" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#C76C1B"/></marker>
+</defs>
+<rect width="1000" height="430" fill="white"/>
+<text x="4" y="20" font-size="18" font-weight="bold">Antes (0523102)</text>
+<text x="4" y="46" font-size="15" font-weight="bold" fill="#555">Caminho de carregamento (CAND-1)</text>
+<text x="4" y="240" font-size="15" font-weight="bold" fill="#555">Composição do pipeline (CAND-2)</text>
+<rect x="4" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="80.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">Browser</text>
+<text x="80.0" y="98" text-anchor="middle" font-size="14" fill="#222">importação de</text>
+<text x="80.0" y="115" text-anchor="middle" font-size="14" fill="#222">ficheiros</text>
+<text x="80.0" y="132" text-anchor="middle" font-size="14" fill="#222">sem progresso</text>
+<rect x="173" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="249.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">nginx</text>
+<text x="249.0" y="98" text-anchor="middle" font-size="14" fill="#222">guarda o corpo</text>
+<text x="249.0" y="115" text-anchor="middle" font-size="14" fill="#222">antes de o enviar</text>
+<text x="249.0" y="132" text-anchor="middle" font-size="14" fill="#222">timeout 60 s</text>
+<rect x="342" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="418.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">api_gateway</text>
+<text x="418.0" y="98" text-anchor="middle" font-size="14" fill="#222">memoryStorage</text>
+<text x="418.0" y="115" text-anchor="middle" font-size="14" fill="#222">JWT após o corpo</text>
+<text x="418.0" y="132" text-anchor="middle" font-size="14" fill="#222">axios guarda</text>
+<text x="418.0" y="149" text-anchor="middle" font-size="14" fill="#222">outra cópia</text>
+<rect x="511" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="587.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">projects</text>
+<text x="587.0" y="98" text-anchor="middle" font-size="14" fill="#222">memoryStorage</text>
+<text x="587.0" y="115" text-anchor="middle" font-size="14" fill="#222">ffprobe, envio</text>
+<text x="587.0" y="132" text-anchor="middle" font-size="14" fill="#222">e hash sobre</text>
+<text x="587.0" y="149" text-anchor="middle" font-size="14" fill="#222">o Buffer</text>
+<rect x="680" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="756.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">img_storage</text>
+<text x="756.0" y="98" text-anchor="middle" font-size="14" fill="#222">memoryStorage</text>
+<text x="756.0" y="115" text-anchor="middle" font-size="14" fill="#222">PutObject com</text>
+<text x="756.0" y="132" text-anchor="middle" font-size="14" fill="#222">o Buffer inteiro</text>
+<rect x="849" y="56" width="152" height="150" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="925.0" y="77" text-anchor="middle" font-weight="bold" font-size="16.5">SeaweedFS (S3)</text>
+<text x="925.0" y="98" text-anchor="middle" font-size="14" fill="#222">objeto src</text>
+<line x1="156" y1="131.0" x2="172" y2="131.0" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="325" y1="131.0" x2="341" y2="131.0" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="494" y1="131.0" x2="510" y2="131.0" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="663" y1="131.0" x2="679" y2="131.0" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="832" y1="131.0" x2="848" y2="131.0" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/>
+<rect x="4" y="252" width="260" height="140" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="134.0" y="273" text-anchor="middle" font-weight="bold" font-size="16.5">Editor (toolbar)</text>
+<text x="134.0" y="294" text-anchor="middle" font-size="14" fill="#222">regras próprias (hasVideos)</text>
+<text x="134.0" y="311" text-anchor="middle" font-size="14" fill="#222">esconde IA e marca de água</text>
+<text x="134.0" y="328" text-anchor="middle" font-size="14" fill="#222">sem explicação</text>
+<rect x="330" y="252" width="260" height="140" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="460.0" y="273" text-anchor="middle" font-weight="bold" font-size="16.5">projects: rotas</text>
+<text x="460.0" y="294" text-anchor="middle" font-size="14" fill="#222">tool e reorder: só validam</text>
+<text x="460.0" y="311" text-anchor="middle" font-size="14" fill="#222">a extração de fotogramas</text>
+<text x="460.0" y="328" text-anchor="middle" font-size="14" fill="#222">preview e process:</text>
+<text x="460.0" y="345" text-anchor="middle" font-size="14" fill="#222">erros tardios</text>
+<rect x="844" y="252" width="152" height="140" rx="6" fill="#F4F4F4" stroke="#444" stroke-width="1.3"/>
+<text x="920.0" y="273" text-anchor="middle" font-weight="bold" font-size="16.5">video.js</text>
+<text x="920.0" y="294" text-anchor="middle" font-size="14" fill="#222">listas de</text>
+<text x="920.0" y="311" text-anchor="middle" font-size="14" fill="#222">ferramentas</text>
+<text x="920.0" y="328" text-anchor="middle" font-size="14" fill="#222">de vídeo</text>
+<line x1="264" y1="297" x2="328" y2="297" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/><text x="296.0" y="291.0" text-anchor="middle" font-size="13" fill="#444">pedidos</text>
+<line x1="328" y1="352" x2="266" y2="352" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/><text x="297.0" y="370.0" text-anchor="middle" font-size="13" fill="#444">erro na execução</text>
+<line x1="590" y1="322" x2="842" y2="322" stroke="#444" stroke-width="1.8" marker-end="url(#ah)"/><text x="716.0" y="316.0" text-anchor="middle" font-size="13" fill="#444">usa</text>
+<text x="4" y="422" font-size="13.5" fill="#555">Commit 0523102. Os mesmos elementos aparecem na vista «depois».</text>
+</svg>
