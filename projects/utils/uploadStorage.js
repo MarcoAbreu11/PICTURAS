@@ -23,11 +23,25 @@ function hashingDiskStorage(dir = UPLOAD_TMP_DIR) {
       const hash = crypto.createHash("sha256");
       const out = fs.createWriteStream(filePath);
       let size = 0;
-      let failed = false;
+      let done = false;
+
+      // A client that disconnects mid-upload never ends file.stream, so
+      // neither multer nor cleanupOnClose (req.file is still unset) would
+      // remove the partial file: watch the request itself.
+      const onRequestClose = () => {
+        if (req.complete) return;
+        const err = new Error("Upload aborted by the client");
+        err.code = "UPLOAD_ABORTED";
+        fail(err);
+      };
+      req.on("close", onRequestClose);
 
       const fail = (err) => {
-        if (failed) return;
-        failed = true;
+        if (done) return;
+        done = true;
+        req.removeListener("close", onRequestClose);
+        file.stream.unpipe(out);
+        file.stream.resume();
         out.destroy();
         fs.rm(filePath, { force: true }, () => cb(err));
       };
@@ -41,7 +55,9 @@ function hashingDiskStorage(dir = UPLOAD_TMP_DIR) {
       file.stream.on("limit", () => fail(new Error("File too large")));
       out.on("error", fail);
       out.on("finish", () => {
-        if (failed) return;
+        if (done) return;
+        done = true;
+        req.removeListener("close", onRequestClose);
         cb(null, { path: filePath, size, sha256: hash.digest("hex") });
       });
       file.stream.pipe(out);
@@ -91,6 +107,8 @@ function receiveUpload(field, { getLimitBytes = () => null, dir } = {}) {
       if (err && err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).jsonp(sizeLimitMessage(null, limitMB));
       }
+      // the client is gone and the partial file was removed: nothing to answer
+      if (err && err.code === "UPLOAD_ABORTED") return;
       next(err);
     });
   };

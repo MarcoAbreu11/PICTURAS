@@ -117,6 +117,26 @@ test('a chunked upload over the limit is stopped and leaves no partial file', as
   assert.deepEqual(fs.readdirSync(dir), []);
 });
 
+test('a client that disconnects mid-upload leaves no partial file', async () => {
+  const dir = tmpDir();
+  await withServer(null, dir, async (port) => {
+    const body = multipartBody('video', 'cut.mp4', 50 * MB);
+    const req = http.request({
+      port, method: 'POST', path: '/upload',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${BOUNDARY}`, 'Content-Length': body.length },
+    });
+    req.on('error', () => {});
+    const gen = body.stream[Symbol.asyncIterator]();
+    for (let i = 0; i < 4; i++) req.write((await gen.next()).value);
+    // wait until the server has started the temporary file, then drop the connection
+    for (let i = 0; i < 50 && fs.readdirSync(dir).length === 0; i++) await settle();
+    assert.equal(fs.readdirSync(dir).length, 1, 'temporary file created during the upload');
+    req.destroy();
+    for (let i = 0; i < 20 && fs.readdirSync(dir).length > 0; i++) await settle();
+  });
+  assert.deepEqual(fs.readdirSync(dir), [], 'partial file removed after the disconnect');
+});
+
 test('a file within the limit is accepted', async () => {
   const dir = tmpDir();
   await withServer(5 * MB, dir, async (port) => {
