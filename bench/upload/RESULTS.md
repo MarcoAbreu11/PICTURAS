@@ -112,12 +112,45 @@ video.
   of the page cache of its temporary file. The kernel reclaims that cache
   under pressure, which is why the 1 GB limit never killed it.
 
+## Quantification
+
+| Item | Value |
+| --- | --- |
+| Scale | Memory growth of each service on the upload path (`api_gateway`, `projects`, `img_storage`), in MB: peak VmRSS during the upload minus the value just before it |
+| Method | `measure_upload.py`, VmRSS sampled every 0.25 s; 100, 500 and 950 MB files, 5 uploads each, plus 3 runs of 4 concurrent 100 MB uploads; 1 GB limit without swap per service; maximum over the repetitions |
+| Baseline | 405 MB maximum, 332 MB median (`api_gateway`, 100 MB file, about 3.3× the file); no file of 500 MB or more accepted (OOM) |
+| Target | ≤ 150 MB per service at every tested size and with 4 concurrent uploads, and every upload up to 950 MB accepted |
+| Minimum acceptable | ≤ 25% of the file size per service for files of 500 MB or more, and every upload up to 950 MB accepted |
+| Time | Median upload time at most 10% above the baseline where both versions succeed (100 MB, serial) |
+
+Why these values: the target is a fixed number because memory must stop
+following the file size; 150 MB leaves room for the stream buffers, the two
+5 MB S3 parts in flight and garbage-collector lag, and is well under the 1 GB
+budget. The minimum is relative to the file so that it still rules out any
+service holding the whole file (the baseline held 200–330% of it). It is
+applied from 500 MB because at 100 MB the fixed overhead dominates: the final
+version grows 61 MB there (61% of the file) while being 6.6× below the
+baseline. Time only compares 100 MB because the baseline fails at every other
+size.
+
+| Criterion | Final result | Met |
+| --- | --- | --- |
+| Target: ≤ 150 MB per service | max 105 MB serial (950 MB file), 146 MB with 4 concurrent uploads | yes |
+| Minimum: ≤ 25% of the file from 500 MB | 86 MB of 501 MB (17%), 105 MB of 952 MB (11%) | yes |
+| Uploads up to 950 MB accepted | 15/15 serial, 12/12 concurrent (baseline 5/15, 0/12) | yes |
+| Time ≤ +10% (100 MB) | 1.5 s against 2.0 s (−25%) | yes |
+
+`img_storage` still grows slowly with the file size (59 → 77 → 100 MB median
+from 100 to 950 MB), so the target holds for the tested sizes up to the 1 GiB
+premium limit, not for arbitrary sizes.
+
 ## Effects on other quality attributes
 
 - **Disk.** `projects` writes each upload to a temporary file
   (`UPLOAD_TMP_DIR`, default the container's `/tmp`), up to about 1 GB per
-  upload and N GB with N simultaneous uploads. The file is removed on every
-  outcome. In exchange, nginx no longer writes the request body to its own
+  upload and N GB with N simultaneous uploads. The file is removed once the
+  response is sent, on success or error; a client that disconnects mid-upload
+  left a partial file in `7590c4a`, which `870546b` fixed. In exchange, nginx no longer writes the request body to its own
   temporary file (`proxy_request_buffering off`).
 - **Functional suitability.** Validation is unchanged and still happens
   before storing: `ffprobe` and `validateVideo` run on the temporary file,
