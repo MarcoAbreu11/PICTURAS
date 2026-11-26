@@ -62,10 +62,11 @@ output:
 - **PG64044** — Vítor Hugo Inácio Mina
 - **PG65418** — João Pedro Belece Bernardo
 
-## Continuation — Group PL?-?, 2026/2027
+## Continuation — Group PL2-G5, 2026/2027
 
-That is you. Add your names here as you start working on the project:
-
-- **PG?????** — _name_
+- **PG63933** — Cláudio Rafael Oliveira Ferreira
+- **PG63948** — Diogo Linhares Campos
+- **PG64003** — Marco António Ferreira Abreu
+- **PG64010** — Nelson Daniel Araújo Sousa
 
 _Note: minor improvements and adjustments have also been introduced by the course lecturers._

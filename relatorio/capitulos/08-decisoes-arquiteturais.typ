@@ -18,11 +18,11 @@
   deve corresponder ao que foi efetivamente implementado.
 ]
 
-== DA-1 — Carregamento em _streaming_ com um único temporário (cenário #preencher[QS-01])
+== DA-1 — Carregamento em _streaming_ com um único temporário (cenário QS-01)
 
 #tab([Decisão arquitetural DA-1],
   tabela-campos(
-    [Contexto], [Cada serviço do caminho guarda o ficheiro inteiro em memória (EV-41 a EV-44); com 1 GB por serviço, nenhum vídeo de 500 MB ou mais é aceite (EV-46), embora o limite premium seja 1 GB. A correção tem de manter as rotas, o contrato da API, a validação dos vídeos antes de guardar e os limites por perfil.],
+    [Contexto], [Cada serviço do caminho guarda o ficheiro inteiro em memória (EV-11 a EV-14); com 1 GB por serviço, nenhum vídeo de 500 MB ou mais é aceite (EV-16), embora o limite premium seja 1 GB. A correção tem de manter as rotas, o contrato da API, a validação dos vídeos antes de guardar e os limites por perfil.],
     [Tática(s) escolhida(s)], [TAT-01 (_streaming_ com _buffers_ limitados) e TAT-02 (rejeitar cedo).],
     [Estrutura / padrão que a realiza], [_Pipes and filters_ sobre _streams_ com contrapressão: nginx (`proxy_request_buffering off`, 300 s) → `api_gateway` (verifica o token e encaminha o próprio pedido, `data: req`, `maxRedirects: 0`) → `projects` (motor de armazenamento do multer que escreve num temporário e calcula o SHA-256 na mesma passagem; verifica o perfil e o `Content-Length` antes de ler) → `img_storage` (multipart S3, partes de 5 MB, 2 em trânsito). O _frontend_ mostra o progresso do envio.],
     [Alternativas consideradas e razão de rejeição], [TAT-04 (URL pré-assinado): a validação (`ffprobe`, codec, duração, limites por perfil) passaria a correr sobre um objeto já guardado, obrigava a expor o S3 ao _browser_ (CORS, políticas por utilizador) e mudava o fluxo do _frontend_ e do `projects` — contra «estender em vez de reescrever». · TAT-05 (disco em todos os saltos): três escritas e leituras completas por upload, mais disco e mais tempo, e o gateway continuaria a receber tudo antes de verificar o token. · TAT-03 (mais memória): não resolve, porque a memória continua a crescer com o ficheiro e com o número de uploads simultâneos.],
@@ -36,11 +36,11 @@
   ),
 )
 
-== DA-2 — Regras do pipeline numa fonte única, verificadas durante a composição (cenário #preencher[QS-02])
+== DA-2 — Regras do pipeline numa fonte única, verificadas durante a composição (cenário QS-02)
 
 #tab([Decisão arquitetural DA-2],
   tabela-campos(
-    [Contexto], [As ferramentas incompatíveis desaparecem do editor sem explicação (EV-47) e as incompatibilidades só aparecem na pré-visualização ou na execução, com mensagens que não dizem o que mudar (EV-48, EV-49). As regras existem no `projects` (`video.js`), mas o editor tem a sua própria versão.],
+    [Contexto], [As ferramentas incompatíveis desaparecem do editor sem explicação (EV-17) e as incompatibilidades só aparecem na pré-visualização ou na execução, com mensagens que não dizem o que mudar (EV-18, EV-19). As regras existem no `projects` (`video.js`), mas o editor tem a sua própria versão.],
     [Tática(s) escolhida(s)], [TAT-06 (modelo do sistema numa fonte única), TAT-07 (validar na entrada) e TAT-08 (explicar as ferramentas não oferecidas).],
     [Estrutura / padrão que a realiza], [Módulo de regras no `projects` (`projects/utils/pipelineRules.js`) que, a partir de `video.js`, calcula os problemas de uma ferramenta (`toolErrors`), do pipeline (`pipelineIssues`) e as ferramentas indisponíveis (`unavailableTools`), cada um com ferramenta, motivo e correção. O `projects` usa-o ao acrescentar e editar ferramentas e antes da pré-visualização e da execução; a resposta do projeto leva os problemas e o editor mostra-os (`PipelineNotices`, `role="alert"`/`role="note"`).],
     [Alternativas consideradas e razão de rejeição], [TAT-10 (validação só no _frontend_): duplicaria as regras e deixaria a API aceitar pipelines inválidos, com risco de divergência. · TAT-09 (desativar em vez de esconder): mudava mais a barra de ferramentas do que o necessário; manteve-se o comportamento de esconder e acrescentou-se a explicação. · TAT-11 (correção automática): classe C, funcionalidade nova.],

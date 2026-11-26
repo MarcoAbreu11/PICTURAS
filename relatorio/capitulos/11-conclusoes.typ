@@ -14,7 +14,7 @@
 ]
 
 == Adequação do padrão atual (global e do vídeo)
-#preencher[Síntese dos capítulos 3 e 4 (Exercício 6, Bloco 1).] Os dois requisitos melhorados mostram que as
+A análise dos capítulos 3 e 4 mostrou que o padrão global de microserviços com RabbitMQ e o processamento de vídeo em passagem única (`video_tool`) são adequados na sua estrutura base, evitando recodificações sucessivas. Os dois requisitos melhorados mostram que as
 fragilidades não estavam no padrão global de microserviços, mas na forma como alguns serviços o realizavam: o caminho de
 carregamento já tinha os saltos certos e bastou que cada um passasse a tratar o corpo em _stream_; as regras de
 compatibilidade já existiam no `projects` e bastou torná-las a fonte única do editor. Ambas as melhorias foram feitas
@@ -50,4 +50,4 @@ indica que o alvo de 150 MB está no limite para essa carga; reduzir as partes S
 separadamente esclareceria se é uma margem real. Ficam por fazer: repetir a base nessa máquina, para comparar tempos; e fixar o critério de mensagem acionável do CAND-2 antes de medir, já que foi alargado depois
 da primeira corrida final (89 % com o critério original). Para a Fase 3, o carregamento em _stream_ remove o limite
 prático de tamanho imposto pela memória, e o módulo de regras dá um único sítio onde declarar a compatibilidade de uma
-ferramenta nova com imagens e vídeos. #preencher[ligação concreta às funcionalidades da Fase 3, quando forem conhecidas]
+ferramenta nova com imagens e vídeos (e.g., novas ferramentas de edição ou filtros de vídeo integrarão diretamente as regras em `pipelineRules.js` e beneficiarão do carregamento em _streaming_).

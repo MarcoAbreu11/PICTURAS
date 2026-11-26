@@ -38,9 +38,9 @@
     colunas: (1.2cm, 3.4cm, 2.6cm, 2.2cm, 2.2cm, 2.4cm, 2.2cm, 2.6cm, 3cm),
     tamanho: 7.5pt,
     [ID], [Fragilidade na base (EV-nn)], [Característica (ISO/IEC 25010)], [Fonte do estímulo], [Estímulo], [Artefacto], [Ambiente], [Resposta], [Medida da resposta],
-    [QS-01], [#preencher[… (EV-nn)]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
-    [QS-02], [#preencher[… (EV-nn)]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
-    [QS-03], [#preencher[… (EV-nn)]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
+    [QS-01], [Upload inteiro em RAM em 3 serviços + cópia do axios; 500 MB e 950 MB falham por OOM (EV-11 a EV-16)], [Eficiência de desempenho / utilização de recursos], [Utilizador _premium_], [Carrega um vídeo MP4 até 1 GB (ou vários em simultâneo)], [`nginx`, `api_gateway`, `projects`, `img_storage`], [Carga normal e concorrente (1 GB/serviço, sem _swap_)], [Processa o upload em _streaming_ sem acumular o ficheiro em memória e mostra progresso], [Crescimento de VmRSS (MB) por serviço, taxa de sucesso até 950 MB e tempo (s)],
+    [QS-02], [Ferramentas escondidas sem explicação e erros só no _Apply_ / pré-visualização (EV-17 a EV-20)], [Usabilidade / proteção contra erros do utilizador], [Utilizador no editor ou cliente API], [Adiciona, edita ou reordena ferramentas num projeto com vídeos ou misto], [`projects` (`pipelineRules`) e `frontend` (editor)], [Operação normal de composição de _pipeline_], [Deteta incompatibilidades na composição e apresenta aviso específico e acionável], [Percentagem de cenários inválidos com aviso antecipado útil; 0 válidos rejeitados],
+    [QS-03], [Instância única de `video_tool` sem réplicas (EV-07)], [Eficiência de desempenho / capacidade], [Múltiplos utilizadores], [Submetem _Apply_ de vídeo em simultâneo], [`video_queue` e `video_tool`], [Carga concorrente], [Distribui tarefas por múltiplas instâncias sem perda de mensagens], [Tempo de espera em fila e taxa de conclusão concorrente],
   ),
 )
 ]
@@ -56,9 +56,9 @@
   tabela(
     colunas: (1.6cm, 4.8cm, 4.8cm, 2cm),
     [ID], [Importância para os stakeholders], [Dificuldade / risco técnico], [Prioridade],
-    [QS-01], [#preencher[Alta / Média / Baixa — porquê]], [#preencher[Alta / Média / Baixa — porquê]], [#preencher[1..N]],
-    [QS-02], [#preencher[…]], [#preencher[…]], [#preencher[…]],
-    [QS-03], [#preencher[…]], [#preencher[…]], [#preencher[…]],
+    [QS-01], [Alta — utilizadores _premium_ não conseguem carregar vídeos dentro do limite de 1 GB e um upload pode derrubar o gateway], [Alta — exige _streaming_ com contrapressão em 4 serviços e limpeza de temporários], [1],
+    [QS-02], [Alta — utilizadores configuram _pipelines_ inválidos sem feedback e recebem erros tardios sem saber o que corrigir], [Média — requer fonte única de regras no `projects` sem quebrar correções], [2],
+    [QS-03], [Média — afeta apenas picos de concorrência no processamento, sem impedir o uso normal], [Baixa/Média — escalar réplicas exige apenas gestão de concorrência no `video_tool`], [3],
   ),
 )
 
@@ -70,9 +70,9 @@
   priorização acima.
 ]
 
-+ #preencher[Atributo — cenários QS-nn; justificação]
-+ #preencher[Atributo — …]
-+ #preencher[Atributo — …]
++ *Eficiência de desempenho (utilização de recursos)* — cenário `QS-01`; é o bloqueio mais grave da solução atual, pois impede o cumprimento do limite _premium_ de 1 GB e compromete a estabilidade do `api_gateway`.
++ *Usabilidade (proteção contra erros do utilizador)* — cenário `QS-02`; afeta diretamente a experiência de composição de _pipelines_ sempre que existem vídeos ou projetos mistos.
++ *Eficiência de desempenho (capacidade)* — cenário `QS-03`; relevante para escalabilidade em carga concorrente, mas secundário face aos bloqueios funcionais/operacionais de `QS-01` e `QS-02`.
 
 == Pré-requisitos e efeitos colaterais entre atributos
 
@@ -86,8 +86,9 @@
   tabela(
     colunas: (2.8cm, 2.8cm, 4cm, 1fr),
     [Atributo A], [Atributo B], [Efeito (pré-requisito, sinergia ou conflito)], [Razão / evidência],
-    [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
-    [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
+    [Segurança (validação de token)], [Eficiência de desempenho (upload)], [Sinergia], [Validar o JWT e o `Content-Length` antes de ler o corpo evita consumir RAM/disco com pedidos não autorizados (EV-14)],
+    [Eficiência de desempenho (RAM)], [Utilização de disco temporário], [Conflito (_trade-off_)], [Para validar com `ffprobe` e calcular SHA-256 sem guardar em RAM (EV-12), o `projects` passa a usar um ficheiro temporário em disco],
+    [Manutenibilidade (fonte única)], [Usabilidade (avisos antecipados)], [Pré-requisito], [Centralizar as regras de compatibilidade no `projects` (`video.js`) é necessário para garantir mensagens consistentes no editor e na API (EV-17, EV-18)],
   ),
 )
 
@@ -104,7 +105,8 @@
     colunas: (1fr, 2.6cm, 3cm, 1.8cm, 2.2cm),
     tamanho: 8.5pt,
     [Recomendação], [Atributo(s)], [Padrão a que se refere (global / vídeo)], [Esforço], [Risco de regressão],
-    [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[Baixo / Médio / Alto]], [#preencher[Baixo / Médio / Alto]],
-    [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]], [#preencher[…]],
+    [Converter o caminho de upload (`nginx`, `api_gateway`, `projects`, `img_storage`) para _streaming_ com um único temporário no `projects` e validação antecipada de token/perfil], [Eficiência de desempenho; Segurança], [Padrão global (exercido pelo vídeo)], [Alto], [Médio],
+    [Extrair as regras de compatibilidade para um módulo único no `projects` e expor `pipelineIssues` e `unavailableTools` ao editor], [Usabilidade; Manutenibilidade], [Interação entre padrão global e vídeo], [Médio], [Baixo / Médio],
+    [Configurar réplicas horizontais para `video_tool` quando houver carga concorrente elevada], [Eficiência de desempenho (capacidade)], [Padrão do vídeo], [Baixo], [Baixo],
   ),
 )
