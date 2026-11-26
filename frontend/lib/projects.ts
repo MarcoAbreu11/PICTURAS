@@ -82,6 +82,63 @@ export const isVideo = (img?: Pick<ProjectImage, "name" | "media_type">) =>
   (img.media_type === "video" ||
     VIDEO_EXTENSIONS.some((ext) => img.name?.toLowerCase().endsWith(ext)));
 
+// Video limits per profile, from the projects service (null: the profile
+// cannot upload videos)
+export interface VideoLimit {
+  maxSizeMB: number;
+  maxDurationS: number;
+  maxWidth: number;
+  maxHeight: number;
+}
+
+export interface UploadLimits {
+  video: Record<string, VideoLimit | null>;
+}
+
+export const fetchUploadLimits = async (token: string) => {
+  const response = await api.get<UploadLimits>("/projects/upload-limits", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+const PLAN_NAMES: Record<string, string> = { free: "Free", premium: "Premium" };
+
+// Why the selected files cannot be uploaded with the user's plan, checked
+// before sending. The server refuses a video over the limit from its size
+// alone, before reading it, and the browser then often reports only a closed
+// connection instead of the reason.
+export function uploadLimitProblem(
+  files: File[],
+  userType: string,
+  limits?: UploadLimits,
+): { title: string; description: string } | null {
+  if (!limits) return null;
+  const videos = files.filter((f) => isVideo({ name: f.name }) || f.type.startsWith("video/"));
+  if (videos.length === 0) return null;
+
+  const limit = limits.video[userType];
+  if (!limit) {
+    return {
+      title: "Vídeos exigem uma conta",
+      description: "Os utilizadores anónimos não podem carregar vídeos. Cria uma conta para editar vídeo.",
+    };
+  }
+
+  const tooBig = videos.find((f) => f.size > limit.maxSizeMB * 1024 * 1024);
+  if (!tooBig) return null;
+  const sizeMB = (tooBig.size / (1024 * 1024)).toFixed(1);
+  const plan = PLAN_NAMES[userType] ?? userType;
+  return {
+    title: "Vídeo demasiado grande para o teu plano",
+    description:
+      `O vídeo "${tooBig.name}" tem ${sizeMB} MB e o plano ${plan} permite até ${limit.maxSizeMB} MB por vídeo. ` +
+      (userType === "free"
+        ? "Escolhe um vídeo mais pequeno ou faz upgrade para Premium."
+        : "Escolhe um vídeo mais pequeno."),
+  };
+}
+
 export interface ProjectImageText {
   _id: string;
   name: string;

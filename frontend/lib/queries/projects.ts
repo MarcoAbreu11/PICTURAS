@@ -5,6 +5,7 @@ import {
   getProjectImages,
   ProjectImage,
   fetchProjectResults,
+  fetchUploadLimits,
 } from "../projects";
 import io from "socket.io-client";
 import { listProjectShareLinks, fetchSharedProject } from "../projects";
@@ -20,6 +21,16 @@ export const useProjectShareLinks = (
     queryKey: ["projectShareLinks", userId, projectId, token],
     queryFn: () => listProjectShareLinks(userId, projectId, token),
     enabled: !!userId && !!projectId && !!token,
+  });
+};
+
+// Video limits per plan; they only change with the server configuration
+export const useUploadLimits = (token: string) => {
+  return useQuery({
+    queryKey: ["uploadLimits"],
+    queryFn: () => fetchUploadLimits(token),
+    enabled: !!token,
+    staleTime: Infinity,
   });
 };
 

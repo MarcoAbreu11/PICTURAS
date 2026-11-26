@@ -32,6 +32,19 @@ export function getErrorMessage(
   error?: unknown,
 ): ErrorInfo {
   // 1) Erros de rede (sem resposta)
+  // Num carregamento, o servidor pode recusar um ficheiro grande pelo tamanho
+  // antes de o ler; o browser vê então só a ligação fechada.
+  if (
+    axios.isAxiosError(error) &&
+    !error.response &&
+    (context === "project-upload" || context === "project-create")
+  ) {
+    return {
+      title: "Carregamento interrompido",
+      description:
+        "A ligação fechou antes de o ficheiro ser enviado. Se o ficheiro for grande, confirma o limite de tamanho do teu plano; caso contrário, verifica a tua ligação e tenta novamente.",
+    };
+  }
   if (axios.isAxiosError(error) && !error.response) {
     return {
       title: "Sem ligação à internet",

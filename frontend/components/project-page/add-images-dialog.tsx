@@ -15,6 +15,8 @@ import { Progress } from "@/components/ui/progress";
 import ImageSubmissionArea from "../image-submission-area";
 import { LoaderCircle, Plus } from "lucide-react";
 import { useAddProjectImages } from "@/lib/mutations/projects";
+import { useUploadLimits } from "@/lib/queries/projects";
+import { uploadLimitProblem } from "@/lib/projects";
 import { createBlobUrlFromFile } from "@/lib/utils";
 import { useProjectInfo } from "@/providers/project-provider";
 import { useSession } from "@/providers/session-provider";
@@ -55,7 +57,14 @@ export function AddImagesDialog() {
     setImageFiles(files);
   }
 
+  const uploadLimits = useUploadLimits(session.token);
+
   function handleAdd() {
+    const problem = uploadLimitProblem(imageFiles, session.user.type, uploadLimits.data);
+    if (problem) {
+      toast({ ...problem, variant: "destructive" });
+      return;
+    }
     setUploadPercent(0);
     addImages.mutate(
       {

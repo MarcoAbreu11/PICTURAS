@@ -12,6 +12,8 @@ import { Input } from "../ui/input";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAddProject } from "@/lib/mutations/projects";
+import { useUploadLimits } from "@/lib/queries/projects";
+import { uploadLimitProblem } from "@/lib/projects";
 import ImageSubmissionArea from "../image-submission-area";
 import { useSession } from "@/providers/session-provider";
 import { LoaderCircle } from "lucide-react";
@@ -37,7 +39,15 @@ export default function NewProjectDialog({
   const session = useSession();
   const addProject = useAddProject(session.user._id, session.token);
 
+  const uploadLimits = useUploadLimits(session.token);
+
   function handleCreate() {
+    // checked before the project is created, so no empty project is left behind
+    const problem = uploadLimitProblem(imageFiles, session.user.type, uploadLimits.data);
+    if (problem) {
+      toast({ ...problem, variant: "destructive" });
+      return;
+    }
     addProject.mutate(
       {
         uid: session.user._id,
