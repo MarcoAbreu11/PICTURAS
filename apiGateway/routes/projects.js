@@ -118,6 +118,15 @@ router.post("/:user/:project/share", auth.checkToken, (req, res) => {
 
 });
 
+// video limits per profile, used by the import dialogs to warn before sending
+// (public, like the share link resolver: the limits are not user data)
+router.get("/upload-limits", (req, res) => {
+  axios
+    .get(projectsURL + "upload-limits", { httpsAgent })
+    .then((resp) => res.status(200).jsonp(resp.data))
+    .catch((err) => forwardAxiosError(res, err, "Error reading upload limits"));
+});
+
 // resolver link de partilha (PÚBLICO – sem auth)
 // devolve { projectId, ownerId, permission }
 router.get("/share/:shareId", (req, res) => {

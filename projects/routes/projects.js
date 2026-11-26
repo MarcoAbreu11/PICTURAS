@@ -54,6 +54,7 @@ const { requireProjectVersion } = require("../middleware/projectVersion");
 
 // Video support
 const {
+  VIDEO_LIMITS,
   isVideoFile,
   isVideoMedia,
   videoOutputName,
@@ -647,6 +648,14 @@ router.post("/:user/:project/share", requireOwner, enforcePresenceLimit, require
   }
 });
 
+
+// Video limits per profile (null: the profile cannot upload videos), so the
+// editor can warn before sending a file that would be refused. A file over the
+// limit is rejected from its Content-Length before the body is read, and the
+// browser then often sees only a closed connection instead of the reply.
+router.get("/upload-limits", (req, res) => {
+  res.status(200).jsonp({ video: VIDEO_LIMITS });
+});
 
 // resolver um link de partilha (usado por convidados)
 router.get("/share/:shareId", async (req, res) => {
