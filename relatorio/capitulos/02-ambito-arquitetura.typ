@@ -38,7 +38,7 @@
 
 O utilizador carrega imagens (`POST /:user/:project/img`) ou vídeos (`POST /:user/:project/video`), que são validados e
 guardados no `img_storage` (SeaweedFS/S3) com `media_type` distinto (`"image"` ou `"video"`). O _pipeline_ de efeitos
-pertence ao projeto, não a cada ficheiro. Quando o utilizador carrega em _Apply_ (`POST /:user/:project/apply`), o
+pertence ao projeto, não a cada ficheiro. Quando o utilizador carrega em _Apply_ (`POST /:user/:project/process`), o
 serviço `projects` percorre os ficheiros do projeto: para cada *imagem*, envia uma mensagem por passo para a fila da
 respetiva ferramenta (`<tool>_queue`) e avança a cadeia quando recebe resposta em `project_queue`; para cada *vídeo*,
 envia uma *única* mensagem para `video_queue` com todo o _pipeline_, que o `video_tool` descodifica uma vez com
@@ -77,11 +77,11 @@ reportando o progresso em `ws_queue`.
 ]
 
 #figure(kind: image,
-  figura-pendente[vista da arquitetura global com o caminho do vídeo destacado (`images/arquitetura_global.png`)],
+  image("../images/arquitetura_global.svg", width: 100%),
   caption: [Vista da arquitetura global com o caminho do vídeo destacado],
 )
 
-*Ferramenta / notação:* Diagrama de contentores (C4 / SVG, ver também vistas antes/depois no capítulo 9).
+*Ferramenta / notação:* diagrama de contentores ao estilo C4, desenhado em SVG (`relatorio/images/arquitetura_global.svg`), com a mesma notação das vistas antes/depois do capítulo 9.
 
 #tab([Legenda da vista da arquitetura],
   tabela(
@@ -89,6 +89,7 @@ reportando o progresso em `ws_queue`.
     [Elemento (cor, forma ou estilo)], [Significado],
     [Seta contínua (destaque)], [Caminho do vídeo: `nginx` → `api_gateway` → `projects` → `img_storage` (upload) e `projects` → `video_queue` → `video_tool` → `project_queue` / `ws_queue`],
     [Seta tracejada], [Caminho das ferramentas de imagem (`<tool>_queue` passo a passo)],
+    [Seta cinzenta fina], [Outras interações (_frontend_, autenticação e quota, estado em MongoDB, volume partilhado)],
     [Cilindro / armazenamento], [MongoDB (estado por serviço), SeaweedFS/S3 (`img_storage`) e volume partilhado `image_data`],
   ),
 )
@@ -116,9 +117,11 @@ reportando o progresso em `ws_queue`.
 ]
 
 #figure(kind: image,
-  figura-pendente[diagrama de sequência do processamento em lote de um projeto com vídeos (`images/sequencia_pedido.png`)],
+  image("../images/sequencia_pedido.svg", width: 100%),
   caption: [Sequência do processamento em lote de um projeto com vídeos],
 )
+
+*Ferramenta / notação:* diagrama de sequência UML simplificado, desenhado em SVG (`relatorio/images/sequencia_pedido.svg`). Setas contínuas são pedidos e mensagens; setas tracejadas são respostas ao _browser_.
 
 #tab([Passos do pedido completo],
   tabela(
@@ -126,7 +129,7 @@ reportando o progresso em `ws_queue`.
     [Passo], [Origem → Destino], [Mensagem / _endpoint_ / fila], [Evidência],
     [Carregamento do vídeo], [_Browser_ → `nginx` → `api_gateway` → `projects` → `img_storage`], [`POST /api-gateway/projects/:user/:project/video`; valida com `ffprobe` e limites do perfil e guarda com `media_type: "video"`], [EV-01: `projects/routes/projects.js` (`POST /:user/:project/video`) — validação e registo de vídeo],
     [Definição do _pipeline_], [_Browser_ → `api_gateway` → `projects`], [`POST/PUT` de ferramentas no projeto; guarda a lista ordenada `tools` no documento do projeto], [EV-02: `projects/routes/projects.js:1397-1480` — gestão do array `tools`],
-    [_Apply_], [`projects` → RabbitMQ (`video_queue`) → `video_tool`], [Uma mensagem única com o vídeo e todo o _pipeline_; `video_tool` lê/escreve no volume `image_data`], [EV-03: `projects/routes/projects.js` (`POST /:user/:project/apply`) e `Tools/video/video.py:25-27`],
+    [_Apply_], [`projects` → RabbitMQ (`video_queue`) → `video_tool`], [Uma mensagem única com o vídeo e todo o _pipeline_; `video_tool` lê/escreve no volume `image_data`], [EV-03: `projects/routes/projects.js` (`POST /:user/:project/process`) e `Tools/video/video.py:25-27`],
     [Progresso], [`video_tool` → `ws_queue` → `ws_gateway` → _Browser_], [Eventos `video-progress` com percentagem enviados para `ws_queue` e reencaminhados via Socket.IO], [EV-04: `Tools/video/video.py:25-27` e `wsGateway/index.js`],
     [Resultado], [`video_tool` → `project_queue` → `projects` → `img_storage`], [Resposta final em `project_queue` com _ack_ apenas no fim; resultado guardado no S3 e associado ao projeto], [EV-05: `Tools/video/video.py:8-10` — _ack_ apenas após conclusão],
   ),

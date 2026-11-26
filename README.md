@@ -644,7 +644,7 @@ starting point is the official commit `0523102`; the report sources are in
 - **Configuration:** the project instructions in [`AGENTS.md`](AGENTS.md), updated in this phase
   with the pipeline rules. Commands that talk to GitHub were run by the team.
 - **Traceability:** the Phase 2 commits made with AI assistance are listed in chapter 12 of the
-  report; the team removed the `Co-Authored-By` trailer they originally carried.
+  report; the history does not carry a `Co-Authored-By` trailer.
 - **Tasks supported:** the refactoring of both requirements, the unit tests, the benchmark and
   regression scripts, a read-only audit of both requirements (two auditors and a supervisor
   that re-checked sampled verdicts in the code), and drafts of report chapters.

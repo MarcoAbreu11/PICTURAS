@@ -39,7 +39,7 @@ comportamento funcional: as alterações visíveis (barra de progresso, avisos d
     colunas: (5cm, 1fr),
     [Artefacto], [Versão / referência],
     [Documento de requisitos de base], [doc-ext-requisitos-2627.pdf],
-    [Documento de solução arquitetural de base], [doc-sol-arquitetural.pdf #preencher[versão]],
+    [Documento de solução arquitetural de base], [doc-sol-arquitetural.pdf (solução de base da Fase 1)],
     [Repositório de partida], [`https://github.com/picturas-um/picturas-27`, _commit_ `052310226c51fa57a17101c7bd1ad795674aac95` (`0523102`, 2026-11-04)],
     [Repositório entregue], [`https://github.com/MarcoAbreu11/PICTURAS`, ramo `main`, último _commit_ à data de entrega],
     [Diretrizes da Fase 2], [Versão 1, 4 de novembro de 2026],
@@ -58,9 +58,9 @@ comportamento funcional: as alterações visíveis (barra de progresso, avisos d
   tabela(
     colunas: (3.6cm, 2.2cm, 2cm, 2cm, 1fr),
     [Exercício], [Capítulos], [Enunciado], [Template], [Versão do documento da equipa],
-    [Exercício 6, Bloco 1: padrões arquiteturais], [2, 3 e 4], [#preencher[1.1]], [#preencher[1.1]], [#preencher[v1.0]],
-    [Exercício 6, Bloco 2: trade-offs, cenários e candidatos a RNF], [5 e 6], [#preencher[1.2]], [#preencher[1.2]], [#preencher[v1.0]],
-    [Exercício 7: táticas arquiteturais], [7 a 10], [#preencher[3.0]], [#preencher[3.0]], [#preencher[v1.0]],
+    [Exercício 6, Bloco 1: padrões arquiteturais], [2, 3 e 4], [1.1], [1.1], [v1.0],
+    [Exercício 6, Bloco 2: trade-offs, cenários e candidatos a RNF], [5 e 6], [1.2], [1.2], [v1.0],
+    [Exercício 7: táticas arquiteturais], [7 a 10], [3.0], [3.0], [v1.0],
   ),
 )
 

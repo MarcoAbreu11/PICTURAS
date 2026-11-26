@@ -33,7 +33,7 @@
   tabela(
     colunas: (2cm, 1fr, 4cm),
     [Cenário], [O que mudou e porquê], [Onde foi atualizado],
-    [#preencher[QS-nn]], [#preencher[… ou «nenhuma»]], [#preencher[…]],
+    [QS-01, QS-02], [Nenhuma: a resposta e a medida mantêm-se como no capítulo 5; os valores-alvo e mínimos foram fixados no capítulo 6 depois da medição da base. O critério de «acionável» da medição do QS-02 foi alargado depois da primeira corrida final (`588544b`), o que não altera o cenário], [Capítulo 6 (quantificação); capítulos 8 e 10 (critério)],
   ),
 )
 

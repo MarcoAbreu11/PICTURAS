@@ -14,8 +14,8 @@
 #tabela(
   colunas: (1.5cm, 2.3cm, 1fr, 3.5cm),
   [Versão], [Data], [Alterações], [Autores],
-  [v1.0], [2026-11-#preencher[dd]], [#preencher[e.g., Diagnóstico arquitetural (Exercício 6, Bloco 1)]], [#preencher[iniciais]],
-  [v1.1], [2026-11-#preencher[dd]], [#preencher[e.g., Cenários de qualidade e candidatos a RNF (Exercício 6, Bloco 2)]], [#preencher[…]],
-  [v1.2], [2026-11-#preencher[dd]], [#preencher[e.g., Táticas e decisões arquiteturais (Exercício 7)]], [#preencher[…]],
-  [v2.0], [2026-11-27], [#preencher[Versão entregue da Fase 2]], [#preencher[…]],
+  [v1.0], [2026-11-25], [Primeira versão: capítulos 1, 6 a 10 e 12 e anexo A, sobre os dois requisitos (`d5e8c91`)], [MA],
+  [v1.1], [2026-11-26], [Validação final: regressão da pré-visualização corrigida, testes e medições repetidos (`6969f42`)], [MA],
+  [v1.2], [2026-11-26], [Capa, capítulos 2 a 5 e 11 (Exercícios 6 e 7), `AUTHORS.md` e `grupo.csv` (`cf21012`); referências dos _commits_ após o _rebase_ (`3fcc367`)], [NS, DC],
+  [v2.0], [2026-11-27], [Versão entregue da Fase 2: correções após os testes manuais (`acf399d`), figuras do capítulo 2 e histórico de versões], [MA],
 )
