@@ -41,7 +41,7 @@ comportamento funcional: as alterações visíveis (barra de progresso, avisos d
     [Documento de requisitos de base], [doc-ext-requisitos-2627.pdf],
     [Documento de solução arquitetural de base], [doc-sol-arquitetural.pdf #preencher[versão]],
     [Repositório de partida], [`https://github.com/picturas-um/picturas-27`, _commit_ `052310226c51fa57a17101c7bd1ad795674aac95` (`0523102`, 2026-11-04)],
-    [Repositório entregue], [`https://github.com/MarcoAbreu11/PICTURAS`, ramo `main`, _commit_ `2da2288`],
+    [Repositório entregue], [`https://github.com/MarcoAbreu11/PICTURAS`, ramo `main`, último _commit_ à data de entrega],
     [Diretrizes da Fase 2], [Versão 1, 4 de novembro de 2026],
   ),
 )
