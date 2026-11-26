@@ -19,7 +19,7 @@
 #tabela(
   colunas: (3.5cm, 1fr),
   [Ferramenta / modelo], [Configuração e utilização (_skills_, instruções de projeto, MCP, …)],
-  [Claude Code (aplicação de _desktop_ e CLI), modelo Claude Opus 5.5], [Instruções de projeto em `AGENTS.md` (arquitetura, comandos, convenções de _commits_, armadilhas conhecidas), atualizado nesta fase com as regras do pipeline (`8ec34f8`). Sessões com acesso de leitura e escrita ao repositório local; os comandos que falam com o GitHub (`push`, `fetch`) correram no terminal do utilizador. A auditoria usou subagentes do próprio Claude Code (dois auditores e um supervisor, só de leitura). Os 21 _commits_ da fase (`613f274` a `01e3d9f`) foram feitos com o Claude Code; o _trailer_ `Co-Authored-By: Claude Opus 5.5` que tinham perdeu-se quando o histórico foi reorganizado (_rebase_).],
+  [Claude Code (aplicação de _desktop_ e CLI), modelo Claude Opus 5.5], [Instruções de projeto em `AGENTS.md` (arquitetura, comandos, convenções de _commits_, armadilhas conhecidas), atualizado nesta fase com as regras do pipeline (`8ec34f8`). Sessões com acesso de leitura e escrita ao repositório local; os comandos que falam com o GitHub (`push`, `fetch`) correram no terminal do utilizador. A auditoria usou subagentes do próprio Claude Code (dois auditores e um supervisor, só de leitura). Os 21 _commits_ de implementação e medição (`613f274` a `01e3d9f`) e as correções posteriores (`07627d6`, `1da87b1`, `845c27e`, `53e6749`, `3092bbd`) foram feitos com o Claude Code. Inicialmente levavam o _trailer_ `Co-Authored-By: Claude Opus 5.5`; a equipa decidiu retirá-lo do histórico, e esta tabela passou a ser o registo da autoria assistida.],
   [#preencher[outras ferramentas usadas pelo grupo, se existirem]], [#preencher[…]],
 )
 
@@ -30,7 +30,7 @@
     colunas: (2.6cm, 2.4cm, 2.4cm, 2.8cm, 2.8cm),
     tamanho: 8.5pt,
     [Ferramenta / modelo / _skill_], [Tarefa apoiada (capítulo)], [O que foi aceite], [O que foi rejeitado e porquê], [Como foi validado pela equipa],
-    [Claude Code / Opus 5.5], [Implementação do DA-1: _streaming_ em quatro serviços e barra de progresso (cap. 8)], [Os _commits_ `613f274` a `9390492`], [#preencher[…]], [13 testes unitários novos; `regression.py` 19/19 na base e no final; medição com limites de memória (cap. 10) #preencher[revisão de código pela equipa]],
+    [Claude Code / Opus 5.5], [Implementação do DA-1: _streaming_ em quatro serviços e barra de progresso (cap. 8)], [Os _commits_ `613f274` a `9390492`; depois dos testes manuais da equipa, `845c27e`, `53e6749` e `3092bbd`], [#preencher[…]], [13 testes unitários novos; `regression.py` 19/19 na base e no final; medição com limites de memória (cap. 10) #preencher[revisão de código pela equipa]],
     [Claude Code / Opus 5.5], [_Scripts_ de medição e de regressão do CAND-1 (cap. 10, anexo A)], [`bench/upload/` (`16a33b4`, `3733acf`, `a5c7530`)], [Medir a base sem limites de memória: esgotou a memória da máquina e não era comparável; passou a usar 1 GB sem _swap_ (`3733acf`)], [CSV versionados; os valores do `RESULTS.md` foram recalculados a partir dos CSV],
     [Claude Code / Opus 5.5], [Implementação do DA-2: regras, validação e avisos do editor (cap. 8)], [`adc5b28` a `ce68e98`], [#preencher[…]], [11 cenários válidos sem regressão; 9 testes unitários novos #preencher[revisão pela equipa]],
     [Claude Code / Opus 5.5], [Cenários e medição do CAND-2 (cap. 10)], [`a5eee79`, `184c542`], [—], [Base e final com o mesmo _script_; a alteração do critério (`588544b`) está divulgada, com o resultado pelo critério original (89 %)],

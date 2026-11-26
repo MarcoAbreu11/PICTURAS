@@ -635,7 +635,7 @@ starting point is the official commit `0523102`; the report sources are in
 
 | Requirement (ISO/IEC 25010:2011) | What changed | Evidence |
 | --- | --- | --- |
-| Performance efficiency — resource utilisation when uploading files | Uploads are streamed end to end: nginx no longer buffers the body, the gateway checks the token first and pipes the request, `projects` writes one temporary file and hashes it in the same pass, `img_storage` sends 5 MB multipart parts to S3; the import dialog shows progress | [`bench/upload/`](bench/upload/) (`RESULTS.md`, CSVs, `regression.py`) |
+| Performance efficiency — resource utilisation when uploading files | Uploads are streamed end to end: nginx no longer buffers the body, the gateway checks the token first and pipes the request, `projects` writes one temporary file and hashes it in the same pass, `img_storage` sends 5 MB multipart parts to S3; the import and create-project dialogs show progress | [`bench/upload/`](bench/upload/) (`RESULTS.md`, CSVs, `regression.py`) |
 | Usability — user error protection when building pipelines | Tool/media rules live in one module (`projects/utils/pipelineRules.js`); tools are checked when added or edited, and the editor shows each pipeline issue (tool, reason, fix) before any preview or run | [`bench/pipeline/`](bench/pipeline/) (`RESULTS.md`, scenarios, CSVs) |
 
 ### AI assistance
@@ -643,8 +643,8 @@ starting point is the official commit `0523102`; the report sources are in
 - **Tool and model:** Claude Code (desktop app and CLI) with Claude Opus 5.5.
 - **Configuration:** the project instructions in [`AGENTS.md`](AGENTS.md), updated in this phase
   with the pipeline rules. Commands that talk to GitHub were run by the team.
-- **Traceability:** every Phase 2 commit made with AI assistance carries the trailer
-  `Co-Authored-By: Claude Opus 5.5` (`git log 0523102..HEAD`).
+- **Traceability:** the Phase 2 commits made with AI assistance are listed in chapter 12 of the
+  report; the team removed the `Co-Authored-By` trailer they originally carried.
 - **Tasks supported:** the refactoring of both requirements, the unit tests, the benchmark and
   regression scripts, a read-only audit of both requirements (two auditors and a supervisor
   that re-checked sampled verdicts in the code), and drafts of report chapters.

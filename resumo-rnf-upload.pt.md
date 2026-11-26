@@ -89,7 +89,7 @@ Opção **C**, com uma mudança por salto (commit `7590c4a`):
   ficheiro, que segue depois em stream para o `img_storage`. O temporário é sempre apagado.
 - **`img_storage`**: o ficheiro vai direto para um `s3.upload` *multipart* (partes de 5 MB, no
   máximo 2 em memória), em `imageStorageService/services/s3StreamStorage.js`.
-- **frontend**: barra de progresso no diálogo de importação.
+- **frontend**: barra de progresso nos diálogos de importação e de criar projeto.
 
 O ficheiro temporário fica só no `projects` porque o `ffprobe` precisa de um ficheiro com acesso
 aleatório. Num MP4 o índice (`moov`) pode estar no fim do ficheiro.
