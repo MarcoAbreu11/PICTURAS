@@ -105,8 +105,13 @@ def main():
     with open(os.path.join(work, "states.json"), "w") as f:
         json.dump(states, f)
 
-    cmd = ["docker", "run", "--rm", "--network", "host", "--user", f"{os.getuid()}:{os.getgid()}",
-           "-e", "HOME=/tmp", "-v", f"{HERE}:/bench:ro", "-v", f"{work}:/work", "-v", f"{screens}:/screens",
+    # ":z" relabels the mounts on SELinux hosts (e.g. Fedora); elsewhere it is ignored.
+    # Rootless Podman (behind the docker CLI) needs keep-id so that --user maps
+    # to the host user and the browser can write the evidence and screenshots.
+    version = subprocess.run(["docker", "--version"], capture_output=True, text=True).stdout.lower()
+    userns = ["--userns=keep-id"] if "podman" in version else []
+    cmd = ["docker", "run", "--rm", *userns, "--network", "host", "--user", f"{os.getuid()}:{os.getgid()}",
+           "-e", "HOME=/tmp", "-v", f"{HERE}:/bench:ro,z", "-v", f"{work}:/work:z", "-v", f"{screens}:/screens:z",
            PLAYWRIGHT_IMAGE, "python", "-I", "/bench/ui_browse.py", "/work/states.json", "/work/evidence.json",
            "/screens"]
     subprocess.run(cmd, check=True)
