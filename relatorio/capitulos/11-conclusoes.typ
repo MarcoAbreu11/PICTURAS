@@ -44,9 +44,10 @@ estendendo a arquitetura, sem serviços novos.
 
 == Trabalho futuro
 
-Os valores-alvo dos dois requisitos foram atingidos nas condições medidas. Ficam por fazer: repetir as medições no
-_commit_ entregue, que inclui duas correções posteriores à medição final do CAND-1; medir os dois requisitos em
-conjunto e noutra máquina; e fixar o critério de mensagem acionável do CAND-2 antes de medir, já que foi alargado depois
+Os valores-alvo dos dois requisitos foram atingidos nas condições medidas. Na confirmação do CAND-1 na versão
+integrada, noutra máquina, o caso de 4 uploads simultâneos ficou 1 MB acima do alvo (151 MB no `img_storage`), o que
+indica que o alvo de 150 MB está no limite para essa carga; reduzir as partes S3 em trânsito ou medir o _heap_ vivo
+separadamente esclareceria se é uma margem real. Ficam por fazer: repetir a base nessa máquina, para comparar tempos; e fixar o critério de mensagem acionável do CAND-2 antes de medir, já que foi alargado depois
 da primeira corrida final (89 % com o critério original). Para a Fase 3, o carregamento em _stream_ remove o limite
 prático de tamanho imposto pela memória, e o módulo de regras dá um único sítio onde declarar a compatibilidade de uma
 ferramenta nova com imagens e vídeos. #preencher[ligação concreta às funcionalidades da Fase 3, quando forem conhecidas]

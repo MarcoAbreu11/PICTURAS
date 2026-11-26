@@ -40,7 +40,7 @@
   tabela(
     colunas: (2.2cm, 2.2cm, 4.4cm, 1fr),
     [Decisão A], [Decisão B], [Efeito (pré-requisito, sinergia ou conflito)], [Razão / evidência],
-    [DA-1], [DA-2], [Independentes, sem conflito funcional; partilham ficheiros], [As duas alteram `projects/routes/projects.js` (DA-1 nas rotas de carregamento, DA-2 nas de ferramentas, pré-visualização, execução e leitura) e `frontend/lib/projects.ts`. O histórico é linear e os 26 testes do `projects` passam no _commit_ entregue. A medição final do CAND-2 (`087cc9f`) já correu com o carregamento em _stream_ (DA-1), e as 19 verificações de regressão passaram nesse _commit_.],
+    [DA-1], [DA-2], [Independentes, sem conflito funcional; partilham ficheiros], [As duas alteram `projects/routes/projects.js` (DA-1 nas rotas de carregamento, DA-2 nas de ferramentas, pré-visualização, execução e leitura) e `frontend/lib/projects.ts`. O histórico é linear e os 27 testes do `projects` passam em `704a307`. A medição final do CAND-2 (`087cc9f`) já correu com o carregamento em _stream_ (DA-1), e as 19 verificações de regressão passaram nesse _commit_.],
   ),
 )
 
@@ -77,11 +77,11 @@ corrida sob um nome de projeto Compose próprio, a partir de volumes vazios. A b
     tamanho: 8.5pt,
     [Cenário], [Medição (o que se mede, unidade)], [Antes (_baseline_)], [Depois], [Valor-alvo], [Mínimo aceitável], [Atingido?],
     [QS-01], [Crescimento máximo por serviço, em série (MB)], [405 com 100 MB; ≥ 500 MB: OOM], [105 (950 MB)], [≤ 150], [—], [Alvo],
-    [QS-01], [Crescimento máximo por serviço, 4 × 100 MB em simultâneo (MB)], [OOM (≥ 812)], [146], [≤ 150], [—], [Alvo],
+    [QS-01], [Crescimento máximo por serviço, 4 × 100 MB em simultâneo (MB)], [OOM (≥ 812)], [146 (151 na confirmação em `704a307`)], [≤ 150], [—], [Alvo; na confirmação, 1 MB acima],
     [QS-01], [Crescimento máximo por serviço face ao ficheiro, a partir de 500 MB (%)], [OOM (≥ 186 % a 500 MB, ≥ 94 % a 950 MB)], [17 % (500 MB), 11 % (950 MB)], [—], [≤ 25 %], [Mínimo e alvo],
     [QS-01], [Uploads aceites até 950 MB], [5/15 em série; 0/12 em simultâneo], [15/15; 12/12], [todos], [todos], [Alvo],
     [QS-01], [Tempo mediano de upload, 100 MB em série (s)], [2,0], [1,5], [≤ 2,2], [≤ 2,2], [Alvo],
-    [QS-02], [Inválidos com aviso útil antes da execução, editor (%)], [20 % (2/10)], [100 % (10/10)], [≥ 90 %], [≥ 80 %], [Alvo],
+    [QS-02], [Inválidos com aviso útil antes da execução, editor (%)], [20 % (2/10)], [100 % (10/10), confirmado em `704a307`], [≥ 90 %], [≥ 80 %], [Alvo],
     [QS-02], [Inválidos com aviso útil antes da execução, API (%)], [11 % (1/9)], [100 % (9/9); 89 % com o critério original], [≥ 90 %], [≥ 80 %], [Alvo (mínimo com o critério original)],
     [QS-02], [Válidos rejeitados ou com aviso], [0/11], [0/11], [0], [0], [Alvo],
   ),
@@ -92,7 +92,7 @@ cresceu cerca de 3,3 vezes o ficheiro (o _buffer_ do multer, um novo `FormData` 
 redirecionamentos estão ativos) e o caminho no total cerca de 7,5 vezes. Com 1 GB por serviço, a base não aceitou nenhum
 ficheiro de 500 MB ou mais, nem nenhum lote de 4 × 100 MB: o processo do gateway foi terminado por falta de memória
 (13 vezes). Na versão final, de 100 para 950 MB (9,5 vezes mais dados) o maior crescimento por serviço passou de 61 para
-105 MB, e todos os uploads foram aceites. O alvo é atingido em todos os pontos medidos, mas a memória não é totalmente
+105 MB, e todos os uploads foram aceites. O alvo é atingido em todos os pontos da medição final (na confirmação em `704a307`, o caso de 4 uploads simultâneos ficou 1 MB acima, ver ameaças à validade), mas a memória não é totalmente
 independente do tamanho: o `img_storage` ainda cresce de 59 para 100 MB (mediana), o que pode ser atraso do
 _garbage collector_ e não dados vivos (a medição não os separa); o alvo vale para os tamanhos testados, até ao limite
 premium de 1 GiB. O tempo só é comparável a 100 MB, porque a base falha nos outros pontos (1,5 s contra 2,0 s). O nginx
@@ -113,8 +113,12 @@ logo abaixo do alvo. A alteração está documentada e foi aplicada também à b
 
 *Ameaças à validade.* (1) Uma só máquina (WSL2) e uma só corrida por cenário no CAND-2. (2) O amostrador lê a cada
 0,25 s: os valores da base marcados como OOM são limites inferiores. (3) As medições finais são de `7590c4a` (CAND-1) e
-`087cc9f` (CAND-2); as correções posteriores (`6b43ad0`, `870546b`) só acrescentam verificações antes do upload e não foram
-medidas de novo. (4) O critério do CAND-2 é heurístico (listas de nomes de ferramentas e de palavras) e os cenários foram
+`087cc9f` (CAND-2). O CAND-1 foi medido de novo na versão integrada (`704a307`, com todas as correções), noutra máquina
+(Fedora 44, AMD Ryzen 5 7520U, 7 GiB, Podman 5.8.9), com os mesmos ficheiros Compose: todos os uploads foram aceites e o
+maior crescimento em série foi 100 MB (antes 105 MB), mas com 4 uploads simultâneos o `img_storage` chegou a 151 MB numa
+de três corridas (mediana 142 MB), 1 MB acima do alvo; o mínimo aceitável mantém-se (18 % e 11 %). A base não foi
+repetida nessa máquina, por isso os tempos (mais lentos, CPU diferente) não se comparam com ela. O CAND-2 foi também
+repetido em `704a307`, na mesma máquina, com o mesmo resultado: 9/9 na API e 10/10 no editor, e 11/11 válidos sem aviso. (4) O critério do CAND-2 é heurístico (listas de nomes de ferramentas e de palavras) e os cenários foram
 escritos pela equipa, o que pode favorecer os casos que a solução trata. (5) O crescimento de memória inclui lixo ainda
 não recolhido.
 
@@ -125,8 +129,8 @@ não recolhido.
     colunas: (2.4cm, 3.8cm, 2.8cm, 3.2cm, 1fr),
     tamanho: 8.5pt,
     [Zona alterada], [Testes de regressão existentes (`Tools/video/tests`, `projects/tests`, …)], [Lacunas de teste], [Testes acrescentados], [Resultado (imagem e vídeo)],
-    [DA-1: nginx, `api_gateway`, `projects` (carregamento), `img_storage`, diálogo de importação], [`projects/tests`: processamento em lote, pipeline de vídeo e extração de fotogramas (8 testes)], [Nenhum teste do caminho de carregamento na base], [`bench/upload/regression.py` (19 verificações: imagem e vídeo aceites, transferência idêntica byte a byte, metadados, SHA-256, rejeições existentes, 401 sem token, pipeline sobre uma imagem e um vídeo); 18 testes unitários (`upload-storage`, `upload-profile`, `forward-upload`, `s3-stream-storage`)], [`regression.py` 19/19 na base e na versão final; testes unitários 34/34 no _commit_ entregue (`projects` 26, `apiGateway` 3, `imageStorageService` 5)],
-    [DA-2: regras do pipeline no `projects`, barra de ferramentas e avisos do editor], [Os mesmos 8 testes do `projects`; `Tools/video/tests` não é afetado (sem alterações em `Tools/`)], [Regras de compatibilidade sem testes; nenhum teste do editor], [`pipeline-rules.test.js` (8 testes); 11 cenários válidos executados de ponta a ponta (`measure_pipeline.py`) e verificados no editor (`ui_check.py`)], [11/11 válidos aceites, sem aviso e com os resultados esperados (imagem, vídeo e misto); testes unitários a passar],
+    [DA-1: nginx, `api_gateway`, `projects` (carregamento), `img_storage`, diálogo de importação], [`projects/tests`: processamento em lote, pipeline de vídeo e extração de fotogramas (8 testes)], [Nenhum teste do caminho de carregamento na base], [`bench/upload/regression.py` (19 verificações: imagem e vídeo aceites, transferência idêntica byte a byte, metadados, SHA-256, rejeições existentes, 401 sem token, pipeline sobre uma imagem e um vídeo); 18 testes unitários (`upload-storage`, `upload-profile`, `forward-upload`, `s3-stream-storage`)], [`regression.py` 19/19 na base, na versão medida e de novo em `704a307`, depois de todas as correções; testes unitários 35/35 em `704a307` (`projects` 27, `apiGateway` 3, `imageStorageService` 5)],
+    [DA-2: regras do pipeline no `projects`, barra de ferramentas e avisos do editor], [Os mesmos 8 testes do `projects`; `Tools/video/tests` não é afetado (sem alterações em `Tools/`)], [Regras de compatibilidade sem testes; nenhum teste do editor], [`pipeline-rules.test.js` (9 testes); 11 cenários válidos executados de ponta a ponta (`measure_pipeline.py`) e verificados no editor (`ui_check.py`); `preview_mixed_check.py` (pré-visualização num projeto misto com uma ferramenta só de imagem)], [11/11 válidos aceites, sem aviso e com os resultados esperados (imagem, vídeo e misto); `preview_mixed_check.py` 8/8 em `704a307` (falhava antes de `136f97a`); testes unitários a passar],
   ),
 )
 
@@ -140,6 +144,7 @@ não recolhido.
     [Temporário deixado no disco], [Carregamento (disco do `projects`)], [Remoção quando a resposta termina e quando o cliente desliga (`870546b`)], [`upload-storage.test.js` (limite e cancelamento a meio)],
     [Perfil anónimo ou desconhecido sem limite antecipado], [Carregamento de vídeo], [403/503 antes de ler o corpo (`6b43ad0`)], [`upload-profile.test.js`],
     [A validação antecipada impedir a correção de um pipeline inválido], [Edição do pipeline], [Ao acrescentar ou editar, só a ferramenta alterada é avaliada; carregar ou apagar _media_ nunca é bloqueado], [Cenários VAL-10 e VAL-11],
+    [A validação bloquear a pré-visualização de uma imagem por um problema que só afeta os vídeos], [Pré-visualização de imagens em projetos mistos], [Só os problemas que afetam imagens travam a pré-visualização de uma imagem (`136f97a`)], [`pipeline-rules.test.js`; `preview_mixed_check.py`],
     [Avisos em pipelines válidos], [Edição do pipeline], [Avisos só para erros e casos sem efeito; a explicação das ferramentas escondidas é uma nota, não um aviso], [11 cenários válidos sem aviso (`ui_check.py`)],
   ),
 )

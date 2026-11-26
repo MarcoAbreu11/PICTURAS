@@ -29,7 +29,7 @@ A aplicação fica em `https://localhost:8080` (aceitar o certificado autoassina
 == Testes unitários
 
 ```bash
-(cd projects && npm ci && npm test)              # 26 testes
+(cd projects && npm ci && npm test)              # 27 testes
 (cd apiGateway && npm ci && npm test)            # 3 testes
 (cd imageStorageService && npm ci && npm test)   # 5 testes
 ```
