@@ -144,6 +144,41 @@ size.
 from 100 to 950 MB), so the target holds for the tested sizes up to the 1 GiB
 premium limit, not for arbitrary sizes.
 
+## Confirmation on the integrated final version
+
+The final measurement above is of `7590c4a`. After the pipeline validation
+work and three later fixes (`6b43ad0`, `870546b`, `136f97a`), the same
+commands were run again on commit `704a307`, on a second machine:
+
+| Item | Value |
+| --- | --- |
+| CPU | AMD Ryzen 5 7520U, 8 logical CPUs |
+| RAM | 7 GiB (about 2 GiB available before starting the stack) |
+| OS | Fedora Linux 44, kernel 7.2.13, cgroup v2, SELinux enforcing |
+| Container engine | Podman 5.8.9 with Docker Compose 5.7.1 |
+| Compose files | `docker-compose.yaml`, `compose.selinux.yaml`, `compose.memlimit.yaml` (1 GB without swap, as above); the same 15 services |
+| Date | 2026-11-26 |
+
+| version | file | concurrent | uploads accepted | api_gateway med/max MB | projects med/max MB | img_storage med/max MB | path total med MB | time med s |
+|---|---|---|---|---|---|---|---|---|
+| final `704a307` | 100 MB | 1 | 5/5 | 28 / 36 | 30 / 39 | 52 / 71 | 114 | 2.2 |
+| final `704a307` | 500 MB | 1 | 5/5 | 65 / 71 | 76 / 78 | 78 / 92 | 215 | 7.9 |
+| final `704a307` | 950 MB | 1 | 5/5 | 66 / 67 | 70 / 77 | 97 / 100 | 234 | 14.7 |
+| final `704a307` | 4 × 100 MB | 4 | 12/12 | 62 / 72 | 81 / 83 | 142 / 151 | 287 | 5.2 |
+
+Raw data: `results/final-c1-20261126-130154.csv`,
+`results/final-c4-20261126-130556.csv`. `regression.py`: 19/19 on `704a307`.
+
+- Every upload was accepted, and memory growth stays at the level of the first
+  final measurement (largest serial growth 100 MB, against 105 MB).
+- With 4 concurrent uploads, `img_storage` reached 151 MB in one of the three
+  runs (median 142 MB): 1 MB above the 150 MB target on this host, where the
+  first measurement gave 146 MB. The minimum acceptable (≤ 25% of the file from
+  500 MB: 92 MB of 501 MB, 18%; 100 MB of 952 MB, 11%) holds.
+- Times are longer than in the first measurement because this CPU is slower;
+  they are not compared with the baseline, which was not run on this host (the
+  baseline exhausts its memory, see the setup above).
+
 ## Effects on other quality attributes
 
 - **Disk.** `projects` writes each upload to a temporary file
