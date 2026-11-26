@@ -157,6 +157,19 @@ function blockingIssue(issues) {
   return issues.find((i) => i.severity === "error") || null;
 }
 
+// Issue that prevents previewing one media item, if any. A video preview runs
+// the whole pipeline, so every error counts. An image preview only runs the
+// image effects: issues about the videos (image-only tools in a project with
+// videos, trim and speed settings) do not stop it, as in the base version.
+// Only an invalid frame extraction and a pipeline with nothing to apply to the
+// images do.
+const IMAGE_PREVIEW_BLOCKERS = ["frame_extraction", "video_only_tool"];
+
+function previewBlockingIssue(issues, previewIsVideo) {
+  if (previewIsVideo) return blockingIssue(issues);
+  return blockingIssue(issues.filter((i) => IMAGE_PREVIEW_BLOCKERS.includes(i.code)));
+}
+
 // Text for an error reply: what is wrong and what to do
 function describeIssue(i) {
   return `${i.message} ${i.fix}`;
@@ -191,6 +204,7 @@ module.exports = {
   pipelineIssues,
   frameExtractionIssue,
   blockingIssue,
+  previewBlockingIssue,
   describeIssue,
   toolErrors,
   unavailableTools,

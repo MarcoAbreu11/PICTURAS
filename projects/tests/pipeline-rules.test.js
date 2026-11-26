@@ -77,3 +77,22 @@ test('unavailable tools follow the media of the project', () => {
   const imagesOnly = unavailableTools({ imgs: [image] }).map((t) => t.procedure).sort();
   assert.deepEqual(imagesOnly, ['extract_frames', 'speed', 'subtitles', 'trim']);
 });
+
+test('an image preview is only blocked by issues that affect images', () => {
+  const { previewBlockingIssue } = require('../utils/pipelineRules');
+  // image-only tool configured before the video was added: the video preview is
+  // refused, the image preview still runs (as in the base version)
+  const mixed = { imgs: [image, video], tools: [tool('brightness'), tool('watermark', {}, 1)] };
+  assert.equal(previewBlockingIssue(pipelineIssues(mixed), true).code, 'image_only_tool');
+  assert.equal(previewBlockingIssue(pipelineIssues(mixed), false), null);
+  // trim settings concern the video only
+  const badTrim = { imgs: [image, video], tools: [tool('brightness'), tool('trim', { start: 1, end: 9, imgId: 'vid' }, 1)] };
+  assert.equal(previewBlockingIssue(pipelineIssues(badTrim), false), null);
+  assert.equal(previewBlockingIssue(pipelineIssues(badTrim), true).code, 'trim_times');
+  // a misplaced frame extraction blocks every preview
+  const order = { imgs: [image, video], tools: [tool('extract_frames', { mode: 'count', count: 3, format: 'png' }), tool('border', {}, 1)] };
+  assert.equal(previewBlockingIssue(pipelineIssues(order), false).code, 'frame_extraction');
+  // only video effects and no videos: nothing to apply to the image
+  const onlyVideo = { imgs: [image], tools: [tool('subtitles')] };
+  assert.equal(previewBlockingIssue(pipelineIssues(onlyVideo), false).code, 'video_only_tool');
+});

@@ -69,6 +69,7 @@ const {
   pipelineIssues,
   frameExtractionIssue,
   blockingIssue,
+  previewBlockingIssue,
   describeIssue,
   toolErrors,
   unavailableTools,
@@ -1099,15 +1100,16 @@ router.post("/:user/:project/preview/:img", checkSharePermission, requireEditPer
         return res.status(400).jsonp("No tools selected");
       }
 
-      // the same rules the editor shows as pipeline issues (pipelineRules.js)
-      const blocking = blockingIssue(pipelineIssues(project));
-      if (blocking) return res.status(400).jsonp(describeIssue(blocking));
-
       const previewImg = project.imgs.filter((i) => i._id == req.params.img)[0];
       if (!previewImg) {
         return res.status(404).jsonp("No image with such id.");
       }
       const previewIsVideo = isVideoMedia(previewImg);
+
+      // the same rules the editor shows as pipeline issues (pipelineRules.js);
+      // an image preview is only stopped by issues that affect images
+      const blocking = previewBlockingIssue(pipelineIssues(project), previewIsVideo);
+      if (blocking) return res.status(400).jsonp(describeIssue(blocking));
 
       // video: the whole pipeline goes in one message to the video worker,
       // which only processes the initial excerpt
