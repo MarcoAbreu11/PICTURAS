@@ -627,6 +627,35 @@ local data**, so use it deliberately.
 
 ---
 
+## 📊 Phase 2 — Non-Functional Requirements
+
+Phase 2 improved two non-functional requirements by refactoring, without new features. The
+starting point is the official commit `0523102`; the report sources are in
+[`relatorio/`](relatorio/) (Typst, `typst compile --font-path fonts main.typ`).
+
+| Requirement (ISO/IEC 25010:2011) | What changed | Evidence |
+| --- | --- | --- |
+| Performance efficiency — resource utilisation when uploading files | Uploads are streamed end to end: nginx no longer buffers the body, the gateway checks the token first and pipes the request, `projects` writes one temporary file and hashes it in the same pass, `img_storage` sends 5 MB multipart parts to S3; the import dialog shows progress | [`bench/upload/`](bench/upload/) (`RESULTS.md`, CSVs, `regression.py`) |
+| Usability — user error protection when building pipelines | Tool/media rules live in one module (`projects/utils/pipelineRules.js`); tools are checked when added or edited, and the editor shows each pipeline issue (tool, reason, fix) before any preview or run | [`bench/pipeline/`](bench/pipeline/) (`RESULTS.md`, scenarios, CSVs) |
+
+### AI assistance
+
+- **Tool and model:** Claude Code (desktop app and CLI) with Claude Opus 5.5.
+- **Configuration:** the project instructions in [`AGENTS.md`](AGENTS.md), updated in this phase
+  with the pipeline rules. Commands that talk to GitHub were run by the team.
+- **Traceability:** every Phase 2 commit made with AI assistance carries the trailer
+  `Co-Authored-By: Claude Opus 5.5` (`git log 0523102..HEAD`).
+- **Tasks supported:** the refactoring of both requirements, the unit tests, the benchmark and
+  regression scripts, a read-only audit of both requirements (two auditors and a supervisor
+  that re-checked sampled verdicts in the code), and drafts of report chapters.
+- **Validation:** unit tests (`npm test` in `projects/`, `apiGateway/`, `imageStorageService/`),
+  `bench/upload/regression.py`, the same benchmark scripts run before and after the
+  refactoring, and figures in `RESULTS.md` recomputed from the CSVs. Defects found by the audit
+  were reproduced with a failing test before being fixed. Details and the critical analysis are in
+  chapter 12 of the report.
+
+---
+
 ## 👥 Authors
 
 PictuRAS is a cumulative effort of several generations of students of _Requisitos e Arquitetura
