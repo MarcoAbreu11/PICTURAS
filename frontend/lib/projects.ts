@@ -319,11 +319,14 @@ export const addProject = async ({
   token,
   name,
   images = [],
+  onProgress,
 }: {
   uid: string;
   token: string;
   name: string;
   images?: File[];
+  // called with the share of all bytes sent so far, from 0 to 1
+  onProgress?: (fraction: number) => void;
 }) => {
   const response = await api.post<SingleProject>(
     `/projects/${uid}`,
@@ -343,6 +346,7 @@ export const addProject = async ({
       token,
       images,
       projectVersion: project.version,
+      onProgress,
     });
   }
 

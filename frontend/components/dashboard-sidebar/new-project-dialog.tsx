@@ -15,6 +15,7 @@ import { useAddProject } from "@/lib/mutations/projects";
 import { useUploadLimits } from "@/lib/queries/projects";
 import { uploadLimitProblem } from "@/lib/projects";
 import ImageSubmissionArea from "../image-submission-area";
+import { Progress } from "@/components/ui/progress";
 import { useSession } from "@/providers/session-provider";
 import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ export default function NewProjectDialog({
   const [open, setOpen] = useState<boolean>(false);
   const [name, setName] = useState<string>("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [uploadPercent, setUploadPercent] = useState<number>(0);
 
   const session = useSession();
   const addProject = useAddProject(session.user._id, session.token);
@@ -48,12 +50,14 @@ export default function NewProjectDialog({
       toast({ ...problem, variant: "destructive" });
       return;
     }
+    setUploadPercent(0);
     addProject.mutate(
       {
         uid: session.user._id,
         token: session.token,
         name: name,
         images: imageFiles,
+        onProgress: (fraction) => setUploadPercent(Math.round(fraction * 100)),
       },
       {
         onSuccess: (project) => {
@@ -106,10 +110,18 @@ export default function NewProjectDialog({
           onFilesChange={setImageFiles}
           receivedFiles={files}
         />
+        {addProject.isPending && (
+          <div className="flex items-center gap-2" aria-live="polite">
+            <Progress value={uploadPercent} aria-label="Upload progress" />
+            <span className="w-12 text-right text-sm tabular-nums text-muted-foreground">
+              {uploadPercent}%
+            </span>
+          </div>
+        )}
         <DialogFooter>
           <Button
             onClick={() => handleCreate()}
-            disabled={imageFiles.length <= 0 || name === ""}
+            disabled={imageFiles.length <= 0 || name === "" || addProject.isPending}
             className="inline-flex items-center gap-1"
           >
             <span>Create</span>
