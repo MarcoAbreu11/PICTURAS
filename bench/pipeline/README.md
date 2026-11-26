@@ -100,3 +100,15 @@ For an invalid scenario, a warning or a note can count as the explanation. A
 valid scenario must show no warning, but notes are allowed. A warning added by
 the refactoring must use one of these forms; `role="alert"` is the natural
 choice and also helps screen readers.
+
+## Preview in a mixed project
+
+`preview_mixed_check.py` checks the case the scenarios above do not cover: an
+image-only tool (watermark) configured before a video is added. The video
+preview and the processing must be refused with the pipeline message, while
+the image preview must still run, as in the base version. It needs
+`watermark_tool_ms` running besides the services above:
+
+```bash
+python3 bench/pipeline/preview_mixed_check.py   # exit code 0 when all 8 checks pass
+```

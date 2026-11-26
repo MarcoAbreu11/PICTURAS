@@ -102,6 +102,25 @@ The valid scenarios with a video show the `role="note"` line about hidden
 tools. It is information, not a warning about their pipeline, and the editor
 check does not count it as a false warning (see `README.md`).
 
+### Confirmation on the integrated final version
+
+The scenarios were run again on commit `704a307`, which also contains the
+streaming uploads, the later upload fixes and `136f97a` (an image preview is
+no longer refused because of issues that only affect the videos). Second
+machine: Fedora Linux 44, AMD Ryzen 5 7520U, 7 GiB, Podman 5.8.9 with Docker
+Compose 5.7.1 (see `bench/upload/RESULTS.md`), Chromium from Playwright 1.49.0.
+
+| Indicator | API | Editor |
+| --- | --- | --- |
+| Invalid scenarios with a useful early warning | 9/9 (100%) | 10/10 (100%) |
+| Valid scenarios accepted and working / without a warning | 11/11 | 11/11 |
+
+Raw data: `results/final-api-20261126-130742.csv`,
+`results/final-ui-20261126-131203.csv`. Unit tests of `projects`: 27/27.
+`preview_mixed_check.py` (see `README.md`): 8/8; it failed before `136f97a`,
+because the first version refused every preview while the pipeline had an
+error, including the image preview the base version accepted.
+
 ### What changed
 
 - `projects/utils/pipelineRules.js` holds the compatibility rules. It judges
