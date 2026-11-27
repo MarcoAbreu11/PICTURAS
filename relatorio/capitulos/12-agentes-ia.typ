@@ -19,7 +19,7 @@
 #tabela(
   colunas: (3.5cm, 1fr),
   [Ferramenta / modelo], [Configuração e utilização (_skills_, instruções de projeto, MCP, …)],
-  [Claude Code (aplicação de _desktop_ e CLI), modelo Claude Opus 5.5], [Instruções de projeto em `AGENTS.md` (arquitetura, comandos, convenções de _commits_, armadilhas conhecidas), atualizado nesta fase com as regras do pipeline (`8ec34f8`). Sessões com acesso de leitura e escrita ao repositório local; os comandos que falam com o GitHub (`push`, `fetch`) correram no terminal do utilizador. Os 21 _commits_ de implementação e medição (`613f274` a `01e3d9f`) e as correções posteriores (`07627d6`, `1da87b1`, `845c27e`, `53e6749`, `3092bbd`) foram feitos com o Claude Code. O histórico entregue não tem o _trailer_ `Co-Authored-By`, por isso esta tabela é o registo dos _commits_ feitos com IA.],
+  [Claude Code (aplicação de _desktop_ e CLI), modelo Claude Opus 5.5], [Usado como assistente de programação no repositório local, a partir das instruções de projeto em `AGENTS.md` (atualizado nesta fase com as regras do pipeline, `8ec34f8`). A equipa fixou o âmbito (os dois RNF e o que fazer em cada um), testou e aceitou cada alteração; os comandos que falam com o GitHub correram no terminal da equipa. _Commits_ feitos com este apoio: `613f274` a `01e3d9f` e as correções `07627d6`, `1da87b1`, `845c27e`, `53e6749` e `3092bbd` (o histórico não tem o _trailer_ `Co-Authored-By`, por isso esta lista é o registo).],
 )
 
 == Tarefas apoiadas e validação
@@ -33,20 +33,24 @@
     [Claude Code / Opus 5.5], [_Scripts_ de medição e de regressão do CAND-1 (cap. 10, anexo A)], [`bench/upload/` (`16a33b4`, `3733acf`, `a5c7530`)], [Medir a base sem limites de memória: esgotou a memória da máquina e não era comparável; passou a usar 1 GB sem _swap_ (`3733acf`)], [CSV versionados; os valores do `RESULTS.md` foram recalculados a partir dos CSV],
     [Claude Code / Opus 5.5], [Implementação do DA-2: regras, validação e avisos do editor (cap. 8)], [`adc5b28` a `ce68e98`], [A primeira versão bloqueava a pré-visualização de uma imagem num projeto misto; foi substituída (`07627d6`) porque a base a permitia], [11 cenários válidos sem regressão; 9 testes unitários novos; validação final da equipa, que encontrou essa regressão],
     [Claude Code / Opus 5.5], [Cenários e medição do CAND-2 (cap. 10)], [`a5eee79`, `184c542`], [—], [Base e final com o mesmo _script_; a alteração do critério (`588544b`) está divulgada, com o resultado pelo critério original (89 %)],
-    [Claude Code / Opus 5.5], [Validação final (lista da equipa): testes unitários, regressão, pré-visualização num projeto misto e benchmarks no _commit_ integrado], [A correção de uma regressão encontrada nesta validação (`07627d6`) e o teste que a cobre (`1da87b1`)], [—], [O teste da pré-visualização falhava antes da correção e passa depois (8/8); testes unitários 35/35; `regression.py` 19/19; benchmarks repetidos em `1da87b1` (CAND-1 e CAND-2, `bench/*/RESULTS.md`); o `ui_check.py` precisou de ajustes para SELinux e Podman sem _root_; testes unitários (35/35) e `regression.py` (19/19) repetidos no código entregue (`464929f`)],
+    [Claude Code / Opus 5.5], [Validação final (lista da equipa): testes unitários, regressão, pré-visualização num projeto misto e benchmarks no _commit_ integrado], [A correção de uma regressão encontrada nesta validação (`07627d6`) e o teste que a cobre (`1da87b1`)], [—], [O teste da pré-visualização falhava antes da correção e passa depois (8/8); _benchmarks_ repetidos em `1da87b1` (`bench/*/RESULTS.md`); testes unitários (35/35) e `regression.py` (19/19) repetidos no código entregue (`464929f`)],
   ),
 )
 
 == Análise crítica
 
-A IA foi útil para tarefas extensas e verificáveis: percorrer os quatro serviços do caminho de carregamento, escrever o
-código de _streaming_ com os seus casos de erro, gerar os _scripts_ de medição e os cenários, e recalcular os resultados a
-partir dos dados brutos. A sua principal fragilidade foi a de qualquer implementação não verificada: a primeira versão
-do DA-1 não removia o ficheiro temporário quando o cliente cancelava o upload e deixava o perfil anónimo sem limite
-antecipado. Os dois casos foram encontrados numa revisão posterior do código e só foram aceites depois de reproduzidos: o teste do
-cancelamento falha no código anterior e passa no corrigido. A validação final da equipa encontrou ainda uma regressão que nem a implementação nem essa revisão tinham visto: as regras novas bloqueavam a pré-visualização de uma imagem num projeto misto com uma ferramenta só de imagem, o que a base permitia. Os cenários de medição pré-visualizavam sempre o vídeo, por isso não a apanharam.
+A IA foi uma ferramenta de apoio, útil sobretudo em trabalho extenso e fácil de verificar: percorrer os quatro serviços do
+caminho de carregamento, escrever o código de _streaming_ e os seus casos de erro, e preparar os _scripts_ de medição e
+os cenários. Nada foi aceite sem verificação: cada alteração passou por testes unitários, pela regressão e pelas
+medições, e os números do relatório podem ser recalculados a partir dos CSV.
 
-Duas práticas reduziram o risco: medir antes de mudar, com o mesmo _script_ e no mesmo ambiente, e não aceitar números que
-não se possam recalcular a partir dos CSV. Um ponto a assinalar é a alteração do critério do CAND-2 depois de ver o
-resultado final: está documentada e foi aplicada também à base, mas mostra que a métrica deve ser fixada antes de medir.
-Na reflexão da equipa, três pontos. Primeiro, a IA não substituiu os testes manuais: as duas falhas mais visíveis para o utilizador (a mensagem «sem ligação» quando o vídeo excede o limite do plano e a falta de progresso ao criar um projeto) só apareceram quando a equipa usou a aplicação no _browser_, depois de testes, regressão e revisão do código terem passado. Segundo, a equipa reviu os textos gerados contra o repositório e os exercícios, completou os capítulos da base e corrigiu as referências que o _rebase_ tornou inválidas. Terceiro, faríamos de outra forma: fixar a métrica de cada requisito antes de medir, incluir nos cenários de medição a pré-visualização de imagens em projetos mistos e testar no _browser_ mais cedo, a cada alteração visível.
+Essa verificação mostrou que o apoio não dispensa a equipa. A primeira versão do DA-1 não apagava o ficheiro temporário
+quando o cliente cancelava o upload e deixava o perfil anónimo sem limite antecipado; os dois casos foram reproduzidos com
+um teste que falha antes da correção e passa depois. A validação final da equipa encontrou uma regressão na
+pré-visualização de imagens em projetos mistos, que os cenários de medição não cobriam. E as duas falhas mais visíveis
+para o utilizador (a mensagem «sem ligação» quando o vídeo excede o limite do plano e a falta de progresso ao criar um
+projeto) só apareceram quando a equipa usou a aplicação no _browser_.
+
+Na reflexão da equipa, faríamos de outra forma três coisas: fixar a métrica de cada requisito antes de medir (o critério
+do CAND-2 foi alargado depois do resultado final, de forma documentada e aplicada também à base), incluir nos cenários a
+pré-visualização de imagens em projetos mistos e testar no _browser_ mais cedo, a cada alteração visível.
