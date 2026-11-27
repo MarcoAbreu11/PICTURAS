@@ -14,7 +14,7 @@
 ]
 
 == Adequação do padrão atual (global e do vídeo)
-A análise dos capítulos 3 e 4 mostrou que o padrão global de microserviços com RabbitMQ e o processamento de vídeo em passagem única (`video_tool`) são adequados na sua estrutura base, evitando recodificações sucessivas. Os dois requisitos melhorados mostram que as
+A análise dos capítulos 3 e 4 mostrou que o padrão global de microserviços com RabbitMQ e o processamento de vídeo num único _worker_ (`video_tool`), que agrupa os efeitos convencionais numa única passagem de descodificação e codificação, são adequados na sua estrutura base, evitando recodificações sucessivas; a legendagem automática e a extração de fotogramas têm percursos próprios. Os dois requisitos melhorados mostram que as
 fragilidades não estavam no padrão global de microserviços, mas na forma como alguns serviços o realizavam: o caminho de
 carregamento já tinha os saltos certos e bastou que cada um passasse a tratar o corpo em _stream_; as regras de
 compatibilidade já existiam no `projects` e bastou torná-las a fonte única do editor. Ambas as melhorias foram feitas

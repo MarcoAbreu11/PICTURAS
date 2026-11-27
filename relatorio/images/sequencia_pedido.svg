@@ -56,7 +56,7 @@
 <line x1="615" y1="462" x2="751" y2="462" stroke="#C76C1B" stroke-width="2" marker-end="url(#av)"/>
 <text x="685.0" y="456" text-anchor="middle" font-size="12.5" fill="#222">entrega o pipeline completo</text>
 <path d="M755,470 h26 v18 h-24" fill="none" stroke="#C76C1B" stroke-width="2" marker-end="url(#av)"/>
-<text x="787" y="483" font-size="12.5" fill="#222">descodifica 1×, efeitos, codifica 1×</text>
+<text x="748" y="478" text-anchor="end" font-size="12" fill="#222">efeitos convencionais: 1 passagem</text><text x="748" y="493" text-anchor="end" font-size="12" fill="#222">legendas: 1 passagem por estágio</text>
 <line x1="8" y1="516" x2="972" y2="516" stroke="#DDD" stroke-width="1"/>
 <rect x="8" y="515" width="103.19999999999999" height="18" fill="#F3E3D3"/>
 <text x="14" y="529" font-size="12.5" font-weight="bold">4. Progresso</text>

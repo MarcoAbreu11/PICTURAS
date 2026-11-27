@@ -58,7 +58,7 @@
 *ALT-3 — _Streaming_ em _pipes_ com validação antecipada + réplicas de `video_tool`*
 
 #tabela-campos(
-  [Coerência com o padrão global], [Total: preserva todos os serviços, rotas, filas RabbitMQ e o `video_tool` em passagem única (EV-03, EV-09).],
+  [Coerência com o padrão global], [Total: preserva todos os serviços, rotas, filas RabbitMQ e o `video_tool`, com os efeitos convencionais em passagem única (EV-03, EV-09).],
   [Efeito nos atributos de qualidade], [Resolve o esgotamento de RAM no upload mantendo a validação antes de guardar no S3; permite escalar o processamento de vídeo com réplicas.],
   [Vantagens potenciais], [Preserva integralmente o contrato da API e a experiência do utilizador, permitindo ainda progresso real no carregamento.],
   [Desvantagens ou riscos], [Exige tratamento cuidadoso de _backpressure_ e limpeza de temporários em 4 serviços (`nginx`, `api_gateway`, `projects`, `img_storage`).],
@@ -83,7 +83,7 @@
     tamanho: 7.5pt,
     [Atributo de qualidade (ISO/IEC 25010)], [Padrão global atual (referência)], [Padrão atual do vídeo], [ALT-1 (coreografia por filtro)], [ALT-2 (URL pré-assinado)], [ALT-3 (_streaming_ + réplicas)],
     [Relação com o padrão global], [—], [Afasta-se na orquestração (EV-03)], [Mantém (EV-06)], [Altera parcialmente: o ficheiro deixa de passar pelo `api_gateway` e pelo `projects` (EV-01, EV-09)], [Mantém (EV-03, EV-09)],
-    [Eficiência de desempenho: comportamento temporal], [Médio — filas assíncronas, uma mensagem por passo (EV-06)], [Alto — uma descodificação e uma codificação (EV-03)], [Baixo — uma recodificação por filtro, N por vídeo (EV-03, EV-08)], [Alto no carregamento, sem saltos intermédios (EV-09); processamento igual ao atual (EV-03)], [Alto — mantém a passagem única (EV-03)],
+    [Eficiência de desempenho: comportamento temporal], [Médio — filas assíncronas, uma mensagem por passo (EV-06)], [Alto — uma descodificação e uma codificação para os efeitos convencionais (EV-03)], [Baixo — uma recodificação por filtro, N por vídeo (EV-03, EV-08)], [Alto no carregamento, sem saltos intermédios (EV-09); processamento igual ao atual (EV-03)], [Alto — mantém a passagem única (EV-03)],
     [Eficiência de desempenho: capacidade / elasticidade], [Médio — um contentor por ferramenta, sem réplicas nem ajuste à carga (EV-06)], [Baixo — instância única do `video_tool` (EV-07)], [Médio — cada filtro escala à parte, mas multiplica mensagens e ficheiros intermédios (EV-06)], [Médio — o carregamento deixa de limitar, o processamento continua num só _worker_ (EV-07)], [Alto — réplicas do `video_tool` a consumir a mesma fila (EV-07)],
     [Eficiência de desempenho: utilização de recursos], [Baixo — upload inteiro em RAM (EV-11 a EV-13)], [Baixo — herda o upload em RAM (EV-16)], [Baixo — um ficheiro intermédio por passo no `image_data` (EV-06)], [Alto — nenhum serviço Node toca nos _bytes_ (EV-11 a EV-13 deixam de se aplicar)], [Alto — _buffers_ limitados em vez de `memoryStorage` (EV-11 a EV-13)],
     [Fiabilidade: tolerância a falhas / recuperabilidade], [Médio — as ferramentas de imagem confirmam a mensagem ao recebê-la, ao contrário do vídeo (EV-05)], [Alto — _ack_ apenas no fim (EV-05)], [Médio — uma falha a meio deixa ficheiros intermédios entre passos (EV-06)], [Médio — um envio interrompido deixa objetos órfãos no S3, a limpar à parte (EV-01)], [Alto — mantém o _ack_ no fim (EV-05)],
@@ -95,7 +95,7 @@
 
 == Adequação do padrão atual
 
-O padrão global de microserviços com RabbitMQ e o padrão do `video_tool` em passagem única são *adequados na sua
+O padrão global de microserviços com RabbitMQ e o padrão do `video_tool` (efeitos convencionais em passagem única) são *adequados na sua
 estrutura base*: desacoplam o processamento pesado do pedido HTTP e evitam recodificações sucessivas (EV-03, EV-05).
 As fragilidades observadas não exigem substituir o padrão global (como faria ALT-2) nem partir o `video_tool` (ALT-1, que
 degradaria o desempenho e a qualidade de vídeo). O caminho mais adequado numa fase de _refactoring_ é manter a

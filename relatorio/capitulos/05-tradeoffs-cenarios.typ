@@ -37,7 +37,7 @@
     colunas: (1.2fr, 3.4fr, 2.6fr, 2.2fr, 2.2fr, 2.4fr, 2.2fr, 2.6fr, 3fr),
     tamanho: 7pt,
     [ID], [Fragilidade na base (EV-nn)], [Característica (ISO/IEC 25010)], [Fonte do estímulo], [Estímulo], [Artefacto], [Ambiente], [Resposta], [Medida da resposta],
-    [QS-01], [Upload inteiro em RAM em 3 serviços + cópia do axios; 500 MB e 950 MB falham por OOM (EV-11 a EV-16)], [Eficiência de desempenho / utilização de recursos], [Utilizador _premium_], [Carrega um vídeo MP4 até 1 GB (ou vários em simultâneo)], [`nginx`, `api_gateway`, `projects`, `img_storage`], [Carga normal e concorrente (1 GB/serviço, sem _swap_)], [Processa o upload em _streaming_ sem acumular o ficheiro em memória e mostra progresso], [Crescimento de VmRSS (MB) por serviço, taxa de sucesso até 950 MB e tempo (s)],
+    [QS-01], [Upload inteiro em RAM em 3 serviços + cópia do axios; com 1 GB por serviço (limite da medição), 500 MB e 950 MB falham por OOM (EV-11 a EV-16)], [Eficiência de desempenho / utilização de recursos], [Utilizador _premium_], [Carrega um vídeo MP4 até 1 GB (ou vários em simultâneo)], [`nginx`, `api_gateway`, `projects`, `img_storage`], [Carga normal e concorrente (1 GB/serviço, sem _swap_)], [Processa o upload em _streaming_ sem acumular o ficheiro em memória e mostra progresso], [Crescimento de VmRSS (MB) por serviço, taxa de sucesso até 950 MB e tempo (s)],
     [QS-02], [Ferramentas escondidas sem explicação e erros só no _Apply_ / pré-visualização (EV-17 a EV-20)], [Usabilidade / proteção contra erros do utilizador], [Utilizador no editor ou cliente API], [Adiciona, edita ou reordena ferramentas num projeto com vídeos ou misto], [`projects` (rotas de ferramentas, pré-visualização e execução) e `frontend` (editor)], [Operação normal de composição de _pipeline_], [Deteta incompatibilidades na composição e apresenta aviso específico e acionável], [Percentagem de cenários inválidos com aviso antecipado útil; 0 válidos rejeitados],
     [QS-03], [Instância única de `video_tool` sem réplicas (EV-07)], [Eficiência de desempenho / capacidade], [Múltiplos utilizadores], [Submetem _Apply_ de vídeo em simultâneo], [`video_queue` e `video_tool`], [Carga concorrente], [Distribui tarefas por múltiplas instâncias sem perda de mensagens], [Tempo de espera em fila e taxa de conclusão concorrente],
   ),
@@ -54,7 +54,7 @@
   tabela(
     colunas: (1.6cm, 4.8cm, 4.8cm, 2cm),
     [ID], [Importância para os stakeholders], [Dificuldade / risco técnico], [Prioridade],
-    [QS-01], [Alta — utilizadores _premium_ não conseguem carregar vídeos dentro do limite de 1 GB e um upload pode derrubar o gateway], [Alta — exige _streaming_ com contrapressão em 4 serviços e limpeza de temporários], [1],
+    [QS-01], [Alta — utilizadores _premium_ não conseguem carregar vídeos dentro do limite de 1 GB e um upload grande pode esgotar a memória do gateway (na medição com 1 GB por serviço, o processo foi terminado)], [Alta — exige _streaming_ com contrapressão em 4 serviços e limpeza de temporários], [1],
     [QS-02], [Alta — utilizadores configuram _pipelines_ inválidos sem feedback e recebem erros tardios sem saber o que corrigir], [Média — requer fonte única de regras no `projects` sem quebrar correções], [2],
     [QS-03], [Média — afeta apenas picos de concorrência no processamento, sem impedir o uso normal], [Baixa/Média — escalar réplicas exige apenas gestão de concorrência no `video_tool`], [3],
   ),

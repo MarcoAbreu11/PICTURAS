@@ -34,16 +34,18 @@
   ),
 )
 
-*Como é orquestrado o processamento em lote de imagens e de vídeos* (5 a 8 linhas):
+*Como é orquestrado o processamento em lote de imagens e de vídeos*:
 
 O utilizador carrega imagens (`POST /:user/:project/img`) ou vídeos (`POST /:user/:project/video`), que são validados e
 guardados no `img_storage` (SeaweedFS/S3) com `media_type` distinto (`"image"` ou `"video"`). O _pipeline_ de efeitos
 pertence ao projeto, não a cada ficheiro. Quando o utilizador carrega em _Apply_ (`POST /:user/:project/process`), o
 serviço `projects` percorre os ficheiros do projeto: para cada *imagem*, envia uma mensagem por passo para a fila da
 respetiva ferramenta (`<tool>_queue`) e avança a cadeia quando recebe resposta em `project_queue`; para cada *vídeo*,
-envia uma *única* mensagem para `video_queue` com todo o _pipeline_, que o `video_tool` descodifica uma vez com
-`ffmpeg`, aplica os efeitos por fotograma em PIL, preserva o áudio e codifica uma única vez para MP4 (H.264 + AAC),
-reportando o progresso em `ws_queue`.
+envia uma *única* mensagem para `video_queue` com todo o _pipeline_. O `video_tool` agrupa os efeitos convencionais
+numa única passagem: descodifica com `ffmpeg`, aplica os efeitos por fotograma em PIL, preserva o áudio e codifica para
+MP4 (H.264 + AAC), reportando o progresso em `ws_queue`. As etapas especiais têm percursos próprios: cada legendagem
+automática (`subtitles`) divide o _pipeline_ em estágios, com uma passagem por estágio, e a extração de fotogramas
+(`extract_frames`, sempre o último passo) lê o vídeo já editado.
 
 == Fontes consultadas
 

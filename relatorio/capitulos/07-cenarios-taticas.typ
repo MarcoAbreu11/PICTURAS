@@ -20,12 +20,12 @@
     colunas: (1.8fr, 2.2fr, 3fr, 1.8fr, 2.8fr, 3fr, 3.4fr, 3.4fr),
     tamanho: 7.5pt,
     [Candidato], [Cenário (`QS-nn`)], [Característica / subcaracterística (ISO/IEC 25010)], [Evidência], [Origem (padrão global / vídeo / interação)], [Estímulo a que a tática reage], [Resposta e medida (resumo)], [Escala e método (cap. 6)],
-    [CAND-1], [QS-01], [Eficiência de desempenho / utilização de recursos], [EV-11 a EV-16], [Interação (caminho de carregamento global usado pelos vídeos)], [Um utilizador premium carrega um vídeo de até 1 GB (ou vários em simultâneo)], [O upload é aceite e nenhum serviço do caminho cresce mais de 150 MB, qualquer que seja o tamanho], [Crescimento de VmRSS por serviço; `measure_upload.py`],
+    [CAND-1], [QS-01], [Eficiência de desempenho / utilização de recursos], [EV-11 a EV-16], [Interação (caminho de carregamento global usado pelos vídeos)], [Um utilizador premium carrega um vídeo de até 1 GB (ou vários em simultâneo)], [O upload é aceite e nenhum serviço do caminho cresce mais de 150 MB, nos tamanhos de ficheiro e condições de concorrência do plano de medição], [Crescimento de VmRSS por serviço; `measure_upload.py`],
     [CAND-2], [QS-02], [Usabilidade / proteção contra erros do utilizador], [EV-17 a EV-20], [Interação (regras do vídeo no pipeline do projeto)], [O utilizador compõe um pipeline incompatível com os _media_ do projeto (ou altera os _media_ depois)], [O editor avisa antes de qualquer pré-visualização ou execução, nomeando a ferramenta e a correção, em ≥ 90 % dos casos, sem avisar nos válidos], [% de inválidos com aviso útil; `measure_pipeline.py`, `ui_check.py`],
   ),
 )
 
-== Alterações feitas ao capítulo 5 (se existirem)
+== Alterações feitas ao capítulo 5
 
 #tab([Alterações aos cenários],
   tabela(

@@ -58,7 +58,7 @@
 
 #tabela-campos(
   [Nome do padrão], [_Worker_ monolítico por tarefa (*Batch Pipeline* / *Pipes and Filters* interno em processo único)],
-  [Descrição], [Ao contrário das imagens (que encadeiam mensagens por ferramenta), um vídeo é enviado numa única mensagem para `video_queue` com toda a lista de efeitos. O `video_tool` descodifica o vídeo uma vez com `ffmpeg`, aplica os filtros em sequência por fotograma em memória e codifica uma única vez para MP4/AAC.],
+  [Descrição], [Ao contrário das imagens (que encadeiam mensagens por ferramenta), um vídeo é enviado numa única mensagem para `video_queue` com toda a lista de efeitos. O `video_tool` agrupa os efeitos convencionais numa única passagem: descodifica com `ffmpeg`, aplica os filtros em sequência por fotograma em memória e codifica para MP4/AAC. A legendagem automática e a extração de fotogramas têm percursos próprios (uma passagem por estágio de legendas; extração sobre o vídeo já editado).],
   [Contraste com o caminho de imagens], [As imagens seguem coreografia passo-a-passo (`projects` → `<tool>_queue` → `project_queue` por cada ferramenta); o vídeo concentra todos os efeitos num único _worker_ (`video_tool`) para evitar múltiplas descodificações e recodificações com perda de qualidade e latência elevada.],
 )
 
@@ -67,7 +67,7 @@
     colunas: (2cm, 1fr, 4.2cm, 2.4cm),
     tamanho: 8.5pt,
     [Tipo], [Descrição], [Característica / subcaracterística (ISO/IEC 25010)], [Facto / hipótese],
-    [Benefício], [Uma única descodificação e codificação por vídeo reduz drasticamente o tempo de CPU e evita degradação sucessiva; _ack_ apenas no fim evita perda silenciosa], [Eficiência de desempenho / comportamento temporal; Fiabilidade / tolerância a falhas], [EV-03, EV-05],
+    [Benefício], [Agrupar os efeitos convencionais numa única descodificação e codificação reduz o tempo de CPU e evita degradação sucessiva (com legendagem há uma passagem por estágio); _ack_ apenas no fim evita perda silenciosa], [Eficiência de desempenho / comportamento temporal; Fiabilidade / tolerância a falhas], [EV-03, EV-05],
     [Desafio], [Instância única de `video_tool` sem réplicas cria fila em carga concorrente e os efeitos PIL estão duplicados face às ferramentas de imagem], [Eficiência de desempenho / capacidade; Manutenibilidade / reutilização], [EV-07: `docker-compose.yaml:256-272`; EV-08: `Tools/video/effects.py`],
   ),
 )
