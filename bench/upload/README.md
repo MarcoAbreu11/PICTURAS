@@ -58,7 +58,7 @@ check passes.
 # one upload at a time, 5 repetitions per size, services restarted between runs
 python3 bench/upload/measure_upload.py --label baseline --sizes 100,500,950 --reps 5
 # simultaneous uploads
-python3 bench/upload/measure_upload.py --label baseline --sizes 500 --reps 3 --concurrency 4
+python3 bench/upload/measure_upload.py --label baseline --sizes 100 --reps 3 --concurrency 4
 ```
 
 Each row of `results/<label>-c<N>-<date>.csv` has, per service, the resident

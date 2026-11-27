@@ -58,7 +58,7 @@ reportando o progresso em `ws_queue`.
     colunas: (5.5cm, 3cm, 1fr),
     [Fonte], [Versão / data], [Usada para],
     [`README.md`, `AGENTS.md`], [_commit_ `0523102`], [Visão global da arquitetura, convenções, limites e fluxos de imagem e vídeo],
-    [`doc-ext-requisitos-2627.pdf`], [2026/2027], [Requisitos funcionais e regras de negócio da extensão de vídeo (`RN2`, `REQ-VID-*`)],
+    [`doc-ext-requisitos-2627.pdf`], [2026/2027], [Requisitos funcionais e regras de negócio da extensão de vídeo (`UC-VID-001/RN2`, `REQ-VID-*`)],
     [`doc-sol-arquitetural.pdf`], [Base Fase 1], [Referência da arquitetura inicial de microserviços e filas RabbitMQ],
     [Slides da aula 11 (_Arch. Styles_) e documento de apoio de padrões arquiteturais], [2026/2027], [Classificação dos estilos arquiteturais e critérios de comparação],
     [Código-fonte (`docker-compose.yaml`, `nginx/`, `apiGateway/`, `projects/`, `imageStorageService/`, `Tools/video/`)], [_commit_ `0523102`], [Recolha de evidências verificáveis (`EV-01` a `EV-20`)],

@@ -28,10 +28,12 @@ A aplicação fica em `https://localhost:8080` (aceitar o certificado autoassina
 
 == Testes unitários
 
+Com a _stack_ a correr (as dependências já estão nas imagens dos serviços):
+
 ```bash
-(cd projects && npm ci && npm test)              # 27 testes
-(cd apiGateway && npm ci && npm test)            # 3 testes
-(cd imageStorageService && npm ci && npm test)   # 5 testes
+docker compose exec -T projects npm test        # 27 testes
+docker compose exec -T api_gateway npm test     # 3 testes
+docker compose exec -T img_storage npm test     # 5 testes
 ```
 
 == Medições do CAND-1 (carregamento de ficheiros)

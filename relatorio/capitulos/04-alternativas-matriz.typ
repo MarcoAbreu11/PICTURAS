@@ -79,16 +79,17 @@
 
 #tab([Matriz de comparação de padrões],
   tabela(
-    colunas: (5.6fr, 4.2fr, 4fr, 4fr, 4fr),
-    tamanho: 8pt,
-    [Atributo de qualidade (ISO/IEC 25010)], [Padrão global atual (referência)], [Padrão atual do vídeo], [ALT-1 (Coreografia)], [ALT-3 (_Streaming_ + réplicas)],
-    [Relação com o padrão global], [—], [Afasta-se na orquestração (EV-03)], [Mantém (EV-06)], [Mantém (EV-03, EV-09)],
-    [Eficiência de desempenho: comportamento temporal], [Médio — filas assíncronas por passo (EV-06)], [Alto — 1 descodificação/codificação (EV-03)], [Baixo — N recodificações por vídeo], [Alto — mantém passagem única (EV-03)],
-    [Eficiência de desempenho: utilização de recursos], [Baixo — upload inteiro em RAM (EV-11 a EV-13)], [Baixo — herda o upload em RAM (EV-16)], [Baixo — multiplica I/O em disco], [Alto — _streaming_ com RAM limitada],
-    [Fiabilidade: tolerância a falhas / recuperabilidade], [Médio — _auto-ack_ nas imagens], [Alto — _ack_ apenas no fim (EV-05)], [Médio — falhas parciais entre passos], [Alto — mantém _ack_ no fim (EV-05)],
-    [Manutenibilidade: modularidade / modificabilidade], [Alto — serviços isolados (EV-06)], [Médio — efeitos duplicados (EV-08)], [Alto — reutiliza ferramentas], [Médio — mantém `video_tool`],
-    [Segurança], [Médio — token verificado após upload (EV-14)], [Médio — herda do gateway (EV-14)], [Médio — igual ao global], [Alto — token validado antes do corpo],
-    [Usabilidade: operabilidade], [Baixo — erros tardios no _Apply_ (EV-18)], [Baixo — ferramentas escondidas sem aviso (EV-17)], [Baixo — não resolve regras], [Médio/Alto — combinável com regras únicas],
+    colunas: (4fr, 3.4fr, 3.4fr, 3.4fr, 3.4fr, 3.4fr),
+    tamanho: 7.5pt,
+    [Atributo de qualidade (ISO/IEC 25010)], [Padrão global atual (referência)], [Padrão atual do vídeo], [ALT-1 (coreografia por filtro)], [ALT-2 (URL pré-assinado)], [ALT-3 (_streaming_ + réplicas)],
+    [Relação com o padrão global], [—], [Afasta-se na orquestração (EV-03)], [Mantém (EV-06)], [Altera parcialmente: o ficheiro deixa de passar pelo `api_gateway` e pelo `projects` (EV-01, EV-09)], [Mantém (EV-03, EV-09)],
+    [Eficiência de desempenho: comportamento temporal], [Médio — filas assíncronas, uma mensagem por passo (EV-06)], [Alto — uma descodificação e uma codificação (EV-03)], [Baixo — uma recodificação por filtro, N por vídeo (EV-03, EV-08)], [Alto no carregamento, sem saltos intermédios (EV-09); processamento igual ao atual (EV-03)], [Alto — mantém a passagem única (EV-03)],
+    [Eficiência de desempenho: capacidade / elasticidade], [Médio — um contentor por ferramenta, sem réplicas nem ajuste à carga (EV-06)], [Baixo — instância única do `video_tool` (EV-07)], [Médio — cada filtro escala à parte, mas multiplica mensagens e ficheiros intermédios (EV-06)], [Médio — o carregamento deixa de limitar, o processamento continua num só _worker_ (EV-07)], [Alto — réplicas do `video_tool` a consumir a mesma fila (EV-07)],
+    [Eficiência de desempenho: utilização de recursos], [Baixo — upload inteiro em RAM (EV-11 a EV-13)], [Baixo — herda o upload em RAM (EV-16)], [Baixo — um ficheiro intermédio por passo no `image_data` (EV-06)], [Alto — nenhum serviço Node toca nos _bytes_ (EV-11 a EV-13 deixam de se aplicar)], [Alto — _buffers_ limitados em vez de `memoryStorage` (EV-11 a EV-13)],
+    [Fiabilidade: tolerância a falhas / recuperabilidade], [Médio — as ferramentas de imagem confirmam a mensagem ao recebê-la, ao contrário do vídeo (EV-05)], [Alto — _ack_ apenas no fim (EV-05)], [Médio — uma falha a meio deixa ficheiros intermédios entre passos (EV-06)], [Médio — um envio interrompido deixa objetos órfãos no S3, a limpar à parte (EV-01)], [Alto — mantém o _ack_ no fim (EV-05)],
+    [Manutenibilidade: modularidade / modificabilidade], [Alto — serviços isolados por domínio e por ferramenta (EV-06)], [Médio — efeitos PIL duplicados (EV-08)], [Alto — reutiliza as ferramentas de imagem (EV-08)], [Médio — a validação passa a um passo assíncrono, com fluxo novo no _frontend_ e no `projects` (EV-01)], [Médio — mantém o `video_tool` e a duplicação (EV-08)],
+    [Segurança], [Médio — token verificado depois de receber o ficheiro (EV-14)], [Médio — herda do gateway (EV-14)], [Médio — igual ao global (EV-14)], [Baixo — S3 exposto ao _browser_, com CORS e políticas por utilizador (EV-09)], [Alto — token validado antes de ler o corpo (EV-14)],
+    [Usabilidade: operabilidade], [Baixo — erros tardios no _Apply_ (EV-18)], [Baixo — ferramentas escondidas sem aviso (EV-17)], [Baixo — não resolve as regras de composição (EV-17, EV-18)], [Médio — progresso nativo do envio, mas as recusas só chegam depois de guardar (EV-01)], [Médio/Alto — progresso real e combinável com uma fonte única de regras (EV-17, EV-18)],
   ),
 )
 
