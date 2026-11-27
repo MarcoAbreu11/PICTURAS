@@ -22,17 +22,15 @@
   gerir esse custo.
 ]
 
-#paisagem[
 #tab([Matriz de efeitos das decisões],
   tabela(
-    colunas: (1.8cm, 2.6cm, 3.4cm, 2.4cm, 2.4cm, 3.6cm, 1fr),
-    tamanho: 8.5pt,
+    colunas: (1.9fr, 2.4fr, 2.6fr, 2.1fr, 2.2fr, 2.9fr, 9.6fr),
+    tamanho: 8pt,
     [Decisão], [Desempenho], [Disponibilidade / Fiabilidade], [Segurança], [Usabilidade], [Manutenibilidade / Testabilidade], [Justificação],
     [DA-1], [↑ memória; ↓ disco], [↑], [↑], [↑], [↓ / ↑], [A memória por serviço deixa de acompanhar o ficheiro e o tempo a 100 MB desce 25 %, mas o `projects` passa a usar até cerca de 1 GB de disco temporário por upload em curso (documentado; o temporário é apagado em todos os desfechos). O gateway deixa de ser morto por falta de memória, o que antes interrompia também os pedidos de outros utilizadores. O JWT é verificado antes de ler o corpo e o anónimo é recusado antes de enviar o ficheiro. A barra de progresso só é fiel sem _buffering_. O código de _streams_ é mais difícil de manter (cancelamentos, falhas a meio); a equipa compensou com 18 testes unitários, que também tornam o caminho testável sem a _stack_.],
     [DA-2], [=], [↑], [=], [↑], [↑], [Avaliar as regras a cada leitura do projeto é linear no número de ferramentas; não foi medido, mas o pipeline tem poucas ferramentas. Erros que antes falhavam no _worker_ de vídeo (e.g., _trim_ para lá da duração) passam a ser recusados ao configurar. Sem efeito na segurança: as permissões e as quotas não mudam. As regras de compatibilidade ficam num único módulo; o editor ainda repete os limites do _speed_ e a tolerância do _trim_ nos formulários (dívida registada).],
   ),
 )
-]
 
 == Interação entre DA-1 e DA-2
 

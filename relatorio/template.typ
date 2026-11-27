@@ -57,7 +57,8 @@
 #let tabela(colunas: (auto, 1fr), tamanho: 9pt, ..celulas) = {
   let c = celulas.pos()
   let n = if type(colunas) == int { colunas } else { colunas.len() }
-  set text(size: tamanho)
+  // hifenização: as colunas estreitas partem as palavras longas em vez de as sobrepor
+  set text(size: tamanho, hyphenate: true)
   set par(justify: false)
   table(
     columns: colunas,
@@ -84,14 +85,6 @@
   )
 }
 
-// Páginas na horizontal (para tabelas largas):  #paisagem[ ...conteúdo... ]
-#let quebra-capitulo = state("quebra-capitulo", true)
-#let paisagem(corpo) = page(flipped: true)[
-  #quebra-capitulo.update(false)
-  #corpo
-  #quebra-capitulo.update(true)
-]
-
 // Figura com tabela legendada (aparece na Lista de Tabelas).
 #let tab(legenda, corpo) = figure(corpo, kind: table, caption: legenda)
 
@@ -114,7 +107,7 @@
 
   show heading: set block(above: 2em, below: 1em)
   show heading.where(level: 1): it => {
-    context if quebra-capitulo.get() { pagebreak(weak: true) }
+    pagebreak(weak: true)
     text(size: 18pt, it)
   }
   show heading.where(level: 2): it => text(size: 14pt, it)
@@ -124,6 +117,11 @@
   show link: underline.with(evade: false)
 
   show figure.where(kind: table): set figure.caption(position: top)
+  // a legenda de uma tabela nunca fica sozinha no fundo da página
+  show figure.where(kind: table): it => {
+    show figure.caption: c => block(sticky: true, c)
+    it
+  }
   show figure: set block(breakable: true)
 
   body

@@ -77,11 +77,10 @@
   acrescentar linhas para outros atributos relevantes.
 ]
 
-#paisagem[
 #tab([Matriz de comparação de padrões],
   tabela(
-    colunas: (5.6cm, 4.2cm, 4cm, 4cm, 4cm),
-    tamanho: 8.5pt,
+    colunas: (5.6fr, 4.2fr, 4fr, 4fr, 4fr),
+    tamanho: 8pt,
     [Atributo de qualidade (ISO/IEC 25010)], [Padrão global atual (referência)], [Padrão atual do vídeo], [ALT-1 (Coreografia)], [ALT-3 (_Streaming_ + réplicas)],
     [Relação com o padrão global], [—], [Afasta-se na orquestração (EV-03)], [Mantém (EV-06)], [Mantém (EV-03, EV-09)],
     [Eficiência de desempenho: comportamento temporal], [Médio — filas assíncronas por passo (EV-06)], [Alto — 1 descodificação/codificação (EV-03)], [Baixo — N recodificações por vídeo], [Alto — mantém passagem única (EV-03)],
@@ -92,7 +91,6 @@
     [Usabilidade: operabilidade], [Baixo — erros tardios no _Apply_ (EV-18)], [Baixo — ferramentas escondidas sem aviso (EV-17)], [Baixo — não resolve regras], [Médio/Alto — combinável com regras únicas],
   ),
 )
-]
 
 == Adequação do padrão atual
 

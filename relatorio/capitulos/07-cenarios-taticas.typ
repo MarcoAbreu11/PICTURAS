@@ -1,7 +1,5 @@
 #import "../template.typ": *
 
-// Capítulo inteiro na horizontal (tabelas largas). Para voltar ao vertical, retirar o #paisagem[ ].
-#paisagem[
 = Cenários de Entrada e Táticas Candidatas
 
 #orientacao[
@@ -19,8 +17,8 @@
 
 #tab([Candidatos e cenários de entrada],
   tabela(
-    colunas: (1.8cm, 2.2cm, 3cm, 1.8cm, 2.8cm, 3cm, 3.4cm, 3.4cm),
-    tamanho: 8pt,
+    colunas: (1.8fr, 2.2fr, 3fr, 1.8fr, 2.8fr, 3fr, 3.4fr, 3.4fr),
+    tamanho: 7.5pt,
     [Candidato], [Cenário (`QS-nn`)], [Característica / subcaracterística (ISO/IEC 25010)], [Evidência], [Origem (padrão global / vídeo / interação)], [Estímulo a que a tática reage], [Resposta e medida (resumo)], [Escala e método (cap. 6)],
     [CAND-1], [QS-01], [Eficiência de desempenho / utilização de recursos], [EV-11 a EV-16], [Interação (caminho de carregamento global usado pelos vídeos)], [Um utilizador premium carrega um vídeo de até 1 GB (ou vários em simultâneo)], [O upload é aceite e nenhum serviço do caminho cresce mais de 150 MB, qualquer que seja o tamanho], [Crescimento de VmRSS por serviço; `measure_upload.py`],
     [CAND-2], [QS-02], [Usabilidade / proteção contra erros do utilizador], [EV-17 a EV-20], [Interação (regras do vídeo no pipeline do projeto)], [O utilizador compõe um pipeline incompatível com os _media_ do projeto (ou altera os _media_ depois)], [O editor avisa antes de qualquer pré-visualização ou execução, nomeando a ferramenta e a correção, em ≥ 90 % dos casos, sem avisar nos válidos], [% de inválidos com aviso útil; `measure_pipeline.py`, `ui_check.py`],
@@ -50,8 +48,8 @@
 
 #tab([Táticas candidatas],
   tabela(
-    colunas: (1.6cm, 1.8cm, 3.6cm, 3.4cm, 5cm, 3.4cm, 1.8cm),
-    tamanho: 8pt,
+    colunas: (1.6fr, 1.8fr, 3.6fr, 3.4fr, 5fr, 3.4fr, 1.8fr),
+    tamanho: 7.5pt,
     [ID], [Cenário], [Atributo → categoria], [Tática], [Como produz a resposta (estímulo → tática → resposta)], [Já existe na base? (evidência)], [Classe (A/B/C)],
     [TAT-01], [QS-01], [Desempenho → gerir recursos (limitar a memória por pedido)], [_Streaming_ de ponta a ponta com _buffers_ limitados: nginx sem _buffering_, gateway a encaminhar o pedido, `projects` a escrever para um temporário, S3 por partes], [Upload de N MB → cada salto só guarda alguns MB em trânsito → a memória deixa de depender de N], [Não: `memoryStorage` em três serviços (EV-11 a EV-13)], [A],
     [TAT-02], [QS-01], [Desempenho → controlar a procura (rejeitar cedo)], [Verificar o token e o limite do perfil (`Content-Length`) antes de ler o corpo], [Pedido sem token ou acima do limite → recusado antes de transferir o ficheiro → nenhum recurso gasto], [Não: o corpo é lido antes do token (EV-14); o limite só é verificado depois de receber o ficheiro], [A],
@@ -66,4 +64,3 @@
     [TAT-11], [QS-02], [Usabilidade → suportar a iniciativa do utilizador], [Correção automática (reordenar ou remover ferramentas sozinho)], [Pipeline inválido → o sistema corrige-o], [Não], [C],
   ),
 )
-]

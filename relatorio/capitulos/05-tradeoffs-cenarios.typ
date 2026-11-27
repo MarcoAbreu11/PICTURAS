@@ -32,18 +32,16 @@
   mínimo: esses fixam-se após a medição inicial. A medida da resposta indica o que se mede, não o valor a atingir.
 ]
 
-#paisagem[
 #tab([Cenários de qualidade],
   tabela(
-    colunas: (1.2cm, 3.4cm, 2.6cm, 2.2cm, 2.2cm, 2.4cm, 2.2cm, 2.6cm, 3cm),
-    tamanho: 7.5pt,
+    colunas: (1.2fr, 3.4fr, 2.6fr, 2.2fr, 2.2fr, 2.4fr, 2.2fr, 2.6fr, 3fr),
+    tamanho: 7pt,
     [ID], [Fragilidade na base (EV-nn)], [Característica (ISO/IEC 25010)], [Fonte do estímulo], [Estímulo], [Artefacto], [Ambiente], [Resposta], [Medida da resposta],
     [QS-01], [Upload inteiro em RAM em 3 serviços + cópia do axios; 500 MB e 950 MB falham por OOM (EV-11 a EV-16)], [Eficiência de desempenho / utilização de recursos], [Utilizador _premium_], [Carrega um vídeo MP4 até 1 GB (ou vários em simultâneo)], [`nginx`, `api_gateway`, `projects`, `img_storage`], [Carga normal e concorrente (1 GB/serviço, sem _swap_)], [Processa o upload em _streaming_ sem acumular o ficheiro em memória e mostra progresso], [Crescimento de VmRSS (MB) por serviço, taxa de sucesso até 950 MB e tempo (s)],
     [QS-02], [Ferramentas escondidas sem explicação e erros só no _Apply_ / pré-visualização (EV-17 a EV-20)], [Usabilidade / proteção contra erros do utilizador], [Utilizador no editor ou cliente API], [Adiciona, edita ou reordena ferramentas num projeto com vídeos ou misto], [`projects` (`pipelineRules`) e `frontend` (editor)], [Operação normal de composição de _pipeline_], [Deteta incompatibilidades na composição e apresenta aviso específico e acionável], [Percentagem de cenários inválidos com aviso antecipado útil; 0 válidos rejeitados],
     [QS-03], [Instância única de `video_tool` sem réplicas (EV-07)], [Eficiência de desempenho / capacidade], [Múltiplos utilizadores], [Submetem _Apply_ de vídeo em simultâneo], [`video_queue` e `video_tool`], [Carga concorrente], [Distribui tarefas por múltiplas instâncias sem perda de mensagens], [Tempo de espera em fila e taxa de conclusão concorrente],
   ),
 )
-]
 
 #orientacao[
   *Priorização.* Avaliem cada cenário em duas dimensões: a *importância para os stakeholders* (quem sofre com a

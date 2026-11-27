@@ -1,7 +1,5 @@
 #import "../template.typ": *
 
-// Capítulo inteiro na horizontal (tabelas largas). Para voltar ao vertical, retirar o #paisagem[ ].
-#paisagem[
 = Candidatos a Requisitos Não Funcionais
 
 #orientacao[
@@ -30,8 +28,8 @@ As evidências deste capítulo referem-se ao _commit_ de partida `0523102` e est
 
 #tab([Candidatos a requisitos não funcionais da Fase 2],
   tabela(
-    colunas: (1.6cm, 2.6cm, 3cm, 2.4cm, 2.8cm, 2.6cm, 2cm, 3cm, 2.8cm),
-    tamanho: 7.5pt,
+    colunas: (1.6fr, 2.6fr, 3fr, 2.4fr, 2.8fr, 2.6fr, 2fr, 3fr, 2.8fr),
+    tamanho: 7pt,
     [\#], [Característica / subcaracterística (ISO/IEC 25010)], [Fragilidade na base (evidência)], [Origem (padrão global / vídeo / interação)], [Impacto nos stakeholders (pertinência)], [Exigência técnica (complexidade)], [Cenário (`QS-nn`, cap. 5)], [Escala e método de medição (esboço)], [Pré-requisitos / efeitos colaterais],
     [CAND-1], [Eficiência de desempenho / utilização de recursos], [O ficheiro inteiro é guardado em memória em três serviços (EV-11, EV-12, EV-13), mais uma cópia do axios (EV-14); 500 MB e 950 MB falham por falta de memória (EV-16)], [Interação: caminho de carregamento global (nginx, gateway, `projects`, `img_storage`), exercido sobretudo pelos vídeos (até 1 GB)], [Utilizador premium não consegue carregar vídeos dentro do seu limite; um upload grande pode derrubar o gateway para todos; sem progresso visível], [Alta: _streaming_ em quatro saltos, contrapressão, limpeza de temporários em todos os desfechos, validação antes de guardar], [QS-01], [Crescimento de memória (MB) por serviço durante o upload; ficheiros de 100, 500 e 950 MB e 4 em simultâneo; limite de 1 GB por serviço], [Disco temporário no `projects`; segurança (token antes do corpo); comportamento temporal (REQ-VID-SUBMIT-008)],
     [CAND-2], [Usabilidade / proteção contra erros do utilizador], [Ferramentas escondidas sem explicação (EV-17); incompatibilidades detetadas só na pré-visualização ou execução (EV-18, EV-19); 1/9 e 2/10 com aviso antecipado (EV-20)], [Interação: regras do vídeo (`projects/utils/video.js`) aplicadas ao pipeline do projeto, que é global], [Utilizador configura um pipeline inválido sem o saber e recebe um erro tardio que não diz que ferramenta mudar (REQ-VID-FAIL-003)], [Média: regras numa fonte única no `projects`, consistência com o editor, não bloquear a correção], [QS-02], [Percentagem de cenários inválidos com aviso específico e acionável antes da execução; 21 cenários (imagens, vídeos, mistos), API e editor], [Não rejeitar configurações válidas; mensagens consistentes entre editor, pré-visualização e execução],
@@ -83,4 +81,3 @@ efeito medido no desempenho.
     [Cenários de pipeline na base], [`bench/pipeline/results/baseline-api-20261115-152825.csv`, `baseline-ui-20261115-183054.csv`], [Anexo A, secção de medição do CAND-2],
   ),
 )
-]
