@@ -122,7 +122,7 @@ de três corridas (mediana 142 MB), 1 MB acima do alvo; o mínimo aceitável man
 repetida nessa máquina, por isso os tempos (mais lentos, CPU diferente) não se comparam com ela. O CAND-2 foi também
 repetido em `1da87b1`, na mesma máquina, com o mesmo resultado: 9/9 na API e 10/10 no editor, e 11/11 válidos sem aviso. (4) O critério do CAND-2 é heurístico (listas de nomes de ferramentas e de palavras) e os cenários foram
 escritos pela equipa, o que pode favorecer os casos que a solução trata. (5) O crescimento de memória inclui lixo ainda
-não recolhido. (6) Versão medida e versão entregue: as medições são de `1da87b1`. Depois disso entraram `845c27e`,
+não recolhido. (6) Versão medida e versão entregue: a última medição (a confirmação do ponto 3) é de `1da87b1`. Depois disso entraram `845c27e`,
 `53e6749` e `3092bbd` (limite do plano verificado no editor antes do envio e progresso no diálogo de criar projeto), que
 não alteram o caminho medido; as medições não foram repetidas, mas os testes unitários (35/35) e o `regression.py`
 (19/19) foram repetidos no código entregue (`464929f`; os _commits_ seguintes só alteram documentação).
